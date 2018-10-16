@@ -72,12 +72,9 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-rp1.o : $(USER_DIR)/rp1.cpp $(USER_DIR)/rp1.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/rp1.cpp
-
 test_rp1.o : $(USER_DIR)/test_rp1.cpp \
 		                     $(USER_DIR)/rp1.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/test_rp1.cpp
 
-test_rp1 : rp1.o test_rp1.o gtest_main.a
+test_rp1 : test_rp1.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
