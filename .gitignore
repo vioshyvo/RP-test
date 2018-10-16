@@ -2,3 +2,5 @@ googletest/
 *.o
 *.dSYM
 *.a
+make/test*
+*.DS_Store

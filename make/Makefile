@@ -18,7 +18,7 @@ CXX = g++-8
 GTEST_DIR = ../googletest/googletest
 
 # Where to find user code.
-USER_DIR = ../test_files
+USER_DIR = ../test
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
