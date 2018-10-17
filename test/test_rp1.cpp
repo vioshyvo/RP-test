@@ -3,6 +3,8 @@
 //
 // Don't forget gtest.h, which declares the testing framework.
 
+#include <random>
+
 #include "rp1.h"
 #include "gtest/gtest.h"
 #include "Mrpt.h"
@@ -53,26 +55,31 @@ TEST(AnotherTrivialTest, Multiplication) {
 }
 
 TEST(MRPTtest, Query) {
-  int d = 3, n = 4, n_trees = 1, depth = 1, sparsity = 1, seed = 12345;
+  int d = 100, n = 1024, n_trees = 10, depth = 6, sparsity = 1;
+
+  int seed_data = 56789, seed_mrpt = 12345;
+  std::mt19937 mt(seed_data);
+  std::normal_distribution<double> dist(5.0,2.0);
+
   MatrixXf X(d,n);
-  X << 1.1, 2.4, 4.54, -5.6,
-     -3.45, 3.3, -4.5, 9.98,
-      4.75, 5.2, 55.4, -0.02;
+  for(int i = 0; i < d; ++i)
+    for(int j = 0; j < n; ++j)
+      X(i,j) = dist(mt);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index_dense(M, n_trees, depth, sparsity, seed = seed);
+  Mrpt index_dense(M, n_trees, depth, sparsity, seed_mrpt);
   index_dense.grow();
 
   int k = 2, votes = 1;
   std::vector<int> result(k);
   VectorXf q(d);
-  q << 1.5, -9.9, 7.345;
+  for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
   index_dense.query(V, k, votes, &result[0]);
 
-  EXPECT_EQ(result[0], 0);
-  EXPECT_EQ(result[1], 2);
+  EXPECT_EQ(result[0], 541);
+  EXPECT_EQ(result[1], 949);
 }
 
 }
