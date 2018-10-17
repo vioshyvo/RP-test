@@ -29,7 +29,7 @@ class Mrpt {
     * @param depth_ - The depth of the trees.
     * @param density_ - Expected ratio of non-zero components in a projection matrix.
     */
-    Mrpt(const Map<const MatrixXf> *X_, int n_trees_, int depth_, float density_) :
+    Mrpt(const Map<const MatrixXf> *X_, int n_trees_, int depth_, float density_, int seed_ = 0) :
         X(X_),
         n_samples(X_->cols()),
         dim(X_->rows()),
@@ -37,7 +37,8 @@ class Mrpt {
         depth(depth_),
         density(density_),
         n_pool(n_trees_ * depth_),
-        n_array(1 << (depth_ + 1))
+        n_array(1 << (depth_ + 1)),
+        seed(seed_)
     { }
 
     ~Mrpt() {}
@@ -363,7 +364,8 @@ class Mrpt {
         sparse_random_matrix = SparseMatrix<float, RowMajor>(n_pool, dim);
 
         std::random_device rd;
-        std::mt19937 gen(rd());
+        int s = seed ? seed : rd();
+        std::mt19937 gen(s);
         std::uniform_real_distribution<float> uni_dist(0, 1);
         std::normal_distribution<float> norm_dist(0, 1);
 
@@ -387,7 +389,8 @@ class Mrpt {
         dense_random_matrix = Matrix<float, Dynamic, Dynamic, RowMajor>(n_pool, dim);
 
         std::random_device rd;
-        std::mt19937 gen(rd());
+        int s = seed ? seed : rd();
+        std::mt19937 gen(s);
         std::normal_distribution<float> normal_dist(0, 1);
 
         std::generate(dense_random_matrix.data(), dense_random_matrix.data() + n_pool * dim,
@@ -408,6 +411,7 @@ class Mrpt {
     const float density; // expected ratio of non-zero components in a projection matrix
     const int n_pool; // amount of random vectors needed for all the RP-trees
     const int n_array; // length of the one RP-tree as array
+    const int seed;
 };
 
 #endif // CPP_MRPT_H_

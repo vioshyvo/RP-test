@@ -5,6 +5,8 @@
 
 #include "rp1.h"
 #include "gtest/gtest.h"
+#include "Mrpt.h"
+#include "Eigen/Dense"
 
 // Step 2. Use the TEST macro to define your tests.
 //
@@ -48,6 +50,29 @@ TEST(TrivialTest, Substraction) {
 TEST(AnotherTrivialTest, Multiplication) {
   EXPECT_EQ(multiply(2,2), 2*2);
   EXPECT_EQ(multiply(0,2), 0);
+}
+
+TEST(MRPTtest, Query) {
+  int d = 3, n = 4, n_trees = 1, depth = 1, sparsity = 1, seed = 12345;
+  MatrixXf X(d,n);
+  X << 1.1, 2.4, 4.54, -5.6,
+     -3.45, 3.3, -4.5, 9.98,
+      4.75, 5.2, 55.4, -0.02;
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Mrpt index_dense(M, n_trees, depth, sparsity, seed = seed);
+  index_dense.grow();
+
+  int k = 2, votes = 1;
+  std::vector<int> result(k);
+  VectorXf q(d);
+  q << 1.5, -9.9, 7.345;
+
+  const Map<VectorXf> V(q.data(), d);
+  index_dense.query(V, k, votes, &result[0]);
+
+  EXPECT_EQ(result[0], 0);
+  EXPECT_EQ(result[1], 2);
 }
 
 }

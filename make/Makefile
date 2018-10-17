@@ -1,4 +1,8 @@
 CXX = g++-8
+
+# The parent directory of the MRPT
+MRPT_DIR = ../mrpt
+
 # A sample Makefile for building Google Test and using it in user
 # tests.  Please tweak it to suit your environment and project.  You
 # may want to move it to your project's root directory.
@@ -23,10 +27,10 @@ USER_DIR = ../test
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
 # the compiler doesn't generate warnings in Google Test headers.
-CPPFLAGS += -isystem $(GTEST_DIR)/include
+CPPFLAGS += -isystem $(GTEST_DIR)/include -isystem $(MRPT_DIR)/cpp/lib
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -pthread
+CXXFLAGS += -g -Wall -Wextra -pthread -fopenmp
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
@@ -74,7 +78,7 @@ gtest_main.a : gtest-all.o gtest_main.o
 
 test_rp1.o : $(USER_DIR)/test_rp1.cpp \
 		                     $(USER_DIR)/rp1.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/test_rp1.cpp
+	$(CXX) $(CPPFLAGS) -I$(MRPT_DIR)/cpp $(CXXFLAGS) -c $(USER_DIR)/test_rp1.cpp
 
 test_rp1 : test_rp1.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
