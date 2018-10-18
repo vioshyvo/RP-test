@@ -71,6 +71,30 @@ class QueryTest : public testing::Test {
           for(int i = 0; i < d; ++i) q(i) = dist(mt);
   }
 
+  // Test that:
+  // a) the indices of the returned approximate k-nn are same as before
+  // b) approximate k-nn are returned in correct order
+  // c) distances to the approximate k-nn are computed correctly
+  void QueryTester(int n_trees, int depth, float density, int votes, int k,
+      std::vector<int> approximate_knn) {
+    ASSERT_EQ(approximate_knn.size(), k);
+    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    Mrpt index_dense(M, n_trees, depth, density);
+    index_dense.grow(seed_mrpt);
+
+    std::vector<int> result(k);
+    std::vector<float> distances(k);
+
+    const Map<VectorXf> V(q.data(), d);
+    index_dense.query(V, k, votes, &result[0], &distances[0]);
+
+    for(int i = 0; i < k; ++i)  {
+      EXPECT_EQ(result[i], approximate_knn[i]);
+      EXPECT_LE(distances[i-1], distances[i]);
+      EXPECT_FLOAT_EQ(distances[i], (X.col(result[i]) - q).norm());
+    }
+  }
+
   int d, n, seed_data, seed_mrpt;
   MatrixXf X;
   VectorXf q;
@@ -80,50 +104,11 @@ class QueryTest : public testing::Test {
 // Test that the nearest neighbors returned by the index
 // are same as before when a seed for rng is fixed
 TEST_F(QueryTest, DenseTrees) {
-  int n_trees = 10, depth = 6, density = 1;
+  int n_trees = 10, depth = 6, votes = 1, k = 5;
+  float density = 1;
 
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index_dense(M, n_trees, depth, density);
-  index_dense.grow(seed_mrpt);
-
-  int k = 5, votes = 1;
-  std::vector<int> result(k);
-  std::vector<float> distances(k);
-
-  const Map<VectorXf> V(q.data(), d);
-  index_dense.query(V, k, votes, &result[0], &distances[0]);
-
-  EXPECT_EQ(result[0], 541);
-  EXPECT_EQ(result[1], 949);
-  EXPECT_EQ(result[2], 720);
-  EXPECT_EQ(result[3], 629);
-  EXPECT_EQ(result[4], 84);
-
-  // test that the nearest neighbors returned are in correct order
-  for(int i = 1; i < k; ++i) EXPECT_LE(distances[i-1], distances[i]);
-
-  // test that the distances returned to the nearest neighbors are correct
-  for(int i = 0; i < k; ++i) {
-    float distance_true = (X.col(result[i]) - q).norm();
-    EXPECT_FLOAT_EQ(distances[i], distance_true);
-  }
-
-  votes = 3; // test that voting works with v > 1
-  index_dense.query(V, k, votes, &result[0], &distances[0]);
-
-  EXPECT_EQ(result[0], 949);
-  EXPECT_EQ(result[1], 629);
-  EXPECT_EQ(result[2], 359);
-  EXPECT_EQ(result[3], 109);
-  EXPECT_EQ(result[4], 942);
-
-  for(int i = 1; i < k; ++i) EXPECT_LE(distances[i-1], distances[i]);
-
-  for(int i = 0; i < k; ++i) {
-    float distance_true = (X.col(result[i]) - q).norm();
-    EXPECT_FLOAT_EQ(distances[i], distance_true);
-  }
-
+  QueryTester(n_trees, depth, density, 1, k, std::vector<int> {541, 949, 720, 629, 84});
+  QueryTester(n_trees, depth, density, 3, k, std::vector<int> {949, 629, 359, 109, 942});
 }
 
 // Test that the nearest neighbors returned by the index stay
