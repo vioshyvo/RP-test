@@ -29,7 +29,7 @@ class Mrpt {
     * @param depth_ - The depth of the trees.
     * @param density_ - Expected ratio of non-zero components in a projection matrix.
     */
-    Mrpt(const Map<const MatrixXf> *X_, int n_trees_, int depth_, float density_, int seed_ = 0) :
+    Mrpt(const Map<const MatrixXf> *X_, int n_trees_, int depth_, float density_) :
         X(X_),
         n_samples(X_->cols()),
         dim(X_->rows()),
@@ -37,8 +37,7 @@ class Mrpt {
         depth(depth_),
         density(density_),
         n_pool(n_trees_ * depth_),
-        n_array(1 << (depth_ + 1)),
-        seed(seed_)
+        n_array(1 << (depth_ + 1))
     { }
 
     ~Mrpt() {}
@@ -48,9 +47,9 @@ class Mrpt {
     * arrays to store the tree structures and computes all the projections needed
     * later. Then repeatedly calls method grow_subtree that builds a single RP-tree.
     */
-    void grow() {
+    void grow(int seed = 0) {
         // generate the random matrix
-        density < 1 ? build_sparse_random_matrix() : build_dense_random_matrix();
+        density < 1 ? build_sparse_random_matrix(seed) : build_dense_random_matrix(seed);
 
         split_points = MatrixXf(n_array, n_trees);
         VectorXi indices(n_samples);
@@ -360,7 +359,7 @@ class Mrpt {
     *
     * where a = density.
     */
-    void build_sparse_random_matrix() {
+    void build_sparse_random_matrix(int seed = 0) {
         sparse_random_matrix = SparseMatrix<float, RowMajor>(n_pool, dim);
 
         std::random_device rd;
@@ -385,7 +384,7 @@ class Mrpt {
     * Builds a random dense matrix for use in random projection. The components of
     * the matrix are drawn from the standard normal distribution.
     */
-    void build_dense_random_matrix() {
+    void build_dense_random_matrix(int seed = 0) {
         dense_random_matrix = Matrix<float, Dynamic, Dynamic, RowMajor>(n_pool, dim);
 
         std::random_device rd;
@@ -411,7 +410,6 @@ class Mrpt {
     const float density; // expected ratio of non-zero components in a projection matrix
     const int n_pool; // amount of random vectors needed for all the RP-trees
     const int n_array; // length of the one RP-tree as array
-    const int seed;
 };
 
 #endif // CPP_MRPT_H_

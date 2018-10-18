@@ -54,8 +54,10 @@ TEST(AnotherTrivialTest, Multiplication) {
   EXPECT_EQ(multiply(0,2), 0);
 }
 
-TEST(MRPTtest, Query) {
-  int d = 100, n = 1024, n_trees = 10, depth = 6, sparsity = 1;
+// Test that the nearest neighbors returned by the index
+// are same as before when a seed for rng is fixed
+TEST(QueryTest, DenseTrees) {
+  int d = 100, n = 1024, n_trees = 10, depth = 6, density = 1;
 
   int seed_data = 56789, seed_mrpt = 12345;
   std::mt19937 mt(seed_data);
@@ -67,10 +69,10 @@ TEST(MRPTtest, Query) {
       X(i,j) = dist(mt);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index_dense(M, n_trees, depth, sparsity, seed_mrpt);
-  index_dense.grow();
+  Mrpt index_dense(M, n_trees, depth, density);
+  index_dense.grow(seed_mrpt);
 
-  int k = 2, votes = 1;
+  int k = 5, votes = 1;
   std::vector<int> result(k);
   VectorXf q(d);
   for(int i = 0; i < d; ++i) q(i) = dist(mt);
@@ -80,7 +82,101 @@ TEST(MRPTtest, Query) {
 
   EXPECT_EQ(result[0], 541);
   EXPECT_EQ(result[1], 949);
+  EXPECT_EQ(result[2], 720);
+  EXPECT_EQ(result[3], 629);
+  EXPECT_EQ(result[4], 84);
+
+  votes = 3; // test that voting works with v > 1
+  index_dense.query(V, k, votes, &result[0]);
+
+  EXPECT_EQ(result[0], 949);
+  EXPECT_EQ(result[1], 629);
+  EXPECT_EQ(result[2], 359);
+  EXPECT_EQ(result[3], 109);
+  EXPECT_EQ(result[4], 942);
 }
+
+// Test that the nearest neighbors returned by the index stay
+// same when an index with sparse random vectors is used
+TEST(QueryTest, SparseTrees) {
+  int d = 100, n = 1024, n_trees = 10, depth = 6;
+  float density = 1.0 / std::sqrt(d);
+
+  int seed_data = 56789, seed_mrpt = 12345;
+  std::mt19937 mt(seed_data);
+  std::normal_distribution<double> dist(5.0,2.0);
+
+  MatrixXf X(d,n);
+  for(int i = 0; i < d; ++i)
+    for(int j = 0; j < n; ++j)
+      X(i,j) = dist(mt);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Mrpt index_dense(M, n_trees, depth, density);
+  index_dense.grow(seed_mrpt);
+
+  int k = 5, votes = 3;
+  std::vector<int> result(k);
+  VectorXf q(d);
+  for(int i = 0; i < d; ++i) q(i) = dist(mt);
+
+  const Map<VectorXf> V(q.data(), d);
+  index_dense.query(V, k, votes, &result[0]);
+
+  EXPECT_EQ(result[0], 949);
+  EXPECT_EQ(result[1], 692);
+  EXPECT_EQ(result[2], 258);
+  EXPECT_EQ(result[3], 39);
+  EXPECT_EQ(result[4], 192);
+
+}
+
+// Test that the nearest neighbors returned by the index are different
+// when rng is initialized with a random seed (no seed is given to
+// grow() - method). Obs. this test may fail with a very small probability
+// if the nearest neighbors returned by two different indices happen
+// to be exactly same by change.
+TEST(QueryTest, RandomSeed) {
+  int d = 100, n = 1024, n_trees = 10, depth = 6;
+  float density = 1.0 / std::sqrt(d);
+
+  int seed_data = 56789;
+  std::mt19937 mt(seed_data);
+  std::normal_distribution<double> dist(5.0,2.0);
+
+  MatrixXf X(d,n);
+  for(int i = 0; i < d; ++i)
+    for(int j = 0; j < n; ++j)
+      X(i,j) = dist(mt);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+
+  Mrpt index_dense(M, n_trees, depth, density);
+  index_dense.grow(); // initialize rng with random seed
+  Mrpt index_dense2(M, n_trees, depth, density);
+  index_dense2.grow();
+
+  int k = 10, votes = 3;
+  std::vector<int> r(k), r2(k);
+  VectorXf q(d);
+  for(int i = 0; i < d; ++i) q(i) = dist(mt);
+
+  const Map<VectorXf> V(q.data(), d);
+
+  index_dense.query(V, k, votes, &r[0]);
+  index_dense2.query(V, k, votes, &r[0]);
+
+  bool same_neighbors = true;
+  for(int i = 0; i < k; ++i) {
+    if(r[i] != r2[i]) {
+      same_neighbors = false;
+      break;
+    }
+  }
+
+  EXPECT_FALSE(same_neighbors);
+}
+
 
 }
 
