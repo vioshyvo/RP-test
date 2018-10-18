@@ -54,19 +54,33 @@ TEST(AnotherTrivialTest, Multiplication) {
   EXPECT_EQ(multiply(0,2), 0);
 }
 
+
+class QTest : public testing::Test {
+  protected:
+
+  QTest() : d(100), n(1024), seed_data(56789), seed_mrpt(12345) {
+          std::mt19937 mt(seed_data);
+          std::normal_distribution<double> dist(5.0,2.0);
+
+          X = MatrixXf(d,n);
+          for(int i = 0; i < d; ++i)
+            for(int j = 0; j < n; ++j)
+              X(i,j) = dist(mt);
+
+          q = VectorXf(d);
+          for(int i = 0; i < d; ++i) q(i) = dist(mt);
+  }
+
+  int d, n, seed_data, seed_mrpt;
+  MatrixXf X;
+  VectorXf q;
+};
+
+
 // Test that the nearest neighbors returned by the index
 // are same as before when a seed for rng is fixed
-TEST(QueryTest, DenseTrees) {
-  int d = 100, n = 1024, n_trees = 10, depth = 6, density = 1;
-
-  int seed_data = 56789, seed_mrpt = 12345;
-  std::mt19937 mt(seed_data);
-  std::normal_distribution<double> dist(5.0,2.0);
-
-  MatrixXf X(d,n);
-  for(int i = 0; i < d; ++i)
-    for(int j = 0; j < n; ++j)
-      X(i,j) = dist(mt);
+TEST_F(QTest, DenseTrees) {
+  int n_trees = 10, depth = 6, density = 1;
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Mrpt index_dense(M, n_trees, depth, density);
@@ -75,8 +89,6 @@ TEST(QueryTest, DenseTrees) {
   int k = 5, votes = 1;
   std::vector<int> result(k);
   std::vector<float> distances(k);
-  VectorXf q(d);
-  for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
   index_dense.query(V, k, votes, &result[0], &distances[0]);
