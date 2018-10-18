@@ -74,11 +74,12 @@ TEST(QueryTest, DenseTrees) {
 
   int k = 5, votes = 1;
   std::vector<int> result(k);
+  std::vector<float> distances(k);
   VectorXf q(d);
   for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
-  index_dense.query(V, k, votes, &result[0]);
+  index_dense.query(V, k, votes, &result[0], &distances[0]);
 
   EXPECT_EQ(result[0], 541);
   EXPECT_EQ(result[1], 949);
@@ -86,14 +87,31 @@ TEST(QueryTest, DenseTrees) {
   EXPECT_EQ(result[3], 629);
   EXPECT_EQ(result[4], 84);
 
+  // test that the nearest neighbors returned are in correct order
+  for(int i = 1; i < k; ++i) EXPECT_LE(distances[i-1], distances[i]);
+
+  // test that the distances returned to the nearest neighbors are correct
+  for(int i = 0; i < k; ++i) {
+    float distance_true = (X.col(result[i]) - q).norm();
+    EXPECT_FLOAT_EQ(distances[i], distance_true);
+  }
+
   votes = 3; // test that voting works with v > 1
-  index_dense.query(V, k, votes, &result[0]);
+  index_dense.query(V, k, votes, &result[0], &distances[0]);
 
   EXPECT_EQ(result[0], 949);
   EXPECT_EQ(result[1], 629);
   EXPECT_EQ(result[2], 359);
   EXPECT_EQ(result[3], 109);
   EXPECT_EQ(result[4], 942);
+
+  for(int i = 1; i < k; ++i) EXPECT_LE(distances[i-1], distances[i]);
+
+  for(int i = 0; i < k; ++i) {
+    float distance_true = (X.col(result[i]) - q).norm();
+    EXPECT_FLOAT_EQ(distances[i], distance_true);
+  }
+
 }
 
 // Test that the nearest neighbors returned by the index stay
@@ -117,17 +135,24 @@ TEST(QueryTest, SparseTrees) {
 
   int k = 5, votes = 3;
   std::vector<int> result(k);
+  std::vector<float> distances(k);
   VectorXf q(d);
   for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
-  index_dense.query(V, k, votes, &result[0]);
+  index_dense.query(V, k, votes, &result[0], &distances[0]);
 
   EXPECT_EQ(result[0], 949);
   EXPECT_EQ(result[1], 692);
   EXPECT_EQ(result[2], 258);
   EXPECT_EQ(result[3], 39);
   EXPECT_EQ(result[4], 192);
+
+  for(int i = 0; i < k; ++i) {
+    EXPECT_LE(distances[i-1], distances[i]);
+    float distance_true = (X.col(result[i]) - q).norm();
+    EXPECT_FLOAT_EQ(distances[i], distance_true);
+  }
 
 }
 
@@ -197,17 +222,24 @@ TEST(QueryTest, OneTree) {
 
   int k = 5, votes = 1;
   std::vector<int> result(k);
+  std::vector<float> distances(k);
   VectorXf q(d);
   for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
-  index_dense.query(V, k, votes, &result[0]);
+  index_dense.query(V, k, votes, &result[0], &distances[0]);
 
   EXPECT_EQ(result[0], 20);
   EXPECT_EQ(result[1], 833);
   EXPECT_EQ(result[2], 638);
   EXPECT_EQ(result[3], 654);
   EXPECT_EQ(result[4], 972);
+
+  for(int i = 0; i < k; ++i) {
+    EXPECT_LE(distances[i-1], distances[i]);
+    float distance_true = (X.col(result[i]) - q).norm();
+    EXPECT_FLOAT_EQ(distances[i], distance_true);
+  }
 }
 
 // Test that the exact k-nn search works correctly
@@ -229,6 +261,7 @@ TEST(ExactKnn, SameNeighbors) {
 
   int k = 5;
   std::vector<int> result(k);
+  std::vector<float> distances(k);
   VectorXf q(d);
   for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
@@ -236,13 +269,18 @@ TEST(ExactKnn, SameNeighbors) {
   VectorXi idx(n);
   std::iota(idx.data(), idx.data() + n, 0);
 
-  index_dense.exact_knn(V, k, idx, n, &result[0]);
+  index_dense.exact_knn(V, k, idx, n, &result[0], &distances[0]);
 
   EXPECT_EQ(result[0], 501);
   EXPECT_EQ(result[1], 682);
   EXPECT_EQ(result[2], 566);
   EXPECT_EQ(result[3], 541);
   EXPECT_EQ(result[4], 747);
+
+  for(int i = 0; i < k; ++i) {
+    float distance_true = (X.col(result[i]) - q).norm();
+    EXPECT_FLOAT_EQ(distances[i], distance_true);
+  }
 
 }
 
