@@ -55,10 +55,10 @@ TEST(AnotherTrivialTest, Multiplication) {
 }
 
 
-class QTest : public testing::Test {
+class QueryTest : public testing::Test {
   protected:
 
-  QTest() : d(100), n(1024), seed_data(56789), seed_mrpt(12345) {
+  QueryTest() : d(100), n(1024), seed_data(56789), seed_mrpt(12345) {
           std::mt19937 mt(seed_data);
           std::normal_distribution<double> dist(5.0,2.0);
 
@@ -79,7 +79,7 @@ class QTest : public testing::Test {
 
 // Test that the nearest neighbors returned by the index
 // are same as before when a seed for rng is fixed
-TEST_F(QTest, DenseTrees) {
+TEST_F(QueryTest, DenseTrees) {
   int n_trees = 10, depth = 6, density = 1;
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -128,18 +128,9 @@ TEST_F(QTest, DenseTrees) {
 
 // Test that the nearest neighbors returned by the index stay
 // same when an index with sparse random vectors is used
-TEST(QueryTest, SparseTrees) {
-  int d = 100, n = 1024, n_trees = 10, depth = 6;
+TEST_F(QueryTest, SparseTrees) {
+  int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
-
-  int seed_data = 56789, seed_mrpt = 12345;
-  std::mt19937 mt(seed_data);
-  std::normal_distribution<double> dist(5.0,2.0);
-
-  MatrixXf X(d,n);
-  for(int i = 0; i < d; ++i)
-    for(int j = 0; j < n; ++j)
-      X(i,j) = dist(mt);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Mrpt index_dense(M, n_trees, depth, density);
@@ -148,8 +139,6 @@ TEST(QueryTest, SparseTrees) {
   int k = 5, votes = 3;
   std::vector<int> result(k);
   std::vector<float> distances(k);
-  VectorXf q(d);
-  for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
   index_dense.query(V, k, votes, &result[0], &distances[0]);
@@ -173,18 +162,9 @@ TEST(QueryTest, SparseTrees) {
 // grow() - method). Obs. this test may fail with a very small probability
 // if the nearest neighbors returned by two different indices happen
 // to be exactly same by change.
-TEST(QueryTest, RandomSeed) {
-  int d = 100, n = 1024, n_trees = 10, depth = 6;
+TEST_F(QueryTest, RandomSeed) {
+  int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
-
-  int seed_data = 56789;
-  std::mt19937 mt(seed_data);
-  std::normal_distribution<double> dist(5.0,2.0);
-
-  MatrixXf X(d,n);
-  for(int i = 0; i < d; ++i)
-    for(int j = 0; j < n; ++j)
-      X(i,j) = dist(mt);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
 
@@ -195,8 +175,6 @@ TEST(QueryTest, RandomSeed) {
 
   int k = 10, votes = 3;
   std::vector<int> r(k), r2(k);
-  VectorXf q(d);
-  for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
 
@@ -215,18 +193,9 @@ TEST(QueryTest, RandomSeed) {
 }
 
 // Test that index with only one tree works correctly
-TEST(QueryTest, OneTree) {
-  int d = 100, n = 1024, n_trees = 1, depth = 6;
+TEST_F(QueryTest, OneTree) {
+  int n_trees = 1, depth = 6;
   float density = 1.0 / std::sqrt(d);
-
-  int seed_data = 56789, seed_mrpt = 12345;
-  std::mt19937 mt(seed_data);
-  std::normal_distribution<double> dist(5.0,2.0);
-
-  MatrixXf X(d,n);
-  for(int i = 0; i < d; ++i)
-    for(int j = 0; j < n; ++j)
-      X(i,j) = dist(mt);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Mrpt index_dense(M, n_trees, depth, density);
@@ -235,8 +204,6 @@ TEST(QueryTest, OneTree) {
   int k = 5, votes = 1;
   std::vector<int> result(k);
   std::vector<float> distances(k);
-  VectorXf q(d);
-  for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
   index_dense.query(V, k, votes, &result[0], &distances[0]);
@@ -255,17 +222,7 @@ TEST(QueryTest, OneTree) {
 }
 
 // Test that the exact k-nn search works correctly
-TEST(ExactKnn, SameNeighbors) {
-  int d = 100, n = 1024;
-
-  int seed_data = 56789;
-  std::mt19937 mt(seed_data);
-  std::normal_distribution<double> dist(5.0,2.0);
-
-  MatrixXf X(d,n);
-  for(int i = 0; i < d; ++i)
-    for(int j = 0; j < n; ++j)
-      X(i,j) = dist(mt);
+TEST_F(QueryTest, ExactKnn) {
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Mrpt index_dense(M, 0, 0, 1);
@@ -274,8 +231,6 @@ TEST(ExactKnn, SameNeighbors) {
   int k = 5;
   std::vector<int> result(k);
   std::vector<float> distances(k);
-  VectorXf q(d);
-  for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
   const Map<VectorXf> V(q.data(), d);
   VectorXi idx(n);
