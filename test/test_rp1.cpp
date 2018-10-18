@@ -177,6 +177,75 @@ TEST(QueryTest, RandomSeed) {
   EXPECT_FALSE(same_neighbors);
 }
 
+// Test that index with only one tree works correctly
+TEST(QueryTest, OneTree) {
+  int d = 100, n = 1024, n_trees = 1, depth = 6;
+  float density = 1.0 / std::sqrt(d);
+
+  int seed_data = 56789, seed_mrpt = 12345;
+  std::mt19937 mt(seed_data);
+  std::normal_distribution<double> dist(5.0,2.0);
+
+  MatrixXf X(d,n);
+  for(int i = 0; i < d; ++i)
+    for(int j = 0; j < n; ++j)
+      X(i,j) = dist(mt);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Mrpt index_dense(M, n_trees, depth, density);
+  index_dense.grow(seed_mrpt);
+
+  int k = 5, votes = 1;
+  std::vector<int> result(k);
+  VectorXf q(d);
+  for(int i = 0; i < d; ++i) q(i) = dist(mt);
+
+  const Map<VectorXf> V(q.data(), d);
+  index_dense.query(V, k, votes, &result[0]);
+
+  EXPECT_EQ(result[0], 20);
+  EXPECT_EQ(result[1], 833);
+  EXPECT_EQ(result[2], 638);
+  EXPECT_EQ(result[3], 654);
+  EXPECT_EQ(result[4], 972);
+}
+
+// Test that the exact k-nn search works correctly
+TEST(ExactKnn, SameNeighbors) {
+  int d = 100, n = 1024;
+
+  int seed_data = 56789;
+  std::mt19937 mt(seed_data);
+  std::normal_distribution<double> dist(5.0,2.0);
+
+  MatrixXf X(d,n);
+  for(int i = 0; i < d; ++i)
+    for(int j = 0; j < n; ++j)
+      X(i,j) = dist(mt);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Mrpt index_dense(M, 0, 0, 1);
+  index_dense.grow();
+
+  int k = 5;
+  std::vector<int> result(k);
+  VectorXf q(d);
+  for(int i = 0; i < d; ++i) q(i) = dist(mt);
+
+  const Map<VectorXf> V(q.data(), d);
+  VectorXi idx(n);
+  std::iota(idx.data(), idx.data() + n, 0);
+
+  index_dense.exact_knn(V, k, idx, n, &result[0]);
+
+  EXPECT_EQ(result[0], 501);
+  EXPECT_EQ(result[1], 682);
+  EXPECT_EQ(result[2], 566);
+  EXPECT_EQ(result[3], 541);
+  EXPECT_EQ(result[4], 747);
+
+}
+
 
 }
 
