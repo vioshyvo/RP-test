@@ -282,6 +282,20 @@ TEST(ExactKnn, SameNeighbors) {
     EXPECT_FLOAT_EQ(distances[i], distance_true);
   }
 
+  VectorXf dd(n);
+  for(int i = 0; i < n; ++i)
+    dd(i) = (X.col(i) - q).norm();
+
+  std::partial_sort(idx.data(), idx.data() + k, idx.data() + n,
+    [&dd](int i, int j) { return dd(i) < dd(j); });
+
+  // test that the k nearest neighbors returned by exact-knn are true
+  // k nearest neighbors
+  for(int i = 0; i < k; ++i) {
+    EXPECT_EQ(result[i], idx[i]);
+    EXPECT_FLOAT_EQ(distances[i], dd(idx(i)));
+  }
+
 }
 
 
