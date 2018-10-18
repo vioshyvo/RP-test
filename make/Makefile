@@ -1,7 +1,7 @@
 CXX = g++-8
 
 # The parent directory of the MRPT
-MRPT_DIR = ../mrpt
+MRPT_DIR = ../../mrpt
 
 # A sample Makefile for building Google Test and using it in user
 # tests.  Please tweak it to suit your environment and project.  You

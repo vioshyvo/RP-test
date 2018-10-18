@@ -164,7 +164,7 @@ TEST(QueryTest, RandomSeed) {
   const Map<VectorXf> V(q.data(), d);
 
   index_dense.query(V, k, votes, &r[0]);
-  index_dense2.query(V, k, votes, &r[0]);
+  index_dense2.query(V, k, votes, &r2[0]);
 
   bool same_neighbors = true;
   for(int i = 0; i < k; ++i) {
