@@ -84,13 +84,16 @@ class QueryTest : public testing::Test {
 
     std::vector<int> result(k);
     std::vector<float> distances(k);
+    for(int i = 0; i < k; ++i) distances[i] = 0;
 
     const Map<VectorXf> V(q.data(), d);
     index_dense.query(V, k, votes, &result[0], &distances[0]);
 
     for(int i = 0; i < k; ++i)  {
       EXPECT_EQ(result[i], approximate_knn[i]);
-      EXPECT_LE(distances[i-1], distances[i]);
+      if(i > 0) {
+        EXPECT_LE(distances[i-1], distances[i]);
+      }
       EXPECT_FLOAT_EQ(distances[i], (X.col(result[i]) - q).norm());
     }
   }
@@ -107,8 +110,25 @@ TEST_F(QueryTest, DenseTrees) {
   int n_trees = 10, depth = 6, votes = 1, k = 5;
   float density = 1;
 
+  // test different numbers of trees
+  QueryTester(1, depth, density, votes, k, std::vector<int> {949, 84, 136, 133, 942});
+  QueryTester(5, depth, density, votes, k, std::vector<int> {949, 720, 84, 959, 447});
+  QueryTester(100, depth, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
+
+  // test different depths
+  QueryTester(n_trees, 1, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
+  QueryTester(n_trees, 3, density, votes, k, std::vector<int> {501, 682, 541, 747, 882});
+  QueryTester(n_trees, 8, density, votes, k, std::vector<int> {949, 629, 860, 954, 121});
+  QueryTester(n_trees, 10, density, votes, k, std::vector<int> {949, 713, 574, 88, 900});
+
+  // test different densities
+  QueryTester(n_trees, depth, 1.0 / std::sqrt(d), votes, k, std::vector<int> {566, 882, 949, 802, 110});
+
+  // test different vote thresholds
   QueryTester(n_trees, depth, density, 1, k, std::vector<int> {541, 949, 720, 629, 84});
   QueryTester(n_trees, depth, density, 3, k, std::vector<int> {949, 629, 359, 109, 942});
+  QueryTester(30, depth, density, 5, k, std::vector<int> {629, 84, 779, 838, 713});
+
 }
 
 // Test that the nearest neighbors returned by the index stay
