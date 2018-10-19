@@ -110,57 +110,30 @@ TEST_F(QueryTest, DenseTrees) {
   int n_trees = 10, depth = 6, votes = 1, k = 5;
   float density = 1;
 
-  // test different numbers of trees
   QueryTester(1, depth, density, votes, k, std::vector<int> {949, 84, 136, 133, 942});
   QueryTester(5, depth, density, votes, k, std::vector<int> {949, 720, 84, 959, 447});
   QueryTester(100, depth, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
 
-  // test different depths
   QueryTester(n_trees, 1, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
   QueryTester(n_trees, 3, density, votes, k, std::vector<int> {501, 682, 541, 747, 882});
   QueryTester(n_trees, 8, density, votes, k, std::vector<int> {949, 629, 860, 954, 121});
   QueryTester(n_trees, 10, density, votes, k, std::vector<int> {949, 713, 574, 88, 900});
 
-  // test different densities
+  QueryTester(n_trees, depth, 0.01, votes, k, std::vector<int> {501, 566, 802, 84, 928});
   QueryTester(n_trees, depth, 1.0 / std::sqrt(d), votes, k, std::vector<int> {566, 882, 949, 802, 110});
+  QueryTester(n_trees, depth, 0.5, votes, k, std::vector<int> {682, 882, 802, 115, 720});
 
-  // test different vote thresholds
   QueryTester(n_trees, depth, density, 1, k, std::vector<int> {541, 949, 720, 629, 84});
   QueryTester(n_trees, depth, density, 3, k, std::vector<int> {949, 629, 359, 109, 942});
   QueryTester(30, depth, density, 5, k, std::vector<int> {629, 84, 779, 838, 713});
 
-}
-
-// Test that the nearest neighbors returned by the index stay
-// same when an index with sparse random vectors is used
-TEST_F(QueryTest, SparseTrees) {
-  int n_trees = 10, depth = 6;
-  float density = 1.0 / std::sqrt(d);
-
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index_dense(M, n_trees, depth, density);
-  index_dense.grow(seed_mrpt);
-
-  int k = 5, votes = 3;
-  std::vector<int> result(k);
-  std::vector<float> distances(k);
-
-  const Map<VectorXf> V(q.data(), d);
-  index_dense.query(V, k, votes, &result[0], &distances[0]);
-
-  EXPECT_EQ(result[0], 949);
-  EXPECT_EQ(result[1], 692);
-  EXPECT_EQ(result[2], 258);
-  EXPECT_EQ(result[3], 39);
-  EXPECT_EQ(result[4], 192);
-
-  for(int i = 0; i < k; ++i) {
-    EXPECT_LE(distances[i-1], distances[i]);
-    float distance_true = (X.col(result[i]) - q).norm();
-    EXPECT_FLOAT_EQ(distances[i], distance_true);
-  }
+  QueryTester(n_trees, depth, density, votes, 1, std::vector<int> {541});
+  QueryTester(n_trees, depth, density, votes, 2, std::vector<int> {541, 949});
+  QueryTester(n_trees, depth, density, votes, 10,
+      std::vector<int> {541, 949, 720, 629, 84, 928, 959, 438, 372, 447});
 
 }
+
 
 // Test that the nearest neighbors returned by the index are different
 // when rng is initialized with a random seed (no seed is given to
@@ -197,34 +170,6 @@ TEST_F(QueryTest, RandomSeed) {
   EXPECT_FALSE(same_neighbors);
 }
 
-// Test that index with only one tree works correctly
-TEST_F(QueryTest, OneTree) {
-  int n_trees = 1, depth = 6;
-  float density = 1.0 / std::sqrt(d);
-
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index_dense(M, n_trees, depth, density);
-  index_dense.grow(seed_mrpt);
-
-  int k = 5, votes = 1;
-  std::vector<int> result(k);
-  std::vector<float> distances(k);
-
-  const Map<VectorXf> V(q.data(), d);
-  index_dense.query(V, k, votes, &result[0], &distances[0]);
-
-  EXPECT_EQ(result[0], 20);
-  EXPECT_EQ(result[1], 833);
-  EXPECT_EQ(result[2], 638);
-  EXPECT_EQ(result[3], 654);
-  EXPECT_EQ(result[4], 972);
-
-  for(int i = 0; i < k; ++i) {
-    EXPECT_LE(distances[i-1], distances[i]);
-    float distance_true = (X.col(result[i]) - q).norm();
-    EXPECT_FLOAT_EQ(distances[i], distance_true);
-  }
-}
 
 // Test that the exact k-nn search works correctly
 TEST_F(QueryTest, ExactKnn) {
