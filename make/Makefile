@@ -76,8 +76,9 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-test_rp1.o : $(USER_DIR)/test_rp1.cpp \
-		                     $(USER_DIR)/rp1.h $(GTEST_HEADERS)
+test_rp1.o : $(USER_DIR)/test_rp1.cpp $(MRPT_DIR)/cpp/Mrpt.h \
+    $(MRPT_DIR)/cpp/lib/Eigen/Dense $(MRPT_DIR)/cpp/lib/Eigen/SparseCore \
+	  $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(MRPT_DIR)/cpp $(CXXFLAGS) -c $(USER_DIR)/test_rp1.cpp
 
 test_rp1 : test_rp1.o gtest_main.a
