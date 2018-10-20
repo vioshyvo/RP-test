@@ -2,6 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "Mrpt.h"
+#include "Mrpt_old.h"
 #include "Eigen/Dense"
 
 
@@ -163,6 +164,32 @@ TEST_F(QueryTest, ExactKnn) {
   for(int i = 0; i < k; ++i) {
     EXPECT_EQ(result[i], idx[i]);
     EXPECT_FLOAT_EQ(distances[i], dd(idx(i)));
+  }
+
+}
+
+TEST_F(QueryTest, Index) {
+  int n_trees = 10, depth = 6, mrpt_seed = 12345;
+  float density = 1.0 / std::sqrt(d);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Mrpt index(M, n_trees, depth, density);
+  index.grow(mrpt_seed);
+  Mrpt_old index_old(M, n_trees, depth, density);
+  index_old.grow(mrpt_seed);
+
+
+  for(int tree = 0; tree < n_trees; ++tree) {
+    int per_level = 1, idx = 0;  
+    for(int level = 0; level < depth; ++level) {
+      for(int j = 0; j < per_level; ++j) {
+        float split = index.get_split_point(tree, idx);
+        float split_old = index_old.get_split_point(tree, idx);
+        ++idx;
+        EXPECT_FLOAT_EQ(split, split_old);
+      }
+    }
+    per_level *= 2;
   }
 
 }

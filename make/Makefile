@@ -78,8 +78,8 @@ gtest_main.a : gtest-all.o gtest_main.o
 
 test_rp1.o : $(USER_DIR)/test_rp1.cpp $(MRPT_DIR)/cpp/Mrpt.h \
     $(MRPT_DIR)/cpp/lib/Eigen/Dense $(MRPT_DIR)/cpp/lib/Eigen/SparseCore \
-	  $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) -I$(MRPT_DIR)/cpp $(CXXFLAGS) -c $(USER_DIR)/test_rp1.cpp
+	  ../Mrpt_old/cpp/Mrpt_old.h $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) -I$(MRPT_DIR)/cpp -I../mrpt_old/cpp $(CXXFLAGS) -c $(USER_DIR)/test_rp1.cpp
 
 test_rp1 : test_rp1.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
