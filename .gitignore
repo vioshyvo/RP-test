@@ -4,3 +4,7 @@ googletest/
 *.a
 test/test_rp1
 *.DS_Store
+timing/data
+timing/train-images-idx3-ubyte
+timing/exact/tester
+timing/results
