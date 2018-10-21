@@ -304,6 +304,10 @@ class Mrpt_old {
       return split_points(index, tree);
     }
 
+    VectorXi get_leaf(int tree, int leaf) const {
+      return tree_leaves[tree][leaf];
+    }
+
  private:
     /**
     * Builds a single random projection tree. The tree is constructed by recursively

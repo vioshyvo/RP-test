@@ -51,7 +51,7 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void IndexTester(int n_trees, int depth, float density) {
+  void SplitPointTester(int n_trees, int depth, float density) {
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
     Mrpt index(M, n_trees, depth, density);
     index.grow(seed_mrpt);
@@ -61,6 +61,7 @@ class MrptTest : public testing::Test {
 
     for(int tree = 0; tree < n_trees; ++tree) {
       int per_level = 1, idx = 0;
+
       for(int level = 0; level < depth; ++level) {
         for(int j = 0; j < per_level; ++j) {
           float split = index.get_split_point(tree, idx);
@@ -72,6 +73,36 @@ class MrptTest : public testing::Test {
       per_level *= 2;
     }
   }
+
+  void LeafTester(int n_trees, int depth, float density) {
+    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    Mrpt index(M, n_trees, depth, density);
+    index.grow(seed_mrpt);
+    Mrpt_old index_old(M, n_trees, depth, density);
+    index_old.grow(seed_mrpt);
+
+
+    for(int tree = 0; tree < n_trees; ++tree) {
+      int n_leaf = std::pow(2, depth);
+      VectorXi leaves = VectorXi::Zero(n);
+
+      for(int j = 0; j < n_leaf; ++j) {
+        VectorXi leaf = index.get_leaf(tree, j);
+        VectorXi leaf_old = index_old.get_leaf(tree, j);
+        std::sort(leaf.data(), leaf.data() + leaf.size());
+        std::sort(leaf_old.data(), leaf_old.data() + leaf_old.size());
+
+        for(int i = 0; i < leaf.size(); ++i) {
+          EXPECT_EQ(leaf_old(i), leaf(i));
+          leaves(leaf(i)) = 1;
+        }
+      }
+
+      // Test that all data points are found at a tree
+      EXPECT_EQ(leaves.sum(), n);
+    }
+  }
+
 
   int d, n, seed_data, seed_mrpt;
   MatrixXf X;
@@ -190,23 +221,40 @@ TEST_F(MrptTest, ExactKnn) {
 
 }
 
-TEST_F(MrptTest, Index) {
+TEST_F(MrptTest, SplitPoints) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  IndexTester(1, depth, density);
-  IndexTester(5, depth, density);
-  IndexTester(100, depth, density);
+  SplitPointTester(1, depth, density);
+  SplitPointTester(5, depth, density);
+  SplitPointTester(100, depth, density);
 
-  IndexTester(n_trees, 1, density);
-  IndexTester(n_trees, 3, density);
-  IndexTester(n_trees, 8, density);
-  IndexTester(n_trees, 10, density);
+  SplitPointTester(n_trees, 1, density);
+  SplitPointTester(n_trees, 3, density);
+  SplitPointTester(n_trees, 8, density);
+  SplitPointTester(n_trees, 10, density);
 
-  IndexTester(n_trees, depth, 0.01);
-  IndexTester(n_trees, depth, 0.5);
-  IndexTester(n_trees, depth, 1);
+  SplitPointTester(n_trees, depth, 0.01);
+  SplitPointTester(n_trees, depth, 0.5);
+  SplitPointTester(n_trees, depth, 1);
+}
 
+TEST_F(MrptTest, Leaves) {
+  int n_trees = 10, depth = 6;
+  float density = 1.0 / std::sqrt(d);
+
+  LeafTester(1, depth, density);
+  LeafTester(5, depth, density);
+  LeafTester(100, depth, density);
+
+  LeafTester(n_trees, 1, density);
+  LeafTester(n_trees, 3, density);
+  LeafTester(n_trees, 8, density);
+  LeafTester(n_trees, 10, density);
+
+  LeafTester(n_trees, depth, 0.01);
+  LeafTester(n_trees, depth, 0.5);
+  LeafTester(n_trees, depth, 1);
 }
 
 
