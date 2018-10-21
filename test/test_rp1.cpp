@@ -8,10 +8,10 @@
 
 namespace {
 
-class QueryTest : public testing::Test {
+class MrptTest : public testing::Test {
   protected:
 
-  QueryTest() : d(100), n(1024), seed_data(56789), seed_mrpt(12345) {
+  MrptTest() : d(100), n(1024), seed_data(56789), seed_mrpt(12345) {
           std::mt19937 mt(seed_data);
           std::normal_distribution<double> dist(5.0,2.0);
 
@@ -51,6 +51,28 @@ class QueryTest : public testing::Test {
     }
   }
 
+  void IndexTester(int n_trees, int depth, float density) {
+    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    Mrpt index(M, n_trees, depth, density);
+    index.grow(seed_mrpt);
+    Mrpt_old index_old(M, n_trees, depth, density);
+    index_old.grow(seed_mrpt);
+
+
+    for(int tree = 0; tree < n_trees; ++tree) {
+      int per_level = 1, idx = 0;
+      for(int level = 0; level < depth; ++level) {
+        for(int j = 0; j < per_level; ++j) {
+          float split = index.get_split_point(tree, idx);
+          float split_old = index_old.get_split_point(tree, idx);
+          ++idx;
+          EXPECT_FLOAT_EQ(split, split_old);
+        }
+      }
+      per_level *= 2;
+    }
+  }
+
   int d, n, seed_data, seed_mrpt;
   MatrixXf X;
   VectorXf q;
@@ -59,7 +81,7 @@ class QueryTest : public testing::Test {
 
 // Test that the nearest neighbors returned by the index
 // are same as before when a seed for rng is fixed
-TEST_F(QueryTest, Parameters) {
+TEST_F(MrptTest, Query) {
   int n_trees = 10, depth = 6, votes = 1, k = 5;
   float density = 1;
 
@@ -93,7 +115,7 @@ TEST_F(QueryTest, Parameters) {
 // grow() - method). Obs. this test may fail with a very small probability
 // if the nearest neighbors returned by two different indices happen
 // to be exactly same by change.
-TEST_F(QueryTest, RandomSeed) {
+TEST_F(MrptTest, RandomSeed) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
@@ -125,7 +147,7 @@ TEST_F(QueryTest, RandomSeed) {
 
 
 // Test that the exact k-nn search works correctly
-TEST_F(QueryTest, ExactKnn) {
+TEST_F(MrptTest, ExactKnn) {
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Mrpt index_dense(M, 0, 0, 1);
@@ -168,29 +190,22 @@ TEST_F(QueryTest, ExactKnn) {
 
 }
 
-TEST_F(QueryTest, Index) {
-  int n_trees = 10, depth = 6, mrpt_seed = 12345;
+TEST_F(MrptTest, Index) {
+  int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index(M, n_trees, depth, density);
-  index.grow(mrpt_seed);
-  Mrpt_old index_old(M, n_trees, depth, density);
-  index_old.grow(mrpt_seed);
+  IndexTester(1, depth, density);
+  IndexTester(5, depth, density);
+  IndexTester(100, depth, density);
 
+  IndexTester(n_trees, 1, density);
+  IndexTester(n_trees, 3, density);
+  IndexTester(n_trees, 8, density);
+  IndexTester(n_trees, 10, density);
 
-  for(int tree = 0; tree < n_trees; ++tree) {
-    int per_level = 1, idx = 0;  
-    for(int level = 0; level < depth; ++level) {
-      for(int j = 0; j < per_level; ++j) {
-        float split = index.get_split_point(tree, idx);
-        float split_old = index_old.get_split_point(tree, idx);
-        ++idx;
-        EXPECT_FLOAT_EQ(split, split_old);
-      }
-    }
-    per_level *= 2;
-  }
+  IndexTester(n_trees, depth, 0.01);
+  IndexTester(n_trees, depth, 0.5);
+  IndexTester(n_trees, depth, 1);
 
 }
 
