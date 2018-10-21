@@ -22,7 +22,7 @@ MRPT_DIR = ../../mrpt
 GTEST_DIR = ../googletest/googletest
 
 # Where to find user code.
-USER_DIR = ../test
+USER_DIR = .
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that

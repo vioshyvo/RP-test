@@ -6,7 +6,7 @@ To start testing, first clone [googletest](https://github.com/google/googletest.
 ```
 git clone https://github.com/google/googletest.git
 ```
-Then edit the directory containing MRPT code, your preferred C++ compiler and a googletest directory (if you cloned googletest into the root of this directory, then the default directory works) into `make/Makefile`, for example:
+Then edit the directory containing MRPT code, your preferred C++ compiler and a googletest directory (if you cloned googletest into the root of this directory, then the default directory works) into `test/Makefile`, for example:
 ```
 MRPT_DIR = ../../mrpt
 CXX = g++-8
@@ -15,7 +15,7 @@ GTEST_DIR = ../googletest/googletest
 
 Then make and run the tests:
 ```
-cd make
+cd test
 make
 ./test_rp1
 ```
