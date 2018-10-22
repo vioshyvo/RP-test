@@ -6,7 +6,7 @@ CXXFLAGS=-O3 -march=native -fno-rtti -fno-stack-protector -fno-exceptions -ffast
 
 all: tester
 
-tester.o : tester.cpp ../common.h $(MRPT_PATH)/Mrpt.h 
+tester.o : tester.cpp ../common.h $(MRPT_PATH)/Mrpt.h
 	$(CXX) -I$(EIGEN_PATH) -I$(MRPT_PATH) -I.. $(CXXFLAGS) -c tester.cpp
 
 tester: tester.o
