@@ -32,13 +32,13 @@ for n_trees in $MRPT_VOTING_N_TREES; do
     done
 done
 
+pushd mrpt_old_tester
+  make
+popd
 
-
-
-#
-# echo -n > "results/$DATASET_NAME/mrpt_old.txt"
-# for n_trees in $MRPT_VOTING_N_TREES; do
-#     for depth in $MRPT_DEPTH; do
-#         ./mrpt_old/tester "data/$DATASET_NAME" $DIM $n_trees $depth $MRPT_SPARSITY $MRPT_VOTES >> "results/$DATASET_NAME/mrpt_old.txt"
-#     done
-# done
+echo -n > "results/$DATASET_NAME/mrpt_old.txt"
+for n_trees in $MRPT_VOTING_N_TREES; do
+    for depth in $MRPT_DEPTH; do
+        mrpt_old_tester/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" $MRPT_VOTES  >> "results/$DATASET_NAME/mrpt_old.txt"
+    done
+done

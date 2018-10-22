@@ -13,7 +13,6 @@
 #include <functional>
 #include <numeric>
 #include <queue>
-// #include <random>
 #include <string>
 #include <memory>
 
@@ -21,7 +20,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "Mrpt.h"
+#include "Mrpt_old.h"
 #include "common.h"
 
 
@@ -77,7 +76,7 @@ int main(int argc, char **argv) {
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
 
     double build_start = omp_get_wtime();
-    Mrpt index_dense(M, n_trees, depth, sparsity);
+    Mrpt_old index_dense(M, n_trees, depth, sparsity);
     index_dense.grow();
     double build_time = omp_get_wtime() - build_start;
 
@@ -111,8 +110,6 @@ int main(int argc, char **argv) {
       }
 
     }
-
-
     delete[] test;
     if(!mmap) delete[] train;
 

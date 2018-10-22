@@ -109,7 +109,6 @@ void results(int k, const vector<double> &times, const vector<set<int>> &idx,
                          inserter(intersect, intersect.begin()));
         accuracy = intersect.size() / static_cast<double>(k);
         total_time += times[i];
-
         total_accuracy += accuracy;
         results.push_back(make_pair(times[i], accuracy));
     }
