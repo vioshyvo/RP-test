@@ -7,4 +7,5 @@ test/test_rp1
 timing/data
 timing/train-images-idx3-ubyte
 timing/exact/tester
+timing/mrpt_tester/tester
 timing/results
