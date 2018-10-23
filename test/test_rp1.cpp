@@ -11,7 +11,7 @@ namespace {
 class MrptTest : public testing::Test {
   protected:
 
-  MrptTest() : d(100), n(1024), seed_data(56789), seed_mrpt(12345) {
+  MrptTest() : d(100), n(1024), n2(1255), seed_data(56789), seed_mrpt(12345) {
           std::mt19937 mt(seed_data);
           std::normal_distribution<double> dist(5.0,2.0);
 
@@ -22,6 +22,11 @@ class MrptTest : public testing::Test {
 
           q = VectorXf(d);
           for(int i = 0; i < d; ++i) q(i) = dist(mt);
+
+          X2 = MatrixXf(d,n2);
+          for(int i = 0; i < d; ++i)
+            for(int j = 0; j < n2; ++j)
+              X2(i,j) = dist(mt);
   }
 
   // Test that:
@@ -51,8 +56,8 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void SplitPointTester(int n_trees, int depth, float density) {
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  void SplitPointTester(int n_trees, int depth, float density,
+        const Map<const MatrixXf> *M) {
     Mrpt index(M, n_trees, depth, density);
     index.grow(seed_mrpt);
     Mrpt_old index_old(M, n_trees, depth, density);
@@ -104,8 +109,8 @@ class MrptTest : public testing::Test {
   }
 
 
-  int d, n, seed_data, seed_mrpt;
-  MatrixXf X;
+  int d, n, n2, seed_data, seed_mrpt;
+  MatrixXf X, X2;
   VectorXf q;
 };
 
@@ -226,18 +231,31 @@ TEST_F(MrptTest, SplitPoints) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  SplitPointTester(1, depth, density);
-  SplitPointTester(5, depth, density);
-  SplitPointTester(100, depth, density);
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  const Map<const MatrixXf> *M2 = new Map<const MatrixXf>(X2.data(), d, n2);
 
-  SplitPointTester(n_trees, 1, density);
-  SplitPointTester(n_trees, 3, density);
-  SplitPointTester(n_trees, 8, density);
-  SplitPointTester(n_trees, 10, density);
+  SplitPointTester(1, depth, density, M);
+  SplitPointTester(5, depth, density, M);
+  SplitPointTester(100, depth, density, M);
+  SplitPointTester(1, depth, density, M2);
+  SplitPointTester(5, depth, density, M2);
+  SplitPointTester(100, depth, density, M2);
 
-  SplitPointTester(n_trees, depth, 0.01);
-  SplitPointTester(n_trees, depth, 0.5);
-  SplitPointTester(n_trees, depth, 1);
+  SplitPointTester(n_trees, 1, density, M);
+  SplitPointTester(n_trees, 3, density, M);
+  SplitPointTester(n_trees, 8, density, M);
+  SplitPointTester(n_trees, 10, density, M);
+  SplitPointTester(n_trees, 1, density, M2);
+  SplitPointTester(n_trees, 3, density, M2);
+  SplitPointTester(n_trees, 6, density, M2);
+  SplitPointTester(n_trees, 7, density, M2);
+
+  SplitPointTester(n_trees, depth, 0.01, M);
+  SplitPointTester(n_trees, depth, 0.5, M);
+  SplitPointTester(n_trees, depth, 1, M);
+  SplitPointTester(n_trees, depth, 0.01, M2);
+  SplitPointTester(n_trees, depth, 0.5, M2);
+  SplitPointTester(n_trees, depth, 1, M2);
 }
 
 TEST_F(MrptTest, Leaves) {
