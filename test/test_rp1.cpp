@@ -131,7 +131,7 @@ TEST_F(MrptTest, Query) {
   QueryTester(n_trees, 8, density, votes, k, std::vector<int> {949, 629, 860, 954, 121});
   QueryTester(n_trees, 10, density, votes, k, std::vector<int> {949, 713, 574, 88, 900});
 
-  QueryTester(n_trees, depth, 0.01, votes, k, std::vector<int> {501, 566, 802, 84, 928});
+  QueryTester(n_trees, depth, 0.05, votes, k, std::vector<int> {566, 353, 199, 115, 84});
   QueryTester(n_trees, depth, 1.0 / std::sqrt(d), votes, k, std::vector<int> {566, 882, 949, 802, 110});
   QueryTester(n_trees, depth, 0.5, votes, k, std::vector<int> {682, 882, 802, 115, 720});
 
@@ -250,10 +250,10 @@ TEST_F(MrptTest, SplitPoints) {
   SplitPointTester(n_trees, 6, density, M2);
   SplitPointTester(n_trees, 7, density, M2);
 
-  SplitPointTester(n_trees, depth, 0.01, M);
+  SplitPointTester(n_trees, depth, 0.05, M);
   SplitPointTester(n_trees, depth, 0.5, M);
   SplitPointTester(n_trees, depth, 1, M);
-  SplitPointTester(n_trees, depth, 0.01, M2);
+  SplitPointTester(n_trees, depth, 0.05, M2);
   SplitPointTester(n_trees, depth, 0.5, M2);
   SplitPointTester(n_trees, depth, 1, M2);
 }
@@ -281,10 +281,10 @@ TEST_F(MrptTest, Leaves) {
   LeafTester(n_trees, 6, density, M2, n2);
   LeafTester(n_trees, 7, density, M2, n2);
 
-  LeafTester(n_trees, depth, 0.01, M, n);
+  LeafTester(n_trees, depth, 0.05, M, n);
   LeafTester(n_trees, depth, 0.5, M, n);
   LeafTester(n_trees, depth, 1, M, n);
-  LeafTester(n_trees, depth, 0.01, M2, n2);
+  LeafTester(n_trees, depth, 0.05, M2, n2);
   LeafTester(n_trees, depth, 0.5, M2, n2);
   LeafTester(n_trees, depth, 1, M2, n2);
 
