@@ -300,10 +300,24 @@ class Mrpt_old {
         return true;
     }
 
+    /**
+    * @param tree - index of tree in (0, ... T-1)
+    * @param index - the index of branch:
+    * 0 = root
+    * 1 = first branch of first level
+    * 2 = second branch of first level
+    * 3 = first branch of second level etc.
+    * @return split point of index:th branch of tree:th tree
+    */
     float get_split_point(int tree, int index) const {
       return split_points(index, tree);
     }
 
+    /**
+    * @param tree - index of tree in (0, ... T-1)
+    * @param leaf - index of leaf
+    * @return indices of data points in leaf:th leaf of tree:th tree
+    */
     VectorXi get_leaf(int tree, int leaf) const {
       return tree_leaves[tree][leaf];
     }

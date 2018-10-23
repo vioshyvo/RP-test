@@ -80,8 +80,9 @@ int main(int argc, char **argv) {
     Mrpt index_dense(M, n_trees, depth, sparsity);
     index_dense.grow();
     double build_time = omp_get_wtime() - build_start;
-
     std::vector<int> ks{1, 10, 100};
+
+    omp_set_num_threads(1);
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];
       for (int arg = last_arg + 1; arg < argc; ++arg) {

@@ -80,6 +80,7 @@ int main(int argc, char **argv) {
     index_dense.grow();
     double build_time = omp_get_wtime() - build_start;
 
+    omp_set_num_threads(1);
     std::vector<int> ks{1, 10, 100};
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];

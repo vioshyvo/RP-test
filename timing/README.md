@@ -21,7 +21,7 @@ The results are printed into the files `results/mrpt.txt` and `results_mrpt_old.
 ```
 k n_trees depth density v recall recall.sd query.time build.time,  
 ```
-where query time is the combined time for all the test points, for example 100 points.
+where query time is the combined time for all the test points, for example 100 points. Values of `k` used are `k=1,10,100`. These are hard-coded into the `mrpt_tester/tester.cpp` and `mrpt_old_tester/tester.cpp` and `comparison.sh` (for exact search). 
 
 Finally, plot the results, for example for `k=10`:
 ```

@@ -120,6 +120,7 @@ TEST_F(MrptTest, Query) {
   QueryTester(5, depth, density, votes, k, std::vector<int> {949, 720, 84, 959, 447});
   QueryTester(100, depth, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
 
+  QueryTester(1, 0, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
   QueryTester(n_trees, 1, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
   QueryTester(n_trees, 3, density, votes, k, std::vector<int> {501, 682, 541, 747, 882});
   QueryTester(n_trees, 8, density, votes, k, std::vector<int> {949, 629, 860, 954, 121});
