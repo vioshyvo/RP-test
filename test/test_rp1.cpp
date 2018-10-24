@@ -72,20 +72,24 @@ class MrptTest : public testing::Test {
           float split = index.get_split_point(tree, idx);
           float split_old = index_old.get_split_point(tree, idx);
           ++idx;
-          EXPECT_FLOAT_EQ(split, split_old);
+          ASSERT_FLOAT_EQ(split, split_old);
         }
       }
       per_level *= 2;
     }
   }
 
-  void LeafTester(int n_trees, int depth, float density,
-      const Map<const MatrixXf> *M, int n_points) {
-    Mrpt index(M, n_trees, depth, density);
-    index.grow(seed_mrpt);
-    Mrpt_old index_old(M, n_trees, depth, density);
-    index_old.grow(seed_mrpt);
+  void TestLeaves(Mrpt &index, Mrpt_old &index_old) {
+    int n_trees = index.get_n_trees();
+    int n_trees_old = index_old.get_n_trees();
+    ASSERT_EQ(n_trees, n_trees_old);
 
+    int depth = index.get_depth(), depth_old = index_old.get_depth();
+    ASSERT_EQ(depth, depth_old);
+
+    int n_points = index.get_n_points();
+    int n_points_old = index_old.get_n_points();
+    ASSERT_EQ(n_points, n_points_old);
 
     for(int tree = 0; tree < n_trees; ++tree) {
       int n_leaf = std::pow(2, depth);
@@ -113,6 +117,16 @@ class MrptTest : public testing::Test {
       // Test that all data points are found at a tree
       EXPECT_EQ(leaves.sum(), n_points);
     }
+  }
+
+  void LeafTester(int n_trees, int depth, float density,
+      const Map<const MatrixXf> *M) {
+    Mrpt index(M, n_trees, depth, density);
+    index.grow(seed_mrpt);
+    Mrpt_old index_old(M, n_trees, depth, density);
+    index_old.grow(seed_mrpt);
+
+    TestLeaves(index, index_old);
   }
 
 
@@ -272,28 +286,28 @@ TEST_F(MrptTest, Leaves) {
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   const Map<const MatrixXf> *M2 = new Map<const MatrixXf>(X2.data(), d, n2);
 
-  LeafTester(1, depth, density, M, n);
-  LeafTester(5, depth, density, M, n);
-  LeafTester(100, depth, density, M, n);
-  LeafTester(1, depth, density, M2, n2);
-  LeafTester(5, depth, density, M2, n2);
-  LeafTester(100, depth, density, M2, n2);
+  LeafTester(1, depth, density, M);
+  LeafTester(5, depth, density, M);
+  LeafTester(100, depth, density, M);
+  LeafTester(1, depth, density, M2);
+  LeafTester(5, depth, density, M2);
+  LeafTester(100, depth, density, M2);
 
-  LeafTester(n_trees, 1, density, M, n);
-  LeafTester(n_trees, 3, density, M, n);
-  LeafTester(n_trees, 8, density, M, n);
-  LeafTester(n_trees, 10, density, M, n);
-  LeafTester(n_trees, 1, density, M2, n2);
-  LeafTester(n_trees, 3, density, M2, n2);
-  LeafTester(n_trees, 6, density, M2, n2);
-  LeafTester(n_trees, 7, density, M2, n2);
+  LeafTester(n_trees, 1, density, M);
+  LeafTester(n_trees, 3, density, M);
+  LeafTester(n_trees, 8, density, M);
+  LeafTester(n_trees, 10, density, M);
+  LeafTester(n_trees, 1, density, M2);
+  LeafTester(n_trees, 3, density, M2);
+  LeafTester(n_trees, 6, density, M2);
+  LeafTester(n_trees, 7, density, M2);
 
-  LeafTester(n_trees, depth, 0.05, M, n);
-  LeafTester(n_trees, depth, 0.5, M, n);
-  LeafTester(n_trees, depth, 1, M, n);
-  LeafTester(n_trees, depth, 0.05, M2, n2);
-  LeafTester(n_trees, depth, 0.5, M2, n2);
-  LeafTester(n_trees, depth, 1, M2, n2);
+  LeafTester(n_trees, depth, 0.05, M);
+  LeafTester(n_trees, depth, 0.5, M);
+  LeafTester(n_trees, depth, 1, M);
+  LeafTester(n_trees, depth, 0.05, M2);
+  LeafTester(n_trees, depth, 0.5, M2);
+  LeafTester(n_trees, depth, 1, M2);
 
 }
 
