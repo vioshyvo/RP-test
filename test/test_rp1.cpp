@@ -92,14 +92,21 @@ class MrptTest : public testing::Test {
       VectorXi leaves = VectorXi::Zero(n_points);
 
       for(int j = 0; j < n_leaf; ++j) {
-        VectorXi leaf = index.get_leaf(tree, j);
-        VectorXi leaf_old = index_old.get_leaf(tree, j);
-        std::sort(leaf.data(), leaf.data() + leaf.size());
-        std::sort(leaf_old.data(), leaf_old.data() + leaf_old.size());
+        int leaf_size = index.get_leaf_size(tree, j);
+        int leaf_size_old = index_old.get_leaf_size(tree, j);
+        ASSERT_EQ(leaf_size, leaf_size_old);
 
-        for(int i = 0; i < leaf.size(); ++i) {
-          EXPECT_EQ(leaf_old(i), leaf(i));
-          leaves(leaf(i)) = 1;
+        std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
+        for(int i = 0; i < leaf_size; ++i) {
+          leaf[i] = index.get_leaf_point(tree, j, i);
+          leaf_old[i] = index_old.get_leaf_point(tree, j, i);
+        }
+        std::sort(leaf.begin(), leaf.end());
+        std::sort(leaf_old.begin(), leaf_old.end());
+
+        for(int i = 0; i < leaf_size; ++i) {
+          ASSERT_EQ(leaf_old[i], leaf[i]);
+          leaves(leaf[i]) = 1;
         }
       }
 

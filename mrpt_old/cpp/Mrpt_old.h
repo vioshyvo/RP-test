@@ -314,13 +314,26 @@ class Mrpt_old {
     }
 
     /**
+    * Accessor for point stored in leaves of trees (for testing purposes)
     * @param tree - index of tree in (0, ... T-1)
-    * @param leaf - index of leaf
-    * @return indices of data points in leaf:th leaf of tree:th tree
+    * @param leaf - index of leaf in (0, ... , 2^depth)
+    * @param index - index of a data point in a leaf
+    * @return index of index:th data point in leaf:th leaf of tree:th tree
     */
-    VectorXi get_leaf(int tree, int leaf) const {
-      return tree_leaves[tree][leaf];
+    int get_leaf_point(int tree, int leaf, int index) const {
+      return tree_leaves[tree][leaf](index);
     }
+
+    /**
+    * Accessor for the number of points in a leaf of a tree
+    * @param tree - index of tree in (0, ... T-1)
+    * @param leaf - index of leaf in (0, ... , 2^depth)
+    * @return number of data points in leaf:th leaf of tree:th tree
+    */
+    int get_leaf_size(int tree, int leaf) {
+      return tree_leaves[tree][leaf].size();
+    }
+
 
  private:
     /**
