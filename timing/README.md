@@ -17,11 +17,15 @@ Edit the parameters you want to use for test to `parameters/mnist.sh`, and run t
 ```
 ./comparison.sh mnist
 ```
-The results are printed into the files `results/mrpt.txt` and `results_mrpt_old.txt`. The format of the result files is
+or
+```
+./comparison.sh mnist <postfix>
+```
+The results are printed into the files `results/mrpt_<postfix>.txt` (or plain `results/mrpt.txt` if you did not assign any postfix) and `results_mrpt_old.txt`. The format of the result files is
 ```
 k n_trees depth density v recall recall.sd query.time build.time,  
 ```
-where query time is the combined time for all the test points, for example 100 points. Values of `k` used are `k=1,10,100`. These are hard-coded into the `mrpt_tester/tester.cpp` and `mrpt_old_tester/tester.cpp` and `comparison.sh` (for exact search). 
+where query time is the combined time for all the test points, for example 100 points. Values of `k` used are `k=1,10,100`. These are hard-coded into the `mrpt_tester/tester.cpp` and `mrpt_old_tester/tester.cpp` and `comparison.sh` (for exact search).
 
 Finally, plot the results, for example for `k=10`:
 ```
