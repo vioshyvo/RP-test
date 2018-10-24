@@ -56,13 +56,13 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void SplitPointTester(int n_trees, int depth, float density,
-        const Map<const MatrixXf> *M) {
-    Mrpt index(M, n_trees, depth, density);
-    index.grow(seed_mrpt);
-    Mrpt_old index_old(M, n_trees, depth, density);
-    index_old.grow(seed_mrpt);
+  void TestSplitPoints(Mrpt &index, Mrpt_old &index_old) {
+    int n_trees = index.get_n_trees();
+    int n_trees_old = index_old.get_n_trees();
+    ASSERT_EQ(n_trees, n_trees_old);
 
+    int depth = index.get_depth(), depth_old = index_old.get_depth();
+    ASSERT_EQ(depth, depth_old);
 
     for(int tree = 0; tree < n_trees; ++tree) {
       int per_level = 1, idx = 0;
@@ -77,6 +77,16 @@ class MrptTest : public testing::Test {
       }
       per_level *= 2;
     }
+  }
+
+  void SplitPointTester(int n_trees, int depth, float density,
+        const Map<const MatrixXf> *M) {
+    Mrpt index(M, n_trees, depth, density);
+    index.grow(seed_mrpt);
+    Mrpt_old index_old(M, n_trees, depth, density);
+    index_old.grow(seed_mrpt);
+
+    TestSplitPoints(index, index_old);
   }
 
   void TestLeaves(Mrpt &index, Mrpt_old &index_old) {
