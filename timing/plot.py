@@ -36,11 +36,11 @@ def main(k, files):
     n_test = 50
     legend = True
     save = False
-    log = True
+    log = False
     set_ylim = False
     legend_label = 'filename' # 'sparsity', 'depth' or 'filename'
     show_title = True
-    build_times = False
+    build_times = True
 
     # ylim = (0,100 / n_test)
     ylim = (0,.01) # mnist data
@@ -62,11 +62,12 @@ def main(k, files):
         tym = [x[7] for x in lines if x[0] == k]
         index_time = [x[8] for x in lines if x[0] == k] if build_times else np.zeros(len(acc))
         # A.append((resfile.split('.')[0], acc, tym))
-        A.append((lines[0][3], acc, tym, lines[0][2]))
+        A.append((lines[0][3], acc, tym, lines[0][2], index_time))
+
     colors = cm.rainbow(np.linspace(0, 1, len(A)))
     minY, maxY = float('inf'), -float('inf')
     for a, c, m in zip(A, colors, ['>', 'v', 'd', '^', 'o', 'p', 'h', '<']):
-        par = pareto_frontier(a[1], a[2], index_time, True, False)
+        par = pareto_frontier(a[1], a[2], a[4], True, False)
         query_times = par[1]
         index_times = par[2]
         times_per_point = [x / n_test for x in query_times] # divide by the number of query points
@@ -76,13 +77,15 @@ def main(k, files):
         maxY = max(maxY, max(times))
         accuracy_time_list = zip(times_per_point, par[0], par[2])
         minY = min(minY, min(x for x, y, z in accuracy_time_list if y >= 0.5))
+        for pair in accuracy_time_list:
+            print(pair)
+        print("\n")
     ax.semilogy()
     ax.set_ylabel('time (s)', fontsize=20)
     ax.set_xlabel('recall', fontsize=20)
     ax.set_xlim((0, 1))
 
-    for pair in accuracy_time_list:
-        print pair
+
 
     if show_title:
         ax.set_title(title, fontsize=20, y=1.05)
