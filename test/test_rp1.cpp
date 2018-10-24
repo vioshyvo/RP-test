@@ -27,6 +27,7 @@ class MrptTest : public testing::Test {
           for(int i = 0; i < d; ++i)
             for(int j = 0; j < n2; ++j)
               X2(i,j) = dist(mt);
+
   }
 
   // Test that:
@@ -138,6 +139,26 @@ class MrptTest : public testing::Test {
 
     TestLeaves(index, index_old);
   }
+
+  void SaveIndex(int n_trees, int depth, float density,
+      const Map<const MatrixXf> *M) {
+    Mrpt_old index_old(M, n_trees, depth, density);
+    index_old.grow(seed_mrpt);
+    index_old.save("save/index_old.bin");
+    Mrpt index_saved(M, n_trees, depth, density);
+    index_saved.grow(seed_mrpt);
+    index_saved.save("save/index_saved.bin");
+  }
+
+  // void generate_data(MatrixXf &XXX, int seed) {
+  //   std::mt19937 mt(seed);
+  //   std::normal_distribution<double> dist(5.0,2.0);
+  //   int nnn = XXX.cols(), ddd = XXX.rows();
+  //
+  //   for(int i = 0; i < ddd; ++i)
+  //     for(int j = 0; j < nnn; ++j)
+  //       XXX(i,j) = dist(mt);
+  // }
 
 
   int d, n, n2, seed_data, seed_mrpt;
@@ -321,5 +342,69 @@ TEST_F(MrptTest, Leaves) {
 
 }
 
+// TEST_F(MrptTest, Loading) {
+//   // int n_trees = 10, depth = 6;
+//   // float density = 1.0;
+//   // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+//   // SaveIndex(n_trees, depth, density, M);
+//
+//   int nnn = 3750, ddd = 100, n_trees = 3, depth = 6, seed = 12345;
+//   float density = 1.0 / std::sqrt(d);
+//
+//   MatrixXf XXX(ddd,nnn);
+//   generate_data(XXX, seed);
+//   const Map<const MatrixXf> *MMM = new Map<const MatrixXf>(XXX.data(), ddd, nnn);
+//
+//
+//   Mrpt index_new(MMM, n_trees, depth, density);
+//   index_new.load("mrpt_saved");
+//   // TestLeaves(index_new, index_old);
+//   // TestSplitPoints(index_new, index_old);
+//   //
+//   // Mrpt_old index_loaded(M, n_trees, depth, density);
+//   // index_loaded.load("save/index_saved.bin");
+//   // TestLeaves(index_saved, index_loaded);
+//   // TestSplitPoints(index_saved, index_loaded);
+// }
+
+TEST(SaveTest, Loading) {
+  int n = 3750, d = 100, n_trees = 3, depth = 6, seed = 12345, seed_mrpt = 56789;
+  float density = 1.0 / std::sqrt(d);
+
+  MatrixXf X(d,n);
+  std::mt19937 mtt(seed);
+  std::normal_distribution<double> distr(5.0,2.0);
+  for(int i = 0; i < d; ++i)
+    for(int j = 0; j < n; ++j)
+      X(i,j) = distr(mtt);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Mrpt index_dense(M, n_trees, depth, density);
+  index_dense.grow(12345);
+  index_dense.save("mrpt_saved");
+
+  std::cout << "Index saved succesfully\n";
+  std::cout << "Loading index...\n";
+  Mrpt index_reloaded(M, n_trees, depth, density);
+  index_reloaded.load("mrpt_saved");
+
+  std::cout << "Index loaded succesfully\n";
+
+  int k = 10, votes = 1;
+  std::vector<int> result(k);
+  std::vector<float> distances(k);
+  for(int i = 0; i < k; ++i) distances[i] = 0;
+
+  std::mt19937 mt(seed);
+  std::normal_distribution<double> dist(5.0,2.0);
+  VectorXf q(d);
+  for(int i = 0; i < d; ++i) q(i) = dist(mt);
+  const Map<VectorXf> V(q.data(), d);
+
+  index_reloaded.query(V, k, votes, &result[0], &distances[0]);
+  for(int i = 0; i < result.size(); ++i) std::cout << result[i] << " ";
+  std::cout << "\n";
+
+}
 
 }
