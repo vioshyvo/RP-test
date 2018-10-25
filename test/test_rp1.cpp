@@ -379,31 +379,55 @@ TEST(SaveTest, Loading) {
       X(i,j) = distr(mtt);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index_dense(M, n_trees, depth, density);
-  index_dense.grow(12345);
-  index_dense.save("mrpt_saved");
+  Mrpt index(M, n_trees, depth, density);
+  index.grow(12345);
+  index.save("save/mrpt_saved");
 
-  std::cout << "Index saved succesfully\n";
-  std::cout << "Loading index...\n";
-  Mrpt index_reloaded(M, n_trees, depth, density);
-  index_reloaded.load("mrpt_saved");
+  Mrpt index_old(M, n_trees, depth, density);
+  index_old.load("save/mrpt_saved");
 
-  std::cout << "Index loaded succesfully\n";
+  ASSERT_EQ(n_trees, index_old.get_n_trees());
+  ASSERT_EQ(depth, index_old.get_depth());
+  ASSERT_EQ(n, index_old.get_n_points());
 
-  int k = 10, votes = 1;
-  std::vector<int> result(k);
-  std::vector<float> distances(k);
-  for(int i = 0; i < k; ++i) distances[i] = 0;
+  for(int tree = 0; tree < n_trees; ++tree) {
+    int n_leaf = std::pow(2, depth);
+    VectorXi leaves = VectorXi::Zero(n);
 
-  std::mt19937 mt(seed);
-  std::normal_distribution<double> dist(5.0,2.0);
-  VectorXf q(d);
-  for(int i = 0; i < d; ++i) q(i) = dist(mt);
-  const Map<VectorXf> V(q.data(), d);
+    for(int j = 0; j < n_leaf; ++j) {
+      int leaf_size = index.get_leaf_size(tree, j);
+      int leaf_size_old = index_old.get_leaf_size(tree, j);
+      ASSERT_EQ(leaf_size, leaf_size_old);
 
-  index_reloaded.query(V, k, votes, &result[0], &distances[0]);
-  for(int i = 0; i < result.size(); ++i) std::cout << result[i] << " ";
-  std::cout << "\n";
+      std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
+      for(int i = 0; i < leaf_size; ++i) {
+        leaf[i] = index.get_leaf_point(tree, j, i);
+        leaf_old[i] = index_old.get_leaf_point(tree, j, i);
+      }
+      std::sort(leaf.begin(), leaf.end());
+      std::sort(leaf_old.begin(), leaf_old.end());
+
+      for(int i = 0; i < leaf_size; ++i) {
+        ASSERT_EQ(leaf_old[i], leaf[i]);
+        leaves(leaf[i]) = 1;
+      }
+    }
+
+    int per_level = 1, idx = 0;
+
+    for(int level = 0; level < depth; ++level) {
+      for(int j = 0; j < per_level; ++j) {
+        float split = index.get_split_point(tree, idx);
+        float split_old = index_old.get_split_point(tree, idx);
+        ++idx;
+        ASSERT_FLOAT_EQ(split, split_old);
+      }
+    }
+    per_level *= 2;
+
+    // Test that all data points are found at a tree
+    EXPECT_EQ(leaves.sum(), n);
+  }
 
 }
 
