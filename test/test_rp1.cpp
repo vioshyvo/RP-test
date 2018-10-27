@@ -368,7 +368,7 @@ TEST_F(MrptTest, Leaves) {
 // }
 
 TEST(SaveTest, Loading) {
-  int n = 3750, d = 100, n_trees = 3, depth = 6, seed = 12345, seed_mrpt = 56789;
+  int n = 3749, d = 100, n_trees = 3, depth = 6, seed = 12345, seed_mrpt = 56789;
   float density = 1.0 / std::sqrt(d);
 
   MatrixXf X(d,n);
