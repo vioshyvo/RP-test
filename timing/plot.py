@@ -36,11 +36,11 @@ def main(k, files):
     n_test = 50
     legend = True
     save = False
-    log = False
+    log = True
     set_ylim = False
     legend_label = 'filename' # 'sparsity', 'depth' or 'filename'
     show_title = True
-    build_times = True
+    build_times = False
 
     # ylim = (0,100 / n_test)
     ylim = (0,.01) # mnist data
@@ -68,14 +68,14 @@ def main(k, files):
     minY, maxY = float('inf'), -float('inf')
     for a, c, m in zip(A, colors, ['>', 'v', 'd', '^', 'o', 'p', 'h', '<']):
         par = pareto_frontier(a[1], a[2], a[4], True, False)
+        recalls = par[0]
         query_times = par[1]
         index_times = par[2]
-        times_per_point = [x / n_test for x in query_times] # divide by the number of query points
-        times = index_times if build_times else times_per_point
-        l, = ax.plot(par[0], times, linestyle='solid', marker=m, label=a[0], c=c, markersize=7)
+        times = index_times if build_times else query_times
+        l, = ax.plot(recalls, times, linestyle='solid', marker=m, label=a[0], c=c, markersize=7)
         if q: LSD.append(l)
         maxY = max(maxY, max(times))
-        accuracy_time_list = zip(times_per_point, par[0], par[2])
+        accuracy_time_list = zip(query_times, recalls, index_times)
         minY = min(minY, min(x for x, y, z in accuracy_time_list if y >= 0.5))
         for pair in accuracy_time_list:
             print(pair)
@@ -83,7 +83,7 @@ def main(k, files):
     ax.semilogy()
     ax.set_ylabel('time (s)', fontsize=20)
     ax.set_xlabel('recall', fontsize=20)
-    ax.set_xlim((0, 1))
+    ax.set_xlim((0.5, 1))
 
 
 

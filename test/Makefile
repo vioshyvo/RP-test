@@ -30,7 +30,7 @@ USER_DIR = .
 CPPFLAGS += -isystem $(GTEST_DIR)/include -isystem $(MRPT_DIR)/cpp/lib
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -pthread -fopenmp
+CXXFLAGS += -g -Wall -Wextra -pthread -fopenmp -Wno-unused-parameter -Wno-sign-compare
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.

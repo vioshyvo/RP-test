@@ -150,6 +150,17 @@ class MrptTest : public testing::Test {
     TestLeaves(index, index_old);
   }
 
+  void compute_exact(Mrpt &index, MatrixXi &out_exact) {
+    int k = out_exact.rows();
+    int nt = out_exact.cols();
+    for(int i = 0; i < nt; ++i) {
+      VectorXi idx(n);
+      std::iota(idx.data(), idx.data() + n, 0);
+
+      index.exact_knn(Map<VectorXf>(Q.data() + i * d, d), k, idx, n, out_exact.data() + i * k);
+    }
+  }
+
   int d, n, n2, n_test, seed_data, seed_mrpt;
   MatrixXf X, X2, Q;
   VectorXf q;
@@ -332,11 +343,11 @@ TEST_F(MrptTest, Leaves) {
 }
 
 TEST(SaveTest, Loading) {
-  int n = 3749, d = 100, n_trees = 3, depth = 6, seed = 12345, seed_mrpt = 56789;
+  int n = 3749, d = 100, n_trees = 3, depth = 6, seed_mrpt = 12345, seed_data = 56789;
   float density = 1.0 / std::sqrt(d);
 
   MatrixXf X(d,n);
-  std::mt19937 mtt(seed);
+  std::mt19937 mtt(seed_data);
   std::normal_distribution<double> distr(5.0,2.0);
   for(int i = 0; i < d; ++i)
     for(int j = 0; j < n; ++j)
@@ -344,7 +355,7 @@ TEST(SaveTest, Loading) {
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Mrpt index(M);
-  index.grow(n_trees, depth, density, 12345);
+  index.grow(n_trees, depth, density, seed_mrpt);
   index.save("save/mrpt_saved");
 
   Mrpt index_reloaded(M);
@@ -392,12 +403,33 @@ TEST(SaveTest, Loading) {
     // Test that all data points are found at a tree
     EXPECT_EQ(leaves.sum(), n);
   }
+}
 
-// TEST_F(MrptTest, RecallMatrix) {
-//   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-//   Mrpt index(M, n_trees, depth, density);
-//   index_dense.grow(seed_mrpt);
-// }
+TEST_F(MrptTest, RecallMatrix) {
+  int trees_max = 5, depth = 6, votes_max = trees_max - 1, k = 5;
+  float density = 1.0 / std::sqrt(d);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+
+  MatrixXi exact(k, n_test);
+  Mrpt index_exact(M);
+  compute_exact(index_exact, exact);
+
+  MatrixXi recall_matrix = MatrixXi::Zero(votes_max, trees_max);
+  for(int t = 1; t < trees_max; ++t) {
+    Mrpt index(M);
+    index.grow(t, depth, density, seed_mrpt);
+
+    for(int v = 1; v <= t; ++v) {
+      for(int i = 0; i < n_test; ++i) {
+        std::vector<int> result(k);
+        index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0]);
+      }
+    }
+  }
+
+  std::cout << recall_matrix << "\n";
+
 
 
 }
