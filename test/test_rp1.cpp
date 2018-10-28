@@ -8,10 +8,12 @@
 
 namespace {
 
+
+
 class MrptTest : public testing::Test {
   protected:
 
-  MrptTest() : d(100), n(1024), n2(1255), seed_data(56789), seed_mrpt(12345) {
+  MrptTest() : d(100), n(1024), n2(1255), n_test(100), seed_data(56789), seed_mrpt(12345) {
           std::mt19937 mt(seed_data);
           std::normal_distribution<double> dist(5.0,2.0);
 
@@ -28,7 +30,15 @@ class MrptTest : public testing::Test {
             for(int j = 0; j < n2; ++j)
               X2(i,j) = dist(mt);
 
+          Q = MatrixXf(d, n_test);
+          for(int i = 0; i < d; ++i)
+            for(int j = 0; j < n_test; ++j)
+              Q(i,j) = dist(mt);
+
   }
+
+
+
 
   // Test that:
   // a) the indices of the returned approximate k-nn are same as before
@@ -38,8 +48,8 @@ class MrptTest : public testing::Test {
       std::vector<int> approximate_knn) {
     ASSERT_EQ(approximate_knn.size(), k);
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-    Mrpt index_dense(M, n_trees, depth, density);
-    index_dense.grow(seed_mrpt);
+    Mrpt index_dense(M);
+    index_dense.grow(n_trees, depth, density, seed_mrpt);
 
     std::vector<int> result(k);
     std::vector<float> distances(k);
@@ -82,8 +92,8 @@ class MrptTest : public testing::Test {
 
   void SplitPointTester(int n_trees, int depth, float density,
         const Map<const MatrixXf> *M) {
-    Mrpt index(M, n_trees, depth, density);
-    index.grow(seed_mrpt);
+    Mrpt index(M);
+    index.grow(n_trees, depth, density, seed_mrpt);
     Mrpt_old index_old(M, n_trees, depth, density);
     index_old.grow(seed_mrpt);
 
@@ -132,37 +142,16 @@ class MrptTest : public testing::Test {
 
   void LeafTester(int n_trees, int depth, float density,
       const Map<const MatrixXf> *M) {
-    Mrpt index(M, n_trees, depth, density);
-    index.grow(seed_mrpt);
+    Mrpt index(M);
+    index.grow(n_trees, depth, density, seed_mrpt);
     Mrpt_old index_old(M, n_trees, depth, density);
     index_old.grow(seed_mrpt);
 
     TestLeaves(index, index_old);
   }
 
-  void SaveIndex(int n_trees, int depth, float density,
-      const Map<const MatrixXf> *M) {
-    Mrpt_old index_old(M, n_trees, depth, density);
-    index_old.grow(seed_mrpt);
-    index_old.save("save/index_old.bin");
-    Mrpt index_saved(M, n_trees, depth, density);
-    index_saved.grow(seed_mrpt);
-    index_saved.save("save/index_saved.bin");
-  }
-
-  // void generate_data(MatrixXf &XXX, int seed) {
-  //   std::mt19937 mt(seed);
-  //   std::normal_distribution<double> dist(5.0,2.0);
-  //   int nnn = XXX.cols(), ddd = XXX.rows();
-  //
-  //   for(int i = 0; i < ddd; ++i)
-  //     for(int j = 0; j < nnn; ++j)
-  //       XXX(i,j) = dist(mt);
-  // }
-
-
-  int d, n, n2, seed_data, seed_mrpt;
-  MatrixXf X, X2;
+  int d, n, n2, n_test, seed_data, seed_mrpt;
+  MatrixXf X, X2, Q;
   VectorXf q;
 };
 
@@ -210,10 +199,10 @@ TEST_F(MrptTest, RandomSeed) {
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
 
-  Mrpt index_dense(M, n_trees, depth, density);
-  index_dense.grow(); // initialize rng with random seed
-  Mrpt index_dense2(M, n_trees, depth, density);
-  index_dense2.grow();
+  Mrpt index_dense(M);
+  index_dense.grow(n_trees, depth, density); // initialize rng with random seed
+  Mrpt index_dense2(M);
+  index_dense2.grow(n_trees, depth, density);
 
   int k = 10, votes = 3;
   std::vector<int> r(k), r2(k);
@@ -239,8 +228,8 @@ TEST_F(MrptTest, RandomSeed) {
 TEST_F(MrptTest, ExactKnn) {
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index_dense(M, 0, 0, 1);
-  index_dense.grow();
+  Mrpt index_dense(M);
+  index_dense.grow(0, 0, 1.0);
 
   int k = 5;
   std::vector<int> result(k);
@@ -342,31 +331,6 @@ TEST_F(MrptTest, Leaves) {
 
 }
 
-// TEST_F(MrptTest, Loading) {
-//   // int n_trees = 10, depth = 6;
-//   // float density = 1.0;
-//   // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-//   // SaveIndex(n_trees, depth, density, M);
-//
-//   int nnn = 3750, ddd = 100, n_trees = 3, depth = 6, seed = 12345;
-//   float density = 1.0 / std::sqrt(d);
-//
-//   MatrixXf XXX(ddd,nnn);
-//   generate_data(XXX, seed);
-//   const Map<const MatrixXf> *MMM = new Map<const MatrixXf>(XXX.data(), ddd, nnn);
-//
-//
-//   Mrpt index_new(MMM, n_trees, depth, density);
-//   index_new.load("mrpt_saved");
-//   // TestLeaves(index_new, index_old);
-//   // TestSplitPoints(index_new, index_old);
-//   //
-//   // Mrpt_old index_loaded(M, n_trees, depth, density);
-//   // index_loaded.load("save/index_saved.bin");
-//   // TestLeaves(index_saved, index_loaded);
-//   // TestSplitPoints(index_saved, index_loaded);
-// }
-
 TEST(SaveTest, Loading) {
   int n = 3749, d = 100, n_trees = 3, depth = 6, seed = 12345, seed_mrpt = 56789;
   float density = 1.0 / std::sqrt(d);
@@ -379,16 +343,16 @@ TEST(SaveTest, Loading) {
       X(i,j) = distr(mtt);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index(M, n_trees, depth, density);
-  index.grow(12345);
+  Mrpt index(M);
+  index.grow(n_trees, depth, density, 12345);
   index.save("save/mrpt_saved");
 
-  Mrpt index_old(M, n_trees, depth, density);
-  index_old.load("save/mrpt_saved");
+  Mrpt index_reloaded(M);
+  index_reloaded.load("save/mrpt_saved");
 
-  ASSERT_EQ(n_trees, index_old.get_n_trees());
-  ASSERT_EQ(depth, index_old.get_depth());
-  ASSERT_EQ(n, index_old.get_n_points());
+  ASSERT_EQ(n_trees, index_reloaded.get_n_trees());
+  ASSERT_EQ(depth, index_reloaded.get_depth());
+  ASSERT_EQ(n, index_reloaded.get_n_points());
 
   for(int tree = 0; tree < n_trees; ++tree) {
     int n_leaf = std::pow(2, depth);
@@ -396,13 +360,13 @@ TEST(SaveTest, Loading) {
 
     for(int j = 0; j < n_leaf; ++j) {
       int leaf_size = index.get_leaf_size(tree, j);
-      int leaf_size_old = index_old.get_leaf_size(tree, j);
+      int leaf_size_old = index_reloaded.get_leaf_size(tree, j);
       ASSERT_EQ(leaf_size, leaf_size_old);
 
       std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
       for(int i = 0; i < leaf_size; ++i) {
         leaf[i] = index.get_leaf_point(tree, j, i);
-        leaf_old[i] = index_old.get_leaf_point(tree, j, i);
+        leaf_old[i] = index_reloaded.get_leaf_point(tree, j, i);
       }
       std::sort(leaf.begin(), leaf.end());
       std::sort(leaf_old.begin(), leaf_old.end());
@@ -418,7 +382,7 @@ TEST(SaveTest, Loading) {
     for(int level = 0; level < depth; ++level) {
       for(int j = 0; j < per_level; ++j) {
         float split = index.get_split_point(tree, idx);
-        float split_old = index_old.get_split_point(tree, idx);
+        float split_old = index_reloaded.get_split_point(tree, idx);
         ++idx;
         ASSERT_FLOAT_EQ(split, split_old);
       }
@@ -428,6 +392,13 @@ TEST(SaveTest, Loading) {
     // Test that all data points are found at a tree
     EXPECT_EQ(leaves.sum(), n);
   }
+
+// TEST_F(MrptTest, RecallMatrix) {
+//   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+//   Mrpt index(M, n_trees, depth, density);
+//   index_dense.grow(seed_mrpt);
+// }
+
 
 }
 

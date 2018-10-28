@@ -12,19 +12,7 @@ plt.rcParams['ytick.labelsize'] = 18
 
 
 def main(k, files):
-    legend = True
-    save = False
-    log = False
-    set_ylim = False
-    legend_label = 'filename' # 'sparsity', 'depth' or 'filename'
-    show_title = True
-    build_times = True
     depth = 10
-
-    # ylim = (0,100 / n_test)
-    ylim = (0,.01) # mnist data
-    file_name = 'images/depth.png'
-    title = 'MRPT, old vs. new'
 
     fig = plt.figure()
     LSD = []
@@ -59,6 +47,8 @@ def main(k, files):
     for a, c, m in zip(A, colors, ['>', 'v', 'd', '^', 'o', 'p', 'h', '<']):
         print a, c, m
         l, = ax.plot(a[0], a[1], linestyle='solid', marker=m, label=a[0], c=c, markersize=7)
+
+    ax.legend(LSD, labels=files, loc="upper left", title = 'file name')
 
     plt.show()
 

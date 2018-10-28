@@ -69,8 +69,8 @@ int main(int argc, char **argv) {
     // compute the exact k-nn
 
     // build dummy index
-    Mrpt index(M, 0, 0, sparsity);
-    index.grow();
+    Mrpt index(M);
+    index.grow(0, 0, sparsity);
 
     VectorXi idx(n_points);
     std::iota(idx.data(), idx.data() + n_points, 0);

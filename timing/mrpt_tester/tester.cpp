@@ -77,8 +77,8 @@ int main(int argc, char **argv) {
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
 
     double build_start = omp_get_wtime();
-    Mrpt index_dense(M, n_trees, depth, sparsity);
-    index_dense.grow();
+    Mrpt index_dense(M);
+    index_dense.grow(n_trees, depth, sparsity);
     double build_time = omp_get_wtime() - build_start;
     std::vector<int> ks{1, 10, 100};
 
