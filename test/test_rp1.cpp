@@ -421,6 +421,8 @@ TEST_F(MrptTest, RecallMatrix) {
   compute_exact(index_exact, exact);
 
   MatrixXd recall_matrix = MatrixXd::Zero(votes_max, trees_max);
+  MatrixXd candidate_set_size = MatrixXd::Zero(votes_max, trees_max);
+
   for(int t = 1; t <= trees_max; ++t) {
     Mrpt index(M);
     index.grow(t, depth, density, seed_mrpt);
@@ -442,14 +444,18 @@ TEST_F(MrptTest, RecallMatrix) {
   }
 
   recall_matrix /= (k * n_test);
+  candidate_set_size /= n_test;
   std::cout << recall_matrix << "\n\n";
 
   Autotuning at(M, test_queries);
   at.tune(trees_max, depth, depth, votes_max, density, k, seed_mrpt);
 
   for(int t = 1; t <= trees_max; ++t)
-    for(int v = 1; v <= votes_max; ++v)
+    for(int v = 1; v <= votes_max; ++v) {
       ASSERT_FLOAT_EQ(recall_matrix(v - 1, t - 1), at.get_recall(t, depth, v));
+      ASSERT_FLOAT_EQ(candidate_set_size(v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
+    }
+
 
 
 
