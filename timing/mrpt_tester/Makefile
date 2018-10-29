@@ -3,7 +3,7 @@ EIGEN_PATH=../../../mrpt/cpp/lib
 MRPT_PATH=../../../mrpt/cpp
 INCLUDE_PATH=../../include
 
-CXXFLAGS=-O3 -march=native -fno-rtti -fno-stack-protector -fno-exceptions -ffast-math -DNDEBUG -DEIGEN_DONT_PARALLELIZE -fopenmp
+CXXFLAGS=-O3 -march=native -fno-rtti -fno-stack-protector -fno-exceptions -ffast-math -DNDEBUG -fopenmp
 
 all: tester
 

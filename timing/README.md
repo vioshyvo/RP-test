@@ -13,7 +13,7 @@ Edit the directory containing the header file `Mrpt.h` you want to test to the `
 MRPT_PATH=../../../mrpt/cpp
 ```
 
-Edit the parameters you want to use for test to `parameters/mnist.sh`, and run the comparison script:
+Edit the parameters you want to use for test to `parameters/mnist.sh` (the flag `PARALLEL` controls whether OpenMP threading is allowed), and run the comparison script:
 ```
 ./comparison.sh mnist
 ```

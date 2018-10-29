@@ -46,8 +46,9 @@ int main(int argc, char **argv) {
       infile_path += '/';
 
     float sparsity = atof(argv[10]);
+    bool parallel = atoi(argv[11]);
 
-    int last_arg = 10;
+    int last_arg = 11;
     size_t n_points = n - ntest;
     bool verbose = false;
 
@@ -76,13 +77,14 @@ int main(int argc, char **argv) {
 
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
 
+    if(!parallel) omp_set_num_threads(1);
+    
     double build_start = omp_get_wtime();
     Mrpt index_dense(M);
     index_dense.grow(n_trees, depth, sparsity);
     double build_time = omp_get_wtime() - build_start;
     std::vector<int> ks{1, 10, 100};
 
-    omp_set_num_threads(1);
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];
       for (int arg = last_arg + 1; arg < argc; ++arg) {

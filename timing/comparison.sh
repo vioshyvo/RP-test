@@ -37,10 +37,17 @@ else
   RESULT_FILE="results/$DATASET_NAME/mrpt"
 fi
 
+if [ $PARALLEL -eq 1 ]; then
+  RESULT_FILE="${RESULT_FILE}_parallel"
+  RESULT_FILE_OLD="results/$DATASET_NAME/mrpt_old_parallel"
+else
+  RESULT_FILE_OLD="results/$DATASET_NAME/mrpt_old"
+fi
+
 echo -n > "$RESULT_FILE"
 for n_trees in $MRPT_VOTING_N_TREES; do
     for depth in $MRPT_DEPTH; do
-        mrpt_tester/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" $MRPT_VOTES  >> "$RESULT_FILE"
+        mrpt_tester/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL" $MRPT_VOTES  >> "$RESULT_FILE"
     done
 done
 
@@ -48,9 +55,9 @@ pushd mrpt_old_tester
   make
 popd
 
-echo -n > "results/$DATASET_NAME/mrpt_old"
+echo -n > "$RESULT_FILE_OLD"
 for n_trees in $MRPT_VOTING_N_TREES; do
     for depth in $MRPT_DEPTH; do
-        mrpt_old_tester/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" $MRPT_VOTES  >> "results/$DATASET_NAME/mrpt_old"
+        mrpt_old_tester/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL" $MRPT_VOTES  >> "$RESULT_FILE_OLD"
     done
 done
