@@ -426,42 +426,29 @@ TEST_F(MrptTest, RecallMatrix) {
 
     int votes_index = votes_max < t ? votes_max : t;
     for(int v = 1; v <= votes_index; ++v) {
-      int sum = 0;
       for(int i = 0; i < n_test; ++i) {
-        // std::cout << "i: " << i << " t: " << t << " l: " << depth << " v: " << v << "\n";
-
         std::vector<int> result(k);
         index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0]);
         std::sort(result.begin(), result.end());
 
-        // for(auto it = result.begin(); it != result.end(); ++it) std::cout << *it << " ";
-        // std::cout << "\n";
-
         std::set<int> intersect;
         std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
                          std::inserter(intersect, intersect.begin()));
-        sum += intersect.size();
-        recall_matrix(v - 1, t - 1) += intersect.size();
 
-        // if(v == 1 && t == trees_max) {
-        //   for(int ii = 0; ii < k; ++ii) std::cout << result[ii] << " ";
-        //   std::cout << "\n";
-        // }
+        recall_matrix(v - 1, t - 1) += intersect.size();
       }
-    // std::cout << sum << " ";
     }
-    // std::cout << "\n";
   }
 
+  recall_matrix /= (k * n_test);
   std::cout << recall_matrix << "\n\n";
 
-  // for(int i = 0; i < 25; ++i) {
-  //   for(int j = 0; j < k; ++j) {
-  //     std::cout << exact(j, i) << " ";
-  //   }
-  //   std::cout << "\n";
-  // }
+  Autotuning at;
+  at.tune(trees_max, depth, depth, density, votes_max, k);
 
+  for(int t = 1; t <= trees_max; ++t)
+    for(int v = 1; v <= votes_max; ++v)
+      ASSERT_FLOAT_EQ(recall_matrix(v - 1, t - 1), at.get_recall(t, depth, v));
 
 
 
