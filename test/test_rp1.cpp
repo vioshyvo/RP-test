@@ -161,6 +161,7 @@ class MrptTest : public testing::Test {
       std::iota(idx.data(), idx.data() + n, 0);
 
       index.exact_knn(Map<VectorXf>(Q.data() + i * d, d), k, idx, n, out_exact.data() + i * k);
+      std::sort(out_exact.data() + i * k, out_exact.data() + i * k + k);
     }
   }
 
@@ -409,7 +410,7 @@ TEST(SaveTest, Loading) {
 }
 
 TEST_F(MrptTest, RecallMatrix) {
-  int trees_max = 10, depth = 6, votes_max = trees_max - 1, k = 1;
+  int trees_max = 10, depth = 6, votes_max = trees_max - 1, k = 5;
   float density = 1.0 / std::sqrt(d);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -426,9 +427,10 @@ TEST_F(MrptTest, RecallMatrix) {
     int votes_index = votes_max < t ? votes_max : t;
     for(int v = 1; v <= votes_index; ++v) {
       int sum = 0;
-      for(int i = 0; i < 50; ++i) {
+      for(int i = 0; i < 25; ++i) {
         std::vector<int> result(k);
         index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0]);
+        std::sort(result.begin(), result.end());
 
         // for(auto it = result.begin(); it != result.end(); ++it) std::cout << *it << " ";
         // std::cout << "\n";
@@ -438,13 +440,26 @@ TEST_F(MrptTest, RecallMatrix) {
                          std::inserter(intersect, intersect.begin()));
         sum += intersect.size();
         recall_matrix(v - 1, t - 1) += intersect.size();
+
+        // if(v == 1 && t == trees_max) {
+        //   for(int ii = 0; ii < k; ++ii) std::cout << result[ii] << " ";
+        //   std::cout << "\n";
+        // }
       }
     std::cout << sum << " ";
     }
     std::cout << "\n";
   }
 
-  std::cout << recall_matrix << "\n";
+  std::cout << recall_matrix << "\n\n";
+
+  // for(int i = 0; i < 25; ++i) {
+  //   for(int j = 0; j < k; ++j) {
+  //     std::cout << exact(j, i) << " ";
+  //   }
+  //   std::cout << "\n";
+  // }
+
 
 
 

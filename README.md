@@ -19,3 +19,8 @@ cd test
 make
 ./test_rp1
 ```
+
+If you want to run only a subset of the tests, you can use `--gtest_filter` - flag, for instance:
+```
+./test_rp1 --gtest_filter=*.Query
+```
