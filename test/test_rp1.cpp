@@ -429,9 +429,14 @@ TEST_F(MrptTest, RecallMatrix) {
 
     int votes_index = votes_max < t ? votes_max : t;
     for(int v = 1; v <= votes_index; ++v) {
+      int n_elected = 0;
       for(int i = 0; i < n_test; ++i) {
         std::vector<int> result(k);
-        index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0]);
+        std::vector<float> distances(k);
+        int n_elected_tmp = 0;
+        index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0],
+          &distances[0], &n_elected_tmp);
+        n_elected += n_elected_tmp;
         std::sort(result.begin(), result.end());
 
         std::set<int> intersect;
@@ -440,6 +445,8 @@ TEST_F(MrptTest, RecallMatrix) {
 
         recall_matrix(v - 1, t - 1) += intersect.size();
       }
+
+    candidate_set_size(v - 1, t - 1) = n_elected;
     }
   }
 
