@@ -414,6 +414,7 @@ TEST_F(MrptTest, RecallMatrix) {
   float density = 1.0 / std::sqrt(d);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
 
   MatrixXi exact(k, n_test);
   Mrpt index_exact(M);
@@ -443,8 +444,8 @@ TEST_F(MrptTest, RecallMatrix) {
   recall_matrix /= (k * n_test);
   std::cout << recall_matrix << "\n\n";
 
-  Autotuning at;
-  at.tune(trees_max, depth, depth, density, votes_max, k);
+  Autotuning at(M, test_queries);
+  at.tune(trees_max, depth, depth, votes_max, density, k, seed_mrpt);
 
   for(int t = 1; t <= trees_max; ++t)
     for(int v = 1; v <= votes_max; ++v)
