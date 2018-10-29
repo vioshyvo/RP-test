@@ -427,7 +427,9 @@ TEST_F(MrptTest, RecallMatrix) {
     int votes_index = votes_max < t ? votes_max : t;
     for(int v = 1; v <= votes_index; ++v) {
       int sum = 0;
-      for(int i = 0; i < 25; ++i) {
+      for(int i = 0; i < n_test; ++i) {
+        // std::cout << "i: " << i << " t: " << t << " l: " << depth << " v: " << v << "\n";
+
         std::vector<int> result(k);
         index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0]);
         std::sort(result.begin(), result.end());
@@ -446,9 +448,9 @@ TEST_F(MrptTest, RecallMatrix) {
         //   std::cout << "\n";
         // }
       }
-    std::cout << sum << " ";
+    // std::cout << sum << " ";
     }
-    std::cout << "\n";
+    // std::cout << "\n";
   }
 
   std::cout << recall_matrix << "\n\n";
