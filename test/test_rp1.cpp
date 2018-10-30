@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <set>
 #include <omp.h>
+#include <numeric>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "Mrpt.h"
@@ -475,9 +477,20 @@ TEST_F(MrptTest, RecallMatrix) {
       ASSERT_FLOAT_EQ(cs_sizes[depth - depth_min](v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
     }
 
-
-
-
 }
+
+TEST(UtilityTest, TheilSen) {
+  int n = 10;
+  std::vector<float> x(n);
+  std::iota(x.begin(), x.end(), 1);
+  std::vector<float> y {1,2,2,3,5,4,7,7,8,9};
+
+  std::pair<float,float> theil_sen = Autotuning::theil_sen(x, y);
+
+  float intercept = -1.0, slope = 1.0;
+  EXPECT_FLOAT_EQ(theil_sen.first, intercept);
+  EXPECT_FLOAT_EQ(theil_sen.second, slope);
+}
+
 
 }
