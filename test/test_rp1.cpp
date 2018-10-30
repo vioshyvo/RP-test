@@ -429,14 +429,18 @@ TEST_F(MrptTest, RecallMatrix) {
   std::vector<MatrixXd> cs_sizes(depth_max - depth_min + 1);
   std::vector<MatrixXd> query_times(depth_max - depth_min + 1);
   std::vector<MatrixXd> projection_times(depth_max - depth_min + 1);
+  std::vector<MatrixXd> voting_times(depth_max - depth_min + 1);
+  std::vector<MatrixXd> exact_times(depth_max - depth_min + 1);
 
   for(int depth = depth_min; depth <= depth_max; ++depth) {
     MatrixXd recall_matrix = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd candidate_set_size = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd query_time = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd projection_time = MatrixXd::Zero(votes_max, trees_max);
+    MatrixXd voting_time = MatrixXd::Zero(votes_max, trees_max);
+    MatrixXd exact_time = MatrixXd::Zero(votes_max, trees_max);
 
-    float proj_sum = 0;
+    float proj_sum = 0, idx_sum = 0, exact_sum = 0;
 
     for(int t = 1; t <= trees_max; ++t) {
       Mrpt index(M);
@@ -461,6 +465,21 @@ TEST_F(MrptTest, RecallMatrix) {
           double end_proj = omp_get_wtime();
           proj_sum += projected_query.norm();
 
+          double start_voting = omp_get_wtime();
+          int n_el = 0;
+          VectorXi elected;
+          index.vote(projected_query, v, elected, n_el);
+          double end_voting = omp_get_wtime();
+          for(int i = 0; i < n_el; ++i)
+            idx_sum += elected(i);
+
+          double start_exact = omp_get_wtime();
+          std::vector<int> res(k);
+          index.exact_knn(Map<VectorXf>(Q.data() + i * d, d), k, elected, n_el, &res[0]);
+          double end_exact = omp_get_wtime();
+          for(int i = 0; i < k; ++i)
+            exact_sum += res[i];
+
           n_elected += n_elected_tmp;
           std::sort(result.begin(), result.end());
 
@@ -471,6 +490,9 @@ TEST_F(MrptTest, RecallMatrix) {
           recall_matrix(v - 1, t - 1) += intersect.size();
           query_time(v - 1, t - 1) += end - start;
           projection_time(v - 1, t - 1) += end_proj - start_proj;
+          voting_time(v - 1, t - 1) += end_voting - start_voting;
+          exact_time(v - 1, t - 1) += end_exact - start_exact;
+
         }
 
       candidate_set_size(v - 1, t - 1) = n_elected;
@@ -481,21 +503,33 @@ TEST_F(MrptTest, RecallMatrix) {
     candidate_set_size /= n_test;
     query_time /= n_test;
     projection_time /= n_test;
+    voting_time /= n_test;
+    exact_time /= n_test;
 
     recalls[depth - depth_min] = recall_matrix;
     cs_sizes[depth - depth_min] = candidate_set_size;
     query_times[depth - depth_min] = query_time;
     projection_times[depth - depth_min] = projection_time;
+    voting_times[depth - depth_min] = voting_time;
+    exact_times[depth - depth_min] = exact_time;
 
     // std::cout << recall_matrix << "\n\n";
     // std::cout << candidate_set_size << "\n\n";
-    std::cout << "proj_sum: " << proj_sum << "\n";
-    std::cout << "depth: " << depth << "\n";
+    std::cout << "proj_sum: " << proj_sum << " idx_sum: " << idx_sum << " exact_sum: " << exact_sum << "\n";
+
+    std::cout << "query time, depth: " << depth << "\n";
     std::cout << query_time * 1000 << "\n\n";
+
+    std::cout << "projection time, depth: " << depth << "\n";
     std::cout << projection_time * 1000 << "\n\n";
 
+    std::cout << "voting time, depth: " << depth << "\n";
+    std::cout << voting_time * 1000 << "\n\n";
 
+    std::cout << "exact time, depth: " << depth << "\n";
+    std::cout << exact_time * 1000 << "\n\n";
   }
+
   Autotuning at(M, test_queries);
   at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
@@ -505,6 +539,16 @@ TEST_F(MrptTest, RecallMatrix) {
       ASSERT_FLOAT_EQ(recalls[depth - depth_min](v - 1, t - 1), at.get_recall(t, depth, v));
       ASSERT_FLOAT_EQ(cs_sizes[depth - depth_min](v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
     }
+
+  std::cout << "\n\n\n\n";
+  for(int depth = depth_min; depth <= depth_max; ++depth) {
+    std::cout << "query time, depth: " << depth << "\n";
+    std::cout << query_times[depth - depth_min] * 1000 << "\n\n";
+
+    std::cout << "composite query time, depth: " << depth << "\n";
+    std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
+      + exact_times[depth - depth_min]) * 1000 << "\n\n" ;
+  }
 
 }
 
