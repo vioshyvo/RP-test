@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <set>
+#include <omp.h>
 
 #include "gtest/gtest.h"
 #include "Mrpt.h"
@@ -410,7 +411,7 @@ TEST(SaveTest, Loading) {
 }
 
 TEST_F(MrptTest, RecallMatrix) {
-  int trees_max = 10, depth_min = 6, depth_max =  6, votes_max = trees_max - 1, k = 5;
+  int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
   float density = 1.0 / std::sqrt(d);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -459,20 +460,20 @@ TEST_F(MrptTest, RecallMatrix) {
     recalls[depth - depth_min] = recall_matrix;
     cs_sizes[depth - depth_min] = candidate_set_size;
 
-    std::cout << recall_matrix << "\n\n";
-    std::cout << candidate_set_size << "\n\n";
+    // std::cout << recall_matrix << "\n\n";
+    // std::cout << candidate_set_size << "\n\n";
 
   }
-
+  omp_set_num_threads(1);
   Autotuning at(M, test_queries);
   at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
-  for(int depth = depth_min; depth < depth_max; ++depth)
-    for(int t = 1; t <= trees_max; ++t)
-      for(int v = 1; v <= votes_max; ++v) {
-        ASSERT_FLOAT_EQ(recalls[depth - depth_min](v - 1, t - 1), at.get_recall(t, depth, v));
-        ASSERT_FLOAT_EQ(cs_sizes[depth - depth_min](v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
-      }
+  int depth = depth_max;
+  for(int t = 1; t <= trees_max; ++t)
+    for(int v = 1; v <= votes_max; ++v) {
+      ASSERT_FLOAT_EQ(recalls[depth - depth_min](v - 1, t - 1), at.get_recall(t, depth, v));
+      ASSERT_FLOAT_EQ(cs_sizes[depth - depth_min](v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
+    }
 
 
 
