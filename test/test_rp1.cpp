@@ -421,6 +421,9 @@ TEST_F(MrptTest, RecallMatrix) {
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
 
+  Autotuning at(M, test_queries);
+  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
+
   MatrixXi exact(k, n_test);
   Mrpt index_exact(M);
   compute_exact(index_exact, exact);
@@ -432,6 +435,10 @@ TEST_F(MrptTest, RecallMatrix) {
   std::vector<MatrixXd> voting_times(depth_max - depth_min + 1);
   std::vector<MatrixXd> exact_times(depth_max - depth_min + 1);
 
+  std::vector<MatrixXd> projection_times_at(depth_max - depth_min + 1);
+  std::vector<MatrixXd> voting_times_at(depth_max - depth_min + 1);
+  std::vector<MatrixXd> exact_times_at(depth_max - depth_min + 1);
+
   for(int depth = depth_min; depth <= depth_max; ++depth) {
     MatrixXd recall_matrix = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd candidate_set_size = MatrixXd::Zero(votes_max, trees_max);
@@ -439,6 +446,10 @@ TEST_F(MrptTest, RecallMatrix) {
     MatrixXd projection_time = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd voting_time = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd exact_time = MatrixXd::Zero(votes_max, trees_max);
+
+    MatrixXd projection_time_at = MatrixXd::Zero(votes_max, trees_max);
+    MatrixXd voting_time_at = MatrixXd::Zero(votes_max, trees_max);
+    MatrixXd exact_time_at = MatrixXd::Zero(votes_max, trees_max);
 
     float proj_sum = 0, idx_sum = 0, exact_sum = 0;
 
@@ -492,10 +503,13 @@ TEST_F(MrptTest, RecallMatrix) {
           projection_time(v - 1, t - 1) += end_proj - start_proj;
           voting_time(v - 1, t - 1) += end_voting - start_voting;
           exact_time(v - 1, t - 1) += end_exact - start_exact;
-
         }
 
       candidate_set_size(v - 1, t - 1) = n_elected;
+
+      projection_time_at(v - 1, t - 1) = at.get_projection_time(v - 1, t - 1);
+      voting_time_at(v - 1, t - 1) = at.get_voting_time(v - 1, t - 1);
+      exact_time_at(v - 1, t - 1) = at.get_exact_time(v - 1, t - 1);
       }
     }
 
@@ -513,8 +527,10 @@ TEST_F(MrptTest, RecallMatrix) {
     voting_times[depth - depth_min] = voting_time;
     exact_times[depth - depth_min] = exact_time;
 
-    // std::cout << recall_matrix << "\n\n";
-    // std::cout << candidate_set_size << "\n\n";
+    projection_times_at[depth - depth_min] = projection_time_at;
+    voting_times_at[depth - depth_min] = voting_time_at;
+    exact_times_at[depth - depth_min] = exact_time_at;
+
     std::cout << "proj_sum: " << proj_sum << " idx_sum: " << idx_sum << " exact_sum: " << exact_sum << "\n";
 
     std::cout << "query time, depth: " << depth << "\n";
@@ -523,15 +539,22 @@ TEST_F(MrptTest, RecallMatrix) {
     std::cout << "projection time, depth: " << depth << "\n";
     std::cout << projection_time * 1000 << "\n\n";
 
+    std::cout << "projection time (at), depth: " << depth << "\n";
+    std::cout << projection_time_at * 1000 << "\n\n";
+
     std::cout << "voting time, depth: " << depth << "\n";
     std::cout << voting_time * 1000 << "\n\n";
 
+    std::cout << "voting time (at), depth: " << depth << "\n";
+    std::cout << voting_time_at * 1000 << "\n\n";
+
     std::cout << "exact time, depth: " << depth << "\n";
     std::cout << exact_time * 1000 << "\n\n";
-  }
 
-  Autotuning at(M, test_queries);
-  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
+    std::cout << "exact time (at), depth: " << depth << "\n";
+    std::cout << exact_time_at * 1000 << "\n\n";
+
+  }
 
   int depth = depth_max;
   for(int t = 1; t <= trees_max; ++t)
@@ -547,7 +570,11 @@ TEST_F(MrptTest, RecallMatrix) {
 
     std::cout << "composite query time, depth: " << depth << "\n";
     std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
-      + exact_times[depth - depth_min]) * 1000 << "\n\n" ;
+      + exact_times[depth - depth_min]) * 1000 << "\n\n";
+
+    std::cout << "composite query time (at), depth: " << depth << "\n";
+    std::cout << (projection_times_at[depth - depth_min] + voting_times_at[depth - depth_min]
+      + exact_times_at[depth - depth_min]) * 1000 << "\n\n";
   }
 
 }
