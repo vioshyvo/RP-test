@@ -410,7 +410,7 @@ TEST(SaveTest, Loading) {
 }
 
 TEST_F(MrptTest, RecallMatrix) {
-  int trees_max = 10, depth = 6, votes_max = trees_max - 1, k = 5;
+  int trees_max = 10, depth_min = 6, depth_max =  6, votes_max = trees_max - 1, k = 5;
   float density = 1.0 / std::sqrt(d);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -420,48 +420,59 @@ TEST_F(MrptTest, RecallMatrix) {
   Mrpt index_exact(M);
   compute_exact(index_exact, exact);
 
-  MatrixXd recall_matrix = MatrixXd::Zero(votes_max, trees_max);
-  MatrixXd candidate_set_size = MatrixXd::Zero(votes_max, trees_max);
+  std::vector<MatrixXd> recalls(depth_max - depth_min + 1);
+  std::vector<MatrixXd> cs_sizes(depth_max - depth_min + 1);
 
-  for(int t = 1; t <= trees_max; ++t) {
-    Mrpt index(M);
-    index.grow(t, depth, density, seed_mrpt);
+  for(int depth = depth_min; depth <= depth_max; ++depth) {
+    MatrixXd recall_matrix = MatrixXd::Zero(votes_max, trees_max);
+    MatrixXd candidate_set_size = MatrixXd::Zero(votes_max, trees_max);
 
-    int votes_index = votes_max < t ? votes_max : t;
-    for(int v = 1; v <= votes_index; ++v) {
-      int n_elected = 0;
-      for(int i = 0; i < n_test; ++i) {
-        std::vector<int> result(k);
-        std::vector<float> distances(k);
-        int n_elected_tmp = 0;
-        index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0],
-          &distances[0], &n_elected_tmp);
-        n_elected += n_elected_tmp;
-        std::sort(result.begin(), result.end());
+    for(int t = 1; t <= trees_max; ++t) {
+      Mrpt index(M);
+      index.grow(t, depth, density, seed_mrpt);
 
-        std::set<int> intersect;
-        std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
-                         std::inserter(intersect, intersect.begin()));
+      int votes_index = votes_max < t ? votes_max : t;
+      for(int v = 1; v <= votes_index; ++v) {
+        int n_elected = 0;
+        for(int i = 0; i < n_test; ++i) {
+          std::vector<int> result(k);
+          std::vector<float> distances(k);
+          int n_elected_tmp = 0;
+          index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0],
+            &distances[0], &n_elected_tmp);
+          n_elected += n_elected_tmp;
+          std::sort(result.begin(), result.end());
 
-        recall_matrix(v - 1, t - 1) += intersect.size();
+          std::set<int> intersect;
+          std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
+                           std::inserter(intersect, intersect.begin()));
+
+          recall_matrix(v - 1, t - 1) += intersect.size();
+        }
+
+      candidate_set_size(v - 1, t - 1) = n_elected;
       }
-
-    candidate_set_size(v - 1, t - 1) = n_elected;
     }
+
+    recall_matrix /= (k * n_test);
+    candidate_set_size /= n_test;
+    recalls[depth - depth_min] = recall_matrix;
+    cs_sizes[depth - depth_min] = candidate_set_size;
+
+    std::cout << recall_matrix << "\n\n";
+    std::cout << candidate_set_size << "\n\n";
+
   }
 
-  recall_matrix /= (k * n_test);
-  candidate_set_size /= n_test;
-  std::cout << recall_matrix << "\n\n";
-
   Autotuning at(M, test_queries);
-  at.tune(trees_max, depth, depth, votes_max, density, k, seed_mrpt);
+  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
-  for(int t = 1; t <= trees_max; ++t)
-    for(int v = 1; v <= votes_max; ++v) {
-      ASSERT_FLOAT_EQ(recall_matrix(v - 1, t - 1), at.get_recall(t, depth, v));
-      ASSERT_FLOAT_EQ(candidate_set_size(v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
-    }
+  for(int depth = depth_min; depth < depth_max; ++depth)
+    for(int t = 1; t <= trees_max; ++t)
+      for(int v = 1; v <= votes_max; ++v) {
+        ASSERT_FLOAT_EQ(recalls[depth - depth_min](v - 1, t - 1), at.get_recall(t, depth, v));
+        ASSERT_FLOAT_EQ(cs_sizes[depth - depth_min](v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
+      }
 
 
 
