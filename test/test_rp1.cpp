@@ -481,7 +481,7 @@ TEST_F(MrptTest, RecallMatrix) {
           double start_voting = omp_get_wtime();
           int n_el = 0;
           VectorXi elected;
-          index.vote(projected_query, v, elected, n_el);
+          index.vote(projected_query, v, elected, n_el, t);
           double end_voting = omp_get_wtime();
           for(int i = 0; i < n_el; ++i)
             idx_sum += elected(i);
@@ -543,17 +543,17 @@ TEST_F(MrptTest, RecallMatrix) {
     // std::cout << "query time, depth: " << depth << "\n";
     // std::cout << query_time * 1000 << "\n\n";
 
-    std::cout << "projection time, depth: " << depth << "\n";
-    std::cout << projection_time * 1000 << "\n\n";
-
-    std::cout << "projection time (at), depth: " << depth << "\n";
-    std::cout << projection_time_at * 1000 << "\n\n";
-
-    // std::cout << "voting time, depth: " << depth << "\n";
-    // std::cout << voting_time * 1000 << "\n\n";
+    // std::cout << "projection time, depth: " << depth << "\n";
+    // std::cout << projection_time * 1000 << "\n\n";
     //
-    // std::cout << "voting time (at), depth: " << depth << "\n";
-    // std::cout << voting_time_at * 1000 << "\n\n";
+    // std::cout << "projection time (at), depth: " << depth << "\n";
+    // std::cout << projection_time_at * 1000 << "\n\n";
+
+    std::cout << "voting time, depth: " << depth << "\n";
+    std::cout << voting_time * 1000 << "\n\n";
+
+    std::cout << "voting time (at), depth: " << depth << "\n";
+    std::cout << voting_time_at * 1000 << "\n\n";
     //
     // std::cout << "exact time, depth: " << depth << "\n";
     // std::cout << exact_time * 1000 << "\n\n";
