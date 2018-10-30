@@ -413,6 +413,8 @@ TEST(SaveTest, Loading) {
 }
 
 TEST_F(MrptTest, RecallMatrix) {
+  omp_set_num_threads(1);
+
   int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
   float density = 1.0 / std::sqrt(d);
 
@@ -425,10 +427,12 @@ TEST_F(MrptTest, RecallMatrix) {
 
   std::vector<MatrixXd> recalls(depth_max - depth_min + 1);
   std::vector<MatrixXd> cs_sizes(depth_max - depth_min + 1);
+  std::vector<MatrixXd> query_times(depth_max - depth_min + 1);
 
   for(int depth = depth_min; depth <= depth_max; ++depth) {
     MatrixXd recall_matrix = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd candidate_set_size = MatrixXd::Zero(votes_max, trees_max);
+    MatrixXd query_time = MatrixXd::Zero(votes_max, trees_max);
 
     for(int t = 1; t <= trees_max; ++t) {
       Mrpt index(M);
@@ -441,8 +445,12 @@ TEST_F(MrptTest, RecallMatrix) {
           std::vector<int> result(k);
           std::vector<float> distances(k);
           int n_elected_tmp = 0;
+
+          double start = omp_get_wtime();
           index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0],
             &distances[0], &n_elected_tmp);
+          double end = omp_get_wtime();
+
           n_elected += n_elected_tmp;
           std::sort(result.begin(), result.end());
 
@@ -451,6 +459,7 @@ TEST_F(MrptTest, RecallMatrix) {
                            std::inserter(intersect, intersect.begin()));
 
           recall_matrix(v - 1, t - 1) += intersect.size();
+          query_time(v - 1, t - 1) += end - start;
         }
 
       candidate_set_size(v - 1, t - 1) = n_elected;
@@ -459,14 +468,18 @@ TEST_F(MrptTest, RecallMatrix) {
 
     recall_matrix /= (k * n_test);
     candidate_set_size /= n_test;
+    query_time /= n_test;
+
     recalls[depth - depth_min] = recall_matrix;
     cs_sizes[depth - depth_min] = candidate_set_size;
+    query_times[depth - depth_min] = query_time;
 
     // std::cout << recall_matrix << "\n\n";
     // std::cout << candidate_set_size << "\n\n";
+    std::cout << "depth: " << depth << "\n";
+    std::cout << query_time * 1000 << "\n\n";
 
   }
-  omp_set_num_threads(1);
   Autotuning at(M, test_queries);
   at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
