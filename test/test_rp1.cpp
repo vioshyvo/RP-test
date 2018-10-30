@@ -428,11 +428,15 @@ TEST_F(MrptTest, RecallMatrix) {
   std::vector<MatrixXd> recalls(depth_max - depth_min + 1);
   std::vector<MatrixXd> cs_sizes(depth_max - depth_min + 1);
   std::vector<MatrixXd> query_times(depth_max - depth_min + 1);
+  std::vector<MatrixXd> projection_times(depth_max - depth_min + 1);
 
   for(int depth = depth_min; depth <= depth_max; ++depth) {
     MatrixXd recall_matrix = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd candidate_set_size = MatrixXd::Zero(votes_max, trees_max);
     MatrixXd query_time = MatrixXd::Zero(votes_max, trees_max);
+    MatrixXd projection_time = MatrixXd::Zero(votes_max, trees_max);
+
+    float proj_sum = 0;
 
     for(int t = 1; t <= trees_max; ++t) {
       Mrpt index(M);
@@ -451,6 +455,12 @@ TEST_F(MrptTest, RecallMatrix) {
             &distances[0], &n_elected_tmp);
           double end = omp_get_wtime();
 
+          double start_proj = omp_get_wtime();
+          VectorXf projected_query(t * depth);
+          index.project_query(Map<VectorXf>(Q.data() + i * d, d), projected_query);
+          double end_proj = omp_get_wtime();
+          proj_sum += projected_query.norm();
+
           n_elected += n_elected_tmp;
           std::sort(result.begin(), result.end());
 
@@ -460,6 +470,7 @@ TEST_F(MrptTest, RecallMatrix) {
 
           recall_matrix(v - 1, t - 1) += intersect.size();
           query_time(v - 1, t - 1) += end - start;
+          projection_time(v - 1, t - 1) += end_proj - start_proj;
         }
 
       candidate_set_size(v - 1, t - 1) = n_elected;
@@ -469,15 +480,20 @@ TEST_F(MrptTest, RecallMatrix) {
     recall_matrix /= (k * n_test);
     candidate_set_size /= n_test;
     query_time /= n_test;
+    projection_time /= n_test;
 
     recalls[depth - depth_min] = recall_matrix;
     cs_sizes[depth - depth_min] = candidate_set_size;
     query_times[depth - depth_min] = query_time;
+    projection_times[depth - depth_min] = projection_time;
 
     // std::cout << recall_matrix << "\n\n";
     // std::cout << candidate_set_size << "\n\n";
+    std::cout << "proj_sum: " << proj_sum << "\n";
     std::cout << "depth: " << depth << "\n";
     std::cout << query_time * 1000 << "\n\n";
+    std::cout << projection_time * 1000 << "\n\n";
+
 
   }
   Autotuning at(M, test_queries);
@@ -504,6 +520,8 @@ TEST(UtilityTest, TheilSen) {
   EXPECT_FLOAT_EQ(theil_sen.first, intercept);
   EXPECT_FLOAT_EQ(theil_sen.second, slope);
 }
+
+
 
 
 }
