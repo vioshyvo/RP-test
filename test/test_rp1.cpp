@@ -535,16 +535,16 @@ TEST_F(MrptTest, RecallMatrix) {
     voting_times_at[depth - depth_min] = voting_time_at;
     exact_times_at[depth - depth_min] = exact_time_at;
 
-    // std::cout << "recall, depth: " << depth << "\n";
-    // std::cout << recall_matrix << "\n\n";
+    std::cout << "recall, depth: " << depth << "\n";
+    std::cout << recall_matrix << "\n\n";
 
     // std::cout << "cs size, depth: " << depth << "\n";
     // std::cout << candidate_set_size << "\n\n";
 
     std::cout << "proj_sum: " << proj_sum << " idx_sum: " << idx_sum << " exact_sum: " << exact_sum << "\n";
 
-    // std::cout << "query time, depth: " << depth << "\n";
-    // std::cout << query_time * 1000 << "\n\n";
+    std::cout << "query time, depth: " << depth << "\n";
+    std::cout << query_time * 1000 << "\n\n";
 
     // std::cout << "projection time, depth: " << depth << "\n";
     // std::cout << projection_time * 1000 << "\n\n";
@@ -575,15 +575,15 @@ TEST_F(MrptTest, RecallMatrix) {
 
   std::cout << "\n\n\n\n";
   for(int depth = depth_min; depth <= depth_max; ++depth) {
-    std::cout << "query time, depth: " << depth << "\n";
-    std::cout << query_times[depth - depth_min] * 1000 << "\n\n";
+    // std::cout << "query time, depth: " << depth << "\n";
+    // std::cout << query_times[depth - depth_min] * 1000 << "\n\n";
 
-    std::cout << "composite query time, depth: " << depth << "\n";
-    std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
-      + exact_times[depth - depth_min]) * 1000 << "\n\n";
+    // std::cout << "composite query time, depth: " << depth << "\n";
+    // std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
+    //   + exact_times[depth - depth_min]) * 1000 << "\n\n";
 
-    std::cout << "composite query time (at), depth: " << depth << "\n";
-    std::cout << query_times_at[depth - depth_min] * 1000 << "\n\n";
+    // std::cout << "composite query time (at), depth: " << depth << "\n";
+    // std::cout << query_times_at[depth - depth_min] * 1000 << "\n\n";
   }
 }
 
@@ -601,12 +601,11 @@ TEST_F(MrptTest, Autotuning) {
   Mrpt index_exact(M);
   compute_exact(index_exact, exact);
 
-  Autotuning at(M, test_queries);
-  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
-
   int optimal_votes;
   Mrpt index(M);
-  index.grow(0.2, &at, optimal_votes);
+  Autotuning at(M, test_queries);
+  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
+  at.grow(0.2, optimal_votes, index);
 
   double query_time = 0, recall = 0;
 
@@ -627,7 +626,7 @@ TEST_F(MrptTest, Autotuning) {
   }
 
   std::cout << "Mean recall: " << recall / (k * n_test) << "\n";
-  std::cout << "Mean query time: " << query_time / n_test << "\n\n";
+  std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms. \n\n";
 }
 
 
