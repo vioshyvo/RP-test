@@ -585,8 +585,51 @@ TEST_F(MrptTest, RecallMatrix) {
     std::cout << "composite query time (at), depth: " << depth << "\n";
     std::cout << query_times_at[depth - depth_min] * 1000 << "\n\n";
   }
-
 }
+
+
+TEST_F(MrptTest, Autotuning) {
+  omp_set_num_threads(1);
+
+  int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
+  float density = 1.0 / std::sqrt(d);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
+
+  MatrixXi exact(k, n_test);
+  Mrpt index_exact(M);
+  compute_exact(index_exact, exact);
+
+  Autotuning at(M, test_queries);
+  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
+
+  int optimal_votes;
+  Mrpt index(M);
+  index.grow(0.2, &at, optimal_votes);
+
+  double query_time = 0, recall = 0;
+
+  for(int i = 0; i < n_test; ++i) {
+    std::vector<int> result(k);
+
+    double start = omp_get_wtime();
+    index.query(Map<VectorXf>(Q.data() + i * d, d), k, optimal_votes, &result[0]);
+    double end = omp_get_wtime();
+
+    std::sort(result.begin(), result.end());
+    std::set<int> intersect;
+    std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
+                     std::inserter(intersect, intersect.begin()));
+
+    query_time += end - start;
+    recall += intersect.size();
+  }
+
+  std::cout << "Mean recall: " << recall / (k * n_test) << "\n";
+  std::cout << "Mean query time: " << query_time / n_test << "\n\n";
+}
+
 
 TEST(UtilityTest, TheilSen) {
   int n = 10;
