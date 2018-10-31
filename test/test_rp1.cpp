@@ -538,6 +538,9 @@ TEST_F(MrptTest, RecallMatrix) {
     // std::cout << "recall, depth: " << depth << "\n";
     // std::cout << recall_matrix << "\n\n";
 
+    // std::cout << "cs size, depth: " << depth << "\n";
+    // std::cout << candidate_set_size << "\n\n";
+
     std::cout << "proj_sum: " << proj_sum << " idx_sum: " << idx_sum << " exact_sum: " << exact_sum << "\n";
 
     // std::cout << "query time, depth: " << depth << "\n";
@@ -549,12 +552,12 @@ TEST_F(MrptTest, RecallMatrix) {
     // std::cout << "projection time (at), depth: " << depth << "\n";
     // std::cout << projection_time_at * 1000 << "\n\n";
 
-    std::cout << "voting time, depth: " << depth << "\n";
-    std::cout << voting_time * 1000 << "\n\n";
-
-    std::cout << "voting time (at), depth: " << depth << "\n";
-    std::cout << voting_time_at * 1000 << "\n\n";
+    // std::cout << "voting time, depth: " << depth << "\n";
+    // std::cout << voting_time * 1000 << "\n\n";
     //
+    // std::cout << "voting time (at), depth: " << depth << "\n";
+    // std::cout << voting_time_at * 1000 << "\n\n";
+
     // std::cout << "exact time, depth: " << depth << "\n";
     // std::cout << exact_time * 1000 << "\n\n";
     //
@@ -570,18 +573,18 @@ TEST_F(MrptTest, RecallMatrix) {
   //     ASSERT_FLOAT_EQ(cs_sizes[depth - depth_min](v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
   //   }
 
-  // std::cout << "\n\n\n\n";
-  // for(int depth = depth_min; depth <= depth_max; ++depth) {
-  //   std::cout << "query time, depth: " << depth << "\n";
-  //   std::cout << query_times[depth - depth_min] * 1000 << "\n\n";
-  //
-  //   std::cout << "composite query time, depth: " << depth << "\n";
-  //   std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
-  //     + exact_times[depth - depth_min]) * 1000 << "\n\n";
-  //
-  //   std::cout << "composite query time (at), depth: " << depth << "\n";
-  //   std::cout << query_times_at[depth - depth_min] * 1000 << "\n\n";
-  // }
+  std::cout << "\n\n\n\n";
+  for(int depth = depth_min; depth <= depth_max; ++depth) {
+    std::cout << "query time, depth: " << depth << "\n";
+    std::cout << query_times[depth - depth_min] * 1000 << "\n\n";
+
+    std::cout << "composite query time, depth: " << depth << "\n";
+    std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
+      + exact_times[depth - depth_min]) * 1000 << "\n\n";
+
+    std::cout << "composite query time (at), depth: " << depth << "\n";
+    std::cout << query_times_at[depth - depth_min] * 1000 << "\n\n";
+  }
 
 }
 
