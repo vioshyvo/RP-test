@@ -173,6 +173,24 @@ class MrptTest : public testing::Test {
   VectorXf q;
 };
 
+class UtilityTest : public testing::Test {
+  protected:
+
+  UtilityTest() {}
+
+  void LeafTester(int n, int depth, const std::vector<int> &indices_reference) {
+    std::vector<int> indices;
+    Mrpt::count_first_leaf_indices(indices, n, depth);
+    EXPECT_EQ(indices, indices_reference);
+  }
+
+  void AllLeavesTester(int n, const std::vector<std::vector<int>> &indices_reference) {
+    std::vector<std::vector<int>> indices;
+    Mrpt::count_first_leaf_indices_all(indices, n, indices_reference.size() - 1);
+    EXPECT_EQ(indices, indices_reference);
+  }
+};
+
 
 // Test that the nearest neighbors returned by the index
 // are same as before when a seed for rng is fixed
@@ -637,9 +655,9 @@ TEST_F(MrptTest, Autotuning) {
 }
 
 
-TEST(UtilityTest, TheilSen) {
-  int n = 10;
-  std::vector<double> x(n);
+TEST_F(UtilityTest, TheilSen) {
+  int n_points = 10;
+  std::vector<double> x(n_points);
   std::iota(x.begin(), x.end(), 1);
   std::vector<double> y {1,2,2,3,5,4,7,7,8,9};
 
@@ -648,6 +666,20 @@ TEST(UtilityTest, TheilSen) {
   double intercept = -1.0, slope = 1.0;
   EXPECT_FLOAT_EQ(theil_sen.first, intercept);
   EXPECT_FLOAT_EQ(theil_sen.second, slope);
+}
+
+TEST_F(UtilityTest, LeafSizes) {
+  std::vector<std::vector<int>> indices_reference;
+  indices_reference.push_back({0,19});
+  indices_reference.push_back({0,10,19});
+  indices_reference.push_back({0,5,10,15,19});
+  indices_reference.push_back({0,3,5,8,10,13,15,17,19});
+  indices_reference.push_back({0,2,3,4,5,7,8,9,10,12,13,14,15,16,17,18,19});
+
+  for(int depth = 0; depth < indices_reference.size(); ++depth)
+    LeafTester(19, depth, indices_reference[depth]);
+
+  AllLeavesTester(19, indices_reference);
 }
 
 
