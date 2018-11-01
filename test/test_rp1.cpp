@@ -62,14 +62,21 @@ class MrptTest : public testing::Test {
     for(int i = 0; i < k; ++i) distances[i] = 0;
 
     const Map<VectorXf> V(q.data(), d);
-    index_dense.query(V, k, votes, &result[0], &distances[0]);
+    int n_el = 0;
+    index_dense.query(V, k, votes, &result[0], &distances[0], &n_el);
 
+    std::cout << "n_trees: " << n_trees << " depth: " << depth << " votes: " << votes << " k: " << k << "\n";
+    std::cout << "Candidate set size: " << n_el << "\n";
+    std::cout << "\n\n";
+
+    EXPECT_EQ(result, approximate_knn);
     for(int i = 0; i < k; ++i)  {
-      EXPECT_EQ(result[i], approximate_knn[i]);
       if(i > 0) {
         EXPECT_LE(distances[i-1], distances[i]);
       }
-      EXPECT_FLOAT_EQ(distances[i], (X.col(result[i]) - q).norm());
+      if(result[i] >= 0) {
+        EXPECT_FLOAT_EQ(distances[i], (X.col(result[i]) - q).norm());
+      }
     }
   }
 
@@ -280,8 +287,8 @@ TEST_F(MrptTest, Query) {
   QueryTester(n_trees, depth, 0.5, votes, k, std::vector<int> {682, 882, 802, 115, 720});
 
   QueryTester(n_trees, depth, density, 1, k, std::vector<int> {541, 949, 720, 629, 84});
-  QueryTester(n_trees, depth, density, 3, k, std::vector<int> {949, 629, 359, 109, 942});
-  QueryTester(30, depth, density, 5, k, std::vector<int> {629, 84, 779, 838, 713});
+  QueryTester(n_trees, depth, density, 3, k, std::vector<int> {-1, -1, -1, -1, -1});
+  QueryTester(30, depth, density, 5, k, std::vector<int> {-1, -1, -1, -1, -1});
 
   QueryTester(n_trees, depth, density, votes, 1, std::vector<int> {541});
   QueryTester(n_trees, depth, density, votes, 2, std::vector<int> {541, 949});
