@@ -156,6 +156,53 @@ class MrptTest : public testing::Test {
     TestLeaves(index, index_old);
   }
 
+  void AutotuningTester(int target_recall, int trees_max, int depth_min, int depth_max, int votes_max, int k) {
+    float density = 1.0 / std::sqrt(d);
+
+    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
+
+    MatrixXi exact(k, n_test);
+    Mrpt index_exact(M);
+    compute_exact(index_exact, exact);
+
+    Autotuning at(M, test_queries);
+    at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
+
+    Mrpt index(M);
+    index.grow(trees_max, depth_max, density, seed_mrpt);
+
+    double query_time = 0, recall = 0;
+    std::vector<double> query_times;
+
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(k);
+
+      double start = omp_get_wtime();
+      at.query(Map<VectorXf>(Q.data() + i * d, d), target_recall, &result[0], index);
+      double end = omp_get_wtime();
+
+      std::sort(result.begin(), result.end());
+      std::set<int> intersect;
+      std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
+                       std::inserter(intersect, intersect.begin()));
+
+      query_times.push_back(end - start);
+      query_time += end - start;
+      recall += intersect.size();
+    }
+
+    std::sort(query_times.begin(), query_times.end());
+    // for(int i = 0; i < query_times.size(); ++i)
+    //   std::cout << query_times[i] * 1000 << " ";
+
+    std::cout << "\n";
+
+    std::cout << "Mean recall: " << recall / (k * n_test) << "\n";
+    std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
+    std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
+  }
+
   void compute_exact(Mrpt &index, MatrixXi &out_exact) {
     int k = out_exact.rows();
     int nt = out_exact.cols();
@@ -558,11 +605,11 @@ TEST_F(MrptTest, RecallMatrix) {
     // std::cout << "recall, depth: " << depth << "\n";
     // std::cout << recall_matrix << "\n\n";
 
-    std::cout << "cs size, depth: " << depth << "\n";
-    std::cout << candidate_set_size << "\n\n";
-
-    std::cout << "cs size (at), depth: " << depth << "\n";
-    std::cout << candidate_set_size_at << "\n\n";
+    // std::cout << "cs size, depth: " << depth << "\n";
+    // std::cout << candidate_set_size << "\n\n";
+    //
+    // std::cout << "cs size (at), depth: " << depth << "\n";
+    // std::cout << candidate_set_size_at << "\n\n";
 
 
     std::cout << "proj_sum: " << proj_sum << " idx_sum: " << idx_sum << " exact_sum: " << exact_sum << "\n";
@@ -570,23 +617,23 @@ TEST_F(MrptTest, RecallMatrix) {
     // std::cout << "query time, depth: " << depth << "\n";
     // std::cout << query_time * 1000 << "\n\n";
     //
-    // std::cout << "projection time, depth: " << depth << "\n";
-    // std::cout << projection_time * 1000 << "\n\n";
-    //
-    // std::cout << "projection time (at), depth: " << depth << "\n";
-    // std::cout << projection_time_at * 1000 << "\n\n";
-    //
-    // std::cout << "voting time, depth: " << depth << "\n";
-    // std::cout << voting_time * 1000 << "\n\n";
-    //
-    // std::cout << "voting time (at), depth: " << depth << "\n";
-    // std::cout << voting_time_at * 1000 << "\n\n";
-    //
-    // std::cout << "exact time, depth: " << depth << "\n";
-    // std::cout << exact_time * 1000 << "\n\n";
-    //
-    // std::cout << "exact time (at), depth: " << depth << "\n";
-    // std::cout << exact_time_at * 1000 << "\n\n";
+    std::cout << "projection time, depth: " << depth << "\n";
+    std::cout << projection_time * 1000 << "\n\n";
+
+    std::cout << "projection time (at), depth: " << depth << "\n";
+    std::cout << projection_time_at * 1000 << "\n\n";
+
+    std::cout << "voting time, depth: " << depth << "\n";
+    std::cout << voting_time * 1000 << "\n\n";
+
+    std::cout << "voting time (at), depth: " << depth << "\n";
+    std::cout << voting_time_at * 1000 << "\n\n";
+
+    std::cout << "exact time, depth: " << depth << "\n";
+    std::cout << exact_time * 1000 << "\n\n";
+
+    std::cout << "exact time (at), depth: " << depth << "\n";
+    std::cout << exact_time_at * 1000 << "\n\n";
 
   }
 
@@ -598,66 +645,23 @@ TEST_F(MrptTest, RecallMatrix) {
   //   }
 
   // std::cout << "\n\n\n\n";
-  // for(int depth = depth_min; depth <= depth_max; ++depth) {
-  //   std::cout << "query time, depth: " << depth << "\n";
-  //   std::cout << query_times[depth - depth_min] * 1000 << "\n\n";
-  //
-  //   std::cout << "composite query time, depth: " << depth << "\n";
-  //   std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
-  //     + exact_times[depth - depth_min]) * 1000 << "\n\n";
-  //
-  //   std::cout << "composite query time (at), depth: " << depth << "\n";
-  //   std::cout << query_times_at[depth - depth_min] * 1000 << "\n\n";
-  // }
+  for(int depth = depth_min; depth <= depth_max; ++depth) {
+    std::cout << "query time, depth: " << depth << "\n";
+    std::cout << query_times[depth - depth_min] * 1000 << "\n\n";
+
+    std::cout << "composite query time, depth: " << depth << "\n";
+    std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
+      + exact_times[depth - depth_min]) * 1000 << "\n\n";
+
+    std::cout << "composite query time (at), depth: " << depth << "\n";
+    std::cout << query_times_at[depth - depth_min] * 1000 << "\n\n";
+  }
 }
 
 
 TEST_F(MrptTest, Autotuning) {
-  omp_set_num_threads(1);
-
-  int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
-  float density = 1.0 / std::sqrt(d);
-
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
-
-  MatrixXi exact(k, n_test);
-  Mrpt index_exact(M);
-  compute_exact(index_exact, exact);
-
-  Mrpt index(M);
-  Autotuning at(M, test_queries);
-  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
-
-  double query_time = 0, recall = 0;
-  std::vector<double> query_times;
-
-  for(int i = 0; i < n_test; ++i) {
-    std::vector<int> result(k);
-
-    double start = omp_get_wtime();
-    at.query(Map<VectorXf>(Q.data() + i * d, d), 20, &result[0], index);
-    double end = omp_get_wtime();
-
-    std::sort(result.begin(), result.end());
-    std::set<int> intersect;
-    std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
-                     std::inserter(intersect, intersect.begin()));
-
-    query_times.push_back(end - start);
-    query_time += end - start;
-    recall += intersect.size();
-  }
-
-  std::sort(query_times.begin(), query_times.end());
-  // for(int i = 0; i < query_times.size(); ++i)
-  //   std::cout << query_times[i] * 1000 << " ";
-
-  std::cout << "\n";
-
-  std::cout << "Mean recall: " << recall / (k * n_test) << "\n";
-  std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
-  std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
+  AutotuningTester(10, 10, 5, 7, 9, 5);
+  AutotuningTester(20, 10, 5, 7, 9, 5);
 }
 
 
