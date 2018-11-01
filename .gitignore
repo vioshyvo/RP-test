@@ -9,6 +9,7 @@ timing/train-images-idx3-ubyte
 timing/exact/tester
 timing/mrpt_tester/tester
 timing/mrpt_old_tester/tester
+timing/mrpt_autotuning_tester/tester
 timing/results
 test/save
 test/mrpt_saved

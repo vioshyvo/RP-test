@@ -27,22 +27,33 @@ for K in 1 10 100; do
   fi
 done
 
-pushd mrpt_tester
-  make
-popd
-
 if [ "$#" -eq 2 ]; then
   RESULT_FILE="results/$DATASET_NAME/mrpt_$2"
+  RESULT_FILE_AUTO="results/$DATASET_NAME/mrpt_auto_$2"
 else
   RESULT_FILE="results/$DATASET_NAME/mrpt"
+  RESULT_FILE_AUTO="results/$DATASET_NAME/mrpt_auto"
 fi
 
 if [ $PARALLEL -eq 1 ]; then
   RESULT_FILE="${RESULT_FILE}_parallel"
+  RESULT_FILE_AUTO="${RESULT_FILE_AUTO}_parallel"
   RESULT_FILE_OLD="results/$DATASET_NAME/mrpt_old_parallel"
 else
   RESULT_FILE_OLD="results/$DATASET_NAME/mrpt_old"
 fi
+
+pushd mrpt_autotuning_tester
+  make
+popd
+
+echo -n > "$RESULT_FILE_AUTO"
+mrpt_autotuning_tester/tester $N $N_TEST $K $MRPT_AUTO_MAX_TREES $MRPT_AUTO_MIN_DEPTH $MRPT_AUTO_MAX_DEPTH $MRPT_AUTO_MAX_VOTES $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL">> "$RESULT_FILE_AUTO"
+
+
+pushd mrpt_tester
+  make
+popd
 
 echo -n > "$RESULT_FILE"
 for n_trees in $MRPT_VOTING_N_TREES; do

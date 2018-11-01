@@ -174,6 +174,7 @@ class MrptTest : public testing::Test {
     compute_exact(index_exact, exact);
 
     Autotuning at(M, test_queries);
+    // at.tune(trees_max, depth_min, depth_max, density, votes_max, k, seed_mrpt);
     at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
     print_optimal_parameters(at);
