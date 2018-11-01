@@ -169,6 +169,8 @@ class MrptTest : public testing::Test {
     Autotuning at(M, test_queries);
     at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
+    print_optimal_parameters(at);
+
     Mrpt index(M);
     index.grow(trees_max, depth_max, density, seed_mrpt);
 
@@ -176,7 +178,7 @@ class MrptTest : public testing::Test {
     std::vector<double> query_times;
 
     for(int i = 0; i < n_test; ++i) {
-      std::vector<int> result(k);
+      std::vector<int> result(k, -1);
 
       double start = omp_get_wtime();
       at.query(Map<VectorXf>(Q.data() + i * d, d), target_recall, &result[0], index);
@@ -212,6 +214,24 @@ class MrptTest : public testing::Test {
 
       index.exact_knn(Map<VectorXf>(Q.data() + i * d, d), k, idx, n, out_exact.data() + i * k);
       std::sort(out_exact.data() + i * k, out_exact.data() + i * k + k);
+    }
+  }
+
+  void print_optimal_parameters(Autotuning &at) {
+    std::vector<int> target_recalls(99);
+    std::iota(target_recalls.begin(), target_recalls.end(), 1);
+    double best_recall = 0.0;
+    for(const auto &tr : target_recalls) {
+      Parameters op = at.get_optimal_parameters(tr);
+      if(op.n_trees && op.estimated_recall > best_recall) {
+        best_recall = op.estimated_recall;
+        std::cout << "target_recall:        " << tr  / 100.0 << "\n";
+        std::cout << "n_trees:              " << op.n_trees << "\n";
+        std::cout << "depth:                " << op.depth << "\n";
+        std::cout << "votes:                " << op.votes << "\n";
+        std::cout << "estimated query time: " << op.estimated_qtime * 1000 << " ms." << "\n";
+        std::cout << "estimated recall:     " << op.estimated_recall / 100.0 << "\n\n";
+      }
     }
   }
 
@@ -660,8 +680,9 @@ TEST_F(MrptTest, RecallMatrix) {
 
 
 TEST_F(MrptTest, Autotuning) {
-  AutotuningTester(10, 10, 5, 7, 9, 5);
+  // AutotuningTester(10, 10, 5, 7, 9, 5);
   AutotuningTester(20, 10, 5, 7, 9, 5);
+  // AutotuningTester(99, 10, 5, 7, 9, 5);
 }
 
 
