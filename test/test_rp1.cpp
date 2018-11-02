@@ -174,7 +174,6 @@ class MrptTest : public testing::Test {
     compute_exact(index_exact, exact);
 
     Autotuning at(M, test_queries);
-    // at.tune(trees_max, depth_min, depth_max, density, votes_max, k, seed_mrpt);
     at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
     print_optimal_parameters(at);
@@ -233,12 +232,19 @@ class MrptTest : public testing::Test {
       Parameters op = at.get_optimal_parameters(tr);
       if(op.n_trees && op.estimated_recall > best_recall) {
         best_recall = op.estimated_recall;
-        std::cout << "target_recall:        " << tr  / 100.0 << "\n";
-        std::cout << "n_trees:              " << op.n_trees << "\n";
-        std::cout << "depth:                " << op.depth << "\n";
-        std::cout << "votes:                " << op.votes << "\n";
-        std::cout << "estimated query time: " << op.estimated_qtime * 1000 << " ms." << "\n";
-        std::cout << "estimated recall:     " << op.estimated_recall / 100.0 << "\n\n";
+        std::cout << "target_recall:             " << tr  / 100.0 << "\n";
+        std::cout << "n_trees:                   " << op.n_trees << "\n";
+        std::cout << "depth:                     " << op.depth << "\n";
+        std::cout << "votes:                     " << op.votes << "\n";
+        std::cout << "estimated query time:      " << op.estimated_qtime * 1000.0 << " ms." << "\n";
+        if(op.validation_recall > 0) {
+        std::cout << "validation set query time: " << op.validation_qtime * 1000.0 << " ms." << "\n";
+        }
+        std::cout << "estimated recall:          " << op.estimated_recall << "\n";
+        if(op.validation_recall > 0) {
+        std::cout << "validation set recall:     " << op.validation_recall << "\n";
+        }
+        std::cout << std::endl;
       }
     }
   }

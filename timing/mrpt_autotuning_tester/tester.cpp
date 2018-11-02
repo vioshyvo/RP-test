@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     if(!parallel) omp_set_num_threads(1);
     int seed_mrpt = 12345;
 
-    std::vector<int> ks{10, 100};
+    std::vector<int> ks{1, 10, 100};
     std::vector<double> build_times;
 
     Mrpt index(M);
