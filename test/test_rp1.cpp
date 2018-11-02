@@ -722,7 +722,9 @@ TEST_F(MrptTest, TreeDeleting) {
 
  int target_recall = 20;
  int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
- float density = 1.0 / std::sqrt(d);
+ // float density = 1.0 / std::sqrt(d);
+ float density = 1;
+
 
  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
  Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
@@ -788,17 +790,17 @@ TEST_F(MrptTest, TreeDeleting) {
 
  EXPECT_EQ(res, res3);
 
- // for(int l = 0; l < res3.size(); ++l) {
+ // // for(int l = 0; l < res3.size(); ++l) {
+ // //   for(int j = 0; j < k; ++j)
+ // //     std::cout << res3[l][j] << " ";
+ // //   std::cout << "\n\n";
+ // // }
+ //
+ // for(int i = 0; i < res.size(); ++i) {
  //   for(int j = 0; j < k; ++j)
- //     std::cout << res3[l][j] << " ";
- //   std::cout << "\n\n";
+ //     std::cout << res[i][j] << " ";
+ //   std::cout << "\n";
  // }
-
- for(int i = 0; i < res.size(); ++i) {
-   for(int j = 0; j < k; ++j)
-     std::cout << res[i][j] << " ";
-   std::cout << "\n";
- }
 
 
  // for(int i = 0; i < res.size(); ++i) {
