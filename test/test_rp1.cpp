@@ -744,18 +744,17 @@ TEST_F(MrptTest, TreeDeleting) {
  print_parameters(par);
  std::cout << std::endl;
 
+ std::vector<std::vector<int>> res, res2, res3;
 
  for(int i = 0; i < n_test; ++i) {
    std::vector<int> result(k, -1);
-   std::vector<int> result2(k, -1);
    const Map<VectorXf> q(Q.data() + i * d, d);
 
    double start = omp_get_wtime();
    at.query(q, target_recall, &result[0], index);
    double end = omp_get_wtime();
 
-   index.query(q, k, par.votes, &result2[0], par.n_trees, par.depth);
-   EXPECT_EQ(result, result2);
+   res.push_back(result);
 
    std::sort(result.begin(), result.end());
    std::set<int> intersect;
@@ -767,10 +766,32 @@ TEST_F(MrptTest, TreeDeleting) {
    recall += intersect.size();
  }
 
+
+ for(int i = 0; i < n_test; ++i) {
+   const Map<VectorXf> q(Q.data() + i * d, d);
+   std::vector<int> result(k, -1);
+   index.query(q, k, par.votes, &result[0], par.n_trees, par.depth);
+   res2.push_back(result);
+ }
+
+ EXPECT_EQ(res, res2);
+
+ at.delete_extra_trees(index);
+
+ for(int i = 0; i < n_test; ++i) {
+   const Map<VectorXf> q(Q.data() + i * d, d);
+   std::vector<int> result(k, -1);
+   at.query(q, &result[0], index);
+   res3.push_back(result);
+ }
+
+ EXPECT_EQ(res, res3);
+
+
+
  std::sort(query_times.begin(), query_times.end());
 
  std::cout << "\n";
-
  std::cout << "Mean recall: " << recall / (k * n_test) << "\n";
  std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
  std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
