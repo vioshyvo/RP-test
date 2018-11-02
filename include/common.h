@@ -102,12 +102,12 @@ void results(int k, const vector<double> &times, const vector<set<int>> &idx,
 
     vector<pair<double, double>> results;
 
-    double accuracy, total_time = 0, total_accuracy = 0;
+    double total_time = 0, total_accuracy = 0;
     for (unsigned i = 0; i < times.size(); ++i) {
         set<int> intersect;
         set_intersection(correct[i].begin(), correct[i].end(), idx[i].begin(), idx[i].end(),
                          inserter(intersect, intersect.begin()));
-        accuracy = intersect.size() / static_cast<double>(k);
+        double accuracy = intersect.size() / static_cast<double>(k);
         total_time += times[i];
         total_accuracy += accuracy;
         results.push_back(make_pair(times[i], accuracy));
@@ -118,15 +118,23 @@ void results(int k, const vector<double> &times, const vector<set<int>> &idx,
         variance += (res.second - mean_accuracy) * (res.second - mean_accuracy);
     variance /= (results.size() - 1);
 
+    int n_test = times.size();
+    double var_query_time = 0.0, mean_query_time = total_time / n_test;
+    for(int i = 0; i < n_test; ++i)
+        var_query_time += (times[i] - mean_query_time) * (times[i] - mean_query_time);
+    var_query_time /= (n_test - 1);
+
     cout << setprecision(5);
     if(verbose){
-      cout << "accuracy: " << mean_accuracy
-           << ", variance:  " << variance
-           << ", query time: " << total_time;
+      cout << "recall: " << mean_accuracy
+           << ", std. of recall:  " << std::sqrt(variance)
+           << ", total query time: " << total_time
+           << ", std. of query time: " << std::sqrt(var_query_time) << " ";
       } else {
       cout << mean_accuracy << " "
-           << variance << " "
-           << total_time << " ";
+           << std::sqrt(variance) << " "
+           << total_time << " "
+           << std::sqrt(var_query_time) << " ";
       }
 
 }

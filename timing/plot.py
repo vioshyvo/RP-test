@@ -60,7 +60,7 @@ def main(k, files):
             lines = [[float(x) for x in s.strip().split()] for s in f]
         acc = [x[5] for x in lines if x[0] == k]
         tym = [x[7] for x in lines if x[0] == k]
-        index_time = [x[8] for x in lines if x[0] == k] if build_times else np.zeros(len(acc))
+        index_time = [x[9] for x in lines if x[0] == k] if build_times else np.zeros(len(acc))
         # A.append((resfile.split('.')[0], acc, tym))
         A.append((lines[0][3], acc, tym, lines[0][2], index_time))
 

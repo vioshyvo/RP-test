@@ -24,7 +24,7 @@ def main(k, files):
         with open(resfile) as f:
             _ = f.readline()
             lines = [[float(x) for x in s.strip().split()] for s in f]
-        index_time = [x[8] for x in lines if x[0] == k and x[2] == depth]
+        index_time = [x[9] for x in lines if x[0] == k and x[2] == depth]
         n_trees = [x[1] for x in lines if x[0] == k and x[2] == depth]
 
         index_time2 = []
