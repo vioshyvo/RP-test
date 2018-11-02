@@ -23,7 +23,7 @@ or
 ```
 The results are printed into the files `results/mrpt_<postfix>.txt` (or plain `results/mrpt.txt` if you did not assign any postfix) and `results_mrpt_old.txt`. The format of the result files is
 ```
-k n_trees depth density v recall recall.sd query.time build.time,  
+<k> <n_trees> <depth> <density> <vote threshold> <mean recall> <sd. of recall>  <query time (total)> <sd. of query times> <index building time>.  
 ```
 where query time is the combined time for all the test points, for example 100 points. Values of `k` used are `k=1,10,100`. These are hard-coded into the `mrpt_tester/tester.cpp` and `mrpt_old_tester/tester.cpp` and `comparison.sh` (for exact search).
 

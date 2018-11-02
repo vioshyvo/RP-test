@@ -232,17 +232,23 @@ class MrptTest : public testing::Test {
       Parameters op = at.get_optimal_parameters(tr);
       if(op.n_trees && op.estimated_recall > best_recall) {
         best_recall = op.estimated_recall;
-        std::cout << "target_recall:             " << tr  / 100.0 << "\n";
-        std::cout << "n_trees:                   " << op.n_trees << "\n";
-        std::cout << "depth:                     " << op.depth << "\n";
-        std::cout << "votes:                     " << op.votes << "\n";
-        std::cout << "estimated query time:      " << op.estimated_qtime * 1000.0 << " ms." << "\n";
-        if(op.validation_recall > 0) {
-        std::cout << "validation set query time: " << op.validation_qtime * 1000.0 << " ms." << "\n";
+        std::cout << "target_recall:                " << tr  / 100.0 << "\n";
+        std::cout << "n_trees:                      " << op.n_trees << "\n";
+        std::cout << "depth:                        " << op.depth << "\n";
+        std::cout << "votes:                        " << op.votes << "\n";
+        std::cout << "estimated query time:         " << op.estimated_qtime * n_test << " " << "\n";
+        if(op.validation_qtime > 0) {
+        std::cout << "validation set query time:    " << op.validation_qtime * n_test << " " << "\n";
         }
-        std::cout << "estimated recall:          " << op.estimated_recall << "\n";
+        if(op.validation_qtime_sd > 0) {
+        std::cout << "validation set query time sd: " << op.validation_qtime_sd << " " << "\n";
+        }
+        std::cout << "estimated recall:             " << op.estimated_recall << "\n";
         if(op.validation_recall > 0) {
-        std::cout << "validation set recall:     " << op.validation_recall << "\n";
+        std::cout << "validation set recall:        " << op.validation_recall << "\n";
+        }
+        if(op.validation_recall_sd > 0) {
+        std::cout << "validation set recall sd:     " << op.validation_recall_sd << "\n";
         }
         std::cout << std::endl;
       }
@@ -725,6 +731,12 @@ TEST_F(UtilityTest, LeafSizes) {
     LeafTester(19, depth, indices_reference[depth]);
 
   AllLeavesTester(19, indices_reference);
+}
+
+TEST_F(UtilityTest, Statistics) {
+  std::vector<double> x {8.0, 4.0, 10.0, -8.0, 100.0, 13.0, 7.0};
+  EXPECT_FLOAT_EQ(Autotuning::mean(x), 19.14286);
+  EXPECT_FLOAT_EQ(Autotuning::var(x), 1316.143);
 }
 
 
