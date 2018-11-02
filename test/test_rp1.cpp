@@ -744,7 +744,7 @@ TEST_F(MrptTest, TreeDeleting) {
  print_parameters(par);
  std::cout << std::endl;
 
- std::vector<std::vector<int>> res, res2, res3;
+ std::vector<std::vector<int>> res, res2, res3, res4;
 
  for(int i = 0; i < n_test; ++i) {
    std::vector<int> result(k, -1);
@@ -776,16 +776,52 @@ TEST_F(MrptTest, TreeDeleting) {
 
  EXPECT_EQ(res, res2);
 
+ Mrpt index2(M);
+ at.subset_trees(index, index2);
+
+ for(int i = 0; i < n_test; ++i) {
+   const Map<VectorXf> q(Q.data() + i * d, d);
+   std::vector<int> result(k, -1);
+   at.query(q, &result[0], index2);
+   res3.push_back(result);
+ }
+
+ EXPECT_EQ(res, res3);
+
+ // for(int l = 0; l < res3.size(); ++l) {
+ //   for(int j = 0; j < k; ++j)
+ //     std::cout << res3[l][j] << " ";
+ //   std::cout << "\n\n";
+ // }
+
+ for(int i = 0; i < res.size(); ++i) {
+   for(int j = 0; j < k; ++j)
+     std::cout << res[i][j] << " ";
+   std::cout << "\n";
+ }
+
+
+ // for(int i = 0; i < res.size(); ++i) {
+ //   for(int j = 0; j < k; ++j)
+ //     std::cout << res[i][j] << " ";
+ //   std::cout << "\n";
+ //   for(int j = 0; j < k; ++j)
+ //     std::cout << res3[0][j] << " ";
+ //   std::cout << "\n\n";
+ // }
+
+
  at.delete_extra_trees(index);
 
  for(int i = 0; i < n_test; ++i) {
    const Map<VectorXf> q(Q.data() + i * d, d);
    std::vector<int> result(k, -1);
    at.query(q, &result[0], index);
-   res3.push_back(result);
+   res4.push_back(result);
  }
 
- EXPECT_EQ(res, res3);
+ EXPECT_EQ(res, res4);
+
 
 
 
