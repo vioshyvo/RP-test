@@ -99,6 +99,9 @@ int main(int argc, char **argv) {
       double build_time = omp_get_wtime() - build_start;
       build_times.push_back(build_time);
 
+      bool add = j ? true : false;
+      at.write_results((result_path + "mrpt_auto_write").c_str(), add);
+
       std::vector<int> target_recalls(99);
       std::iota(target_recalls.begin(), target_recalls.end(), 0);
 
