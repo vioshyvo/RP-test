@@ -29,9 +29,6 @@
 using namespace Eigen;
 
 int main(int argc, char **argv) {
-    // for(auto &s : std::vector<char*>(argv, argv + argc))
-    //   std::cout << s << '\n';
-
     size_t n = atoi(argv[1]);
     size_t ntest = atoi(argv[2]);
     int k = atoi(argv[3]);
@@ -42,9 +39,7 @@ int main(int argc, char **argv) {
 
     size_t dim = atoi(argv[8]);
     int mmap = atoi(argv[9]);
-    std::string result_path(argv[10]);
-    if (!result_path.empty() && result_path.back() != '/')
-      result_path += '/';
+    std::string result_file(argv[10]);
 
     std::string infile_path(argv[11]);
     if (!infile_path.empty() && infile_path.back() != '/')
@@ -100,40 +95,8 @@ int main(int argc, char **argv) {
       build_times.push_back(build_time);
 
       bool add = j ? true : false;
-      at.write_results((result_path + "mrpt_auto_write").c_str(), add);
+      at.write_results(result_file, add);
 
-      std::vector<int> target_recalls(99);
-      std::iota(target_recalls.begin(), target_recalls.end(), 0);
-
-      for(const auto &tr : target_recalls) {
-        Parameters par = at.get_optimal_parameters(tr);
-        if(!par.n_trees) {
-          continue;
-        }
-
-        std::vector<double> times;
-        std::vector<std::set<int>> idx;
-
-        for(int i = 0; i < ntest; ++i) {
-          std::vector<int> result(k);
-
-          double start = omp_get_wtime();
-          at.query(Map<VectorXf>(&test[i * dim], dim), tr, &result[0], index);
-          double end = omp_get_wtime();
-
-          times.push_back(end - start);
-          idx.push_back(std::set<int>(result.begin(), result.begin() + k));
-        }
-
-        if(verbose)
-            std::cout << "k: " << k << ", # of trees: " << par.n_trees << ", depth: " << par.depth << ", density: " << density << ", votes: " << par.votes << "\n";
-        else
-            std::cout << k << " " << par.n_trees << " " << par.depth << " " << density << " " << par.votes << " ";
-
-        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
-        std::cout << build_time << endl;
-
-      }
     }
 
     delete[] test;
