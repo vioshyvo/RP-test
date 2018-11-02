@@ -255,6 +255,17 @@ class MrptTest : public testing::Test {
     }
   }
 
+  void print_parameters(Parameters op) {
+    std::cout << "n_trees:                      " << op.n_trees << "\n";
+    std::cout << "depth:                        " << op.depth << "\n";
+    std::cout << "votes:                        " << op.votes << "\n";
+    std::cout << "estimated query time:         " << op.estimated_qtime * 1000.0 << " ms.\n";
+    std::cout << "estimated recall:             " << op.estimated_recall << "\n";
+    if(op.validation_qtime > 0) {
+      std::cout << "validation set query time:    " << op.validation_qtime * 1000 << " ms.\n";
+    }
+  }
+
   int d, n, n2, n_test, seed_data, seed_mrpt;
   MatrixXf X, X2, Q;
   VectorXf q;
@@ -723,20 +734,28 @@ TEST_F(MrptTest, TreeDeleting) {
  Autotuning at(M, test_queries);
  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
- print_optimal_parameters(at);
-
  Mrpt index(M);
  index.grow(trees_max, depth_max, density, seed_mrpt);
 
  double query_time = 0, recall = 0;
  std::vector<double> query_times;
 
+ Parameters par = at.get_optimal_parameters(target_recall);
+ print_parameters(par);
+ std::cout << std::endl;
+
+
  for(int i = 0; i < n_test; ++i) {
    std::vector<int> result(k, -1);
+   std::vector<int> result2(k, -1);
+   const Map<VectorXf> q(Q.data() + i * d, d);
 
    double start = omp_get_wtime();
-   at.query(Map<VectorXf>(Q.data() + i * d, d), target_recall, &result[0], index);
+   at.query(q, target_recall, &result[0], index);
    double end = omp_get_wtime();
+
+   index.query(q, k, par.votes, &result2[0], par.n_trees, par.depth);
+   EXPECT_EQ(result, result2);
 
    std::sort(result.begin(), result.end());
    std::set<int> intersect;
@@ -749,8 +768,6 @@ TEST_F(MrptTest, TreeDeleting) {
  }
 
  std::sort(query_times.begin(), query_times.end());
- // for(int i = 0; i < query_times.size(); ++i)
- //   std::cout << query_times[i] * 1000 << " ";
 
  std::cout << "\n";
 
