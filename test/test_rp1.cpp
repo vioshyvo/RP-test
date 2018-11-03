@@ -266,6 +266,24 @@ class MrptTest : public testing::Test {
     }
   }
 
+  double get_recall(std::vector<std::vector<int>> results, MatrixXi exact) {
+    int n_test = results.size();
+    int k = results[0].size();
+    double recall = 0;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> &result = results[i];
+
+      std::sort(result.begin(), result.end());
+      std::sort(exact.data() + i * k, exact.data() + i * k + k);
+      std::set<int> intersect;
+      std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
+                       std::inserter(intersect, intersect.begin()));
+
+      recall += intersect.size();
+    }
+    return recall / n_test;
+  }
+
   int d, n, n2, n_test, seed_data, seed_mrpt;
   MatrixXf X, X2, Q;
   VectorXf q;
@@ -722,8 +740,8 @@ TEST_F(MrptTest, TreeDeleting) {
 
  int target_recall = 20;
  int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
- // float density = 1.0 / std::sqrt(d);
- float density = 1;
+ float density = 1.0 / std::sqrt(d);
+ // float density = 1;
 
 
  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -768,6 +786,11 @@ TEST_F(MrptTest, TreeDeleting) {
    recall += intersect.size();
  }
 
+ recall /= n_test;
+
+ double rec1 = get_recall(res, exact);
+ EXPECT_FLOAT_EQ(recall, rec1);
+
 
  for(int i = 0; i < n_test; ++i) {
    const Map<VectorXf> q(Q.data() + i * d, d);
@@ -790,27 +813,27 @@ TEST_F(MrptTest, TreeDeleting) {
 
  EXPECT_EQ(res, res3);
 
- // // for(int l = 0; l < res3.size(); ++l) {
- // //   for(int j = 0; j < k; ++j)
- // //     std::cout << res3[l][j] << " ";
- // //   std::cout << "\n\n";
- // // }
- //
- // for(int i = 0; i < res.size(); ++i) {
- //   for(int j = 0; j < k; ++j)
- //     std::cout << res[i][j] << " ";
- //   std::cout << "\n";
- // }
+ for(int l = 0; l < res3.size(); ++l) {
+   for(int j = 0; j < k; ++j)
+     std::cout << res3[l][j] << " ";
+   std::cout << "\n\n";
+ }
+
+ for(int i = 0; i < res.size(); ++i) {
+   for(int j = 0; j < k; ++j)
+     std::cout << res[i][j] << " ";
+   std::cout << "\n";
+ }
 
 
- // for(int i = 0; i < res.size(); ++i) {
- //   for(int j = 0; j < k; ++j)
- //     std::cout << res[i][j] << " ";
- //   std::cout << "\n";
- //   for(int j = 0; j < k; ++j)
- //     std::cout << res3[0][j] << " ";
- //   std::cout << "\n\n";
- // }
+ for(int i = 0; i < res.size(); ++i) {
+   for(int j = 0; j < k; ++j)
+     std::cout << res[i][j] << " ";
+   std::cout << "\n";
+   for(int j = 0; j < k; ++j)
+     std::cout << res3[i][j] << " ";
+   std::cout << "\n\n";
+ }
 
 
  at.delete_extra_trees(index);
