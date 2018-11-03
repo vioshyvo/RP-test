@@ -281,7 +281,7 @@ class MrptTest : public testing::Test {
 
       recall += intersect.size();
     }
-    return recall / n_test;
+    return recall / (k * n_test);
   }
 
   int d, n, n2, n_test, seed_data, seed_mrpt;
@@ -786,7 +786,7 @@ TEST_F(MrptTest, TreeDeleting) {
    recall += intersect.size();
  }
 
- recall /= n_test;
+ recall /= (k * n_test);
 
  double rec1 = get_recall(res, exact);
  EXPECT_FLOAT_EQ(recall, rec1);
@@ -800,6 +800,7 @@ TEST_F(MrptTest, TreeDeleting) {
  }
 
  EXPECT_EQ(res, res2);
+ EXPECT_FLOAT_EQ(rec1, get_recall(res2, exact));
 
  Mrpt index2(M);
  at.subset_trees(index, index2);
@@ -812,29 +813,7 @@ TEST_F(MrptTest, TreeDeleting) {
  }
 
  EXPECT_EQ(res, res3);
-
- for(int l = 0; l < res3.size(); ++l) {
-   for(int j = 0; j < k; ++j)
-     std::cout << res3[l][j] << " ";
-   std::cout << "\n\n";
- }
-
- for(int i = 0; i < res.size(); ++i) {
-   for(int j = 0; j < k; ++j)
-     std::cout << res[i][j] << " ";
-   std::cout << "\n";
- }
-
-
- for(int i = 0; i < res.size(); ++i) {
-   for(int j = 0; j < k; ++j)
-     std::cout << res[i][j] << " ";
-   std::cout << "\n";
-   for(int j = 0; j < k; ++j)
-     std::cout << res3[i][j] << " ";
-   std::cout << "\n\n";
- }
-
+ EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
 
  at.delete_extra_trees(index);
 
@@ -846,14 +825,13 @@ TEST_F(MrptTest, TreeDeleting) {
  }
 
  EXPECT_EQ(res, res4);
-
-
+ EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
 
 
  std::sort(query_times.begin(), query_times.end());
 
  std::cout << "\n";
- std::cout << "Mean recall: " << recall / (k * n_test) << "\n";
+ std::cout << "Mean recall: " << recall  << "\n";
  std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
  std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
 
