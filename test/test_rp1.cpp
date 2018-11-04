@@ -227,7 +227,7 @@ class MrptTest : public testing::Test {
     TestLeaves(index, index_old);
   }
 
-  void AutotuningTester(int target_recall, int trees_max, int depth_min, int depth_max, int votes_max, int k) {
+  void AutotuningTester(double target_recall, int trees_max, int depth_min, int depth_max, int votes_max, int k) {
     float density = 1.0 / std::sqrt(d);
 
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -289,8 +289,14 @@ class MrptTest : public testing::Test {
   }
 
   void print_optimal_parameters(Autotuning &at) {
-    std::vector<int> target_recalls(99);
-    std::iota(target_recalls.begin(), target_recalls.end(), 1);
+
+    std::vector<double> target_recalls;
+    double tr = 0.01;
+    while(tr < 1.0) {
+      target_recalls.push_back(tr);
+      tr += 0.01;
+    }
+
     double best_recall = 0.0;
     for(const auto &tr : target_recalls) {
       Parameters op = at.get_optimal_parameters(tr);
@@ -794,7 +800,7 @@ TEST_F(MrptTest, RecallMatrix) {
 
 TEST_F(MrptTest, Autotuning) {
   // AutotuningTester(10, 10, 5, 7, 9, 5);
-  AutotuningTester(20, 10, 5, 7, 9, 5);
+  AutotuningTester(0.20, 10, 5, 7, 9, 5);
   // AutotuningTester(99, 10, 5, 7, 9, 5);
 }
 
@@ -802,7 +808,7 @@ TEST_F(MrptTest, TreeDeleting) {
 
  omp_set_num_threads(1);
 
- int target_recall = 20;
+ double target_recall = 0.2;
  int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
  float density = 1.0 / std::sqrt(d);
  // float density = 1;
