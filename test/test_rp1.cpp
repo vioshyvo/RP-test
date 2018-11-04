@@ -290,38 +290,27 @@ class MrptTest : public testing::Test {
 
   void print_optimal_parameters(Autotuning &at) {
 
-    std::vector<double> target_recalls;
-    double tr = 0.01;
-    while(tr < 1.0) {
-      target_recalls.push_back(tr);
-      tr += 0.01;
-    }
+    std::vector<Parameters> pars = at.optimal_parameter_list();
 
-    double best_recall = 0.0;
-    for(const auto &tr : target_recalls) {
-      Parameters op = at.get_optimal_parameters(tr);
-      if(op.n_trees && op.estimated_recall > best_recall) {
-        best_recall = op.estimated_recall;
-        std::cout << "target_recall:                " << tr  / 100.0 << "\n";
-        std::cout << "n_trees:                      " << op.n_trees << "\n";
-        std::cout << "depth:                        " << op.depth << "\n";
-        std::cout << "votes:                        " << op.votes << "\n";
-        std::cout << "estimated query time:         " << op.estimated_qtime * n_test << " " << "\n";
-        if(op.validation_qtime > 0) {
-        std::cout << "validation set query time:    " << op.validation_qtime * n_test << " " << "\n";
-        }
-        if(op.validation_qtime_sd > 0) {
-        std::cout << "validation set query time sd: " << op.validation_qtime_sd << " " << "\n";
-        }
-        std::cout << "estimated recall:             " << op.estimated_recall << "\n";
-        if(op.validation_recall > 0) {
-        std::cout << "validation set recall:        " << op.validation_recall << "\n";
-        }
-        if(op.validation_recall_sd > 0) {
-        std::cout << "validation set recall sd:     " << op.validation_recall_sd << "\n";
-        }
-        std::cout << std::endl;
+    for(const auto &op : pars) {
+      std::cout << "n_trees:                      " << op.n_trees << "\n";
+      std::cout << "depth:                        " << op.depth << "\n";
+      std::cout << "votes:                        " << op.votes << "\n";
+      std::cout << "estimated query time:         " << op.estimated_qtime * n_test << " " << "\n";
+      if(op.validation_qtime > 0) {
+      std::cout << "validation set query time:    " << op.validation_qtime * n_test << " " << "\n";
       }
+      if(op.validation_qtime_sd > 0) {
+      std::cout << "validation set query time sd: " << op.validation_qtime_sd << " " << "\n";
+      }
+      std::cout << "estimated recall:             " << op.estimated_recall << "\n";
+      if(op.validation_recall > 0) {
+      std::cout << "validation set recall:        " << op.validation_recall << "\n";
+      }
+      if(op.validation_recall_sd > 0) {
+      std::cout << "validation set recall sd:     " << op.validation_recall_sd << "\n";
+      }
+      std::cout << std::endl;
     }
   }
 
@@ -811,8 +800,6 @@ TEST_F(MrptTest, TreeDeleting) {
  double target_recall = 0.2;
  int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
  float density = 1.0 / std::sqrt(d);
- // float density = 1;
-
 
  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
  Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
@@ -911,6 +898,13 @@ TEST_F(MrptTest, TreeDeleting) {
 
  // print_optimal_parameters(at);
  std::cout << '\n';
+
+ std::vector<Parameters> pars = at.optimal_parameter_list();
+ for(const auto &par : pars) {
+   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
+   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
+   std::cout << "\n";
+ }
 
 }
 

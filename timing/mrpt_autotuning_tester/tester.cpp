@@ -83,8 +83,6 @@ int main(int argc, char **argv) {
 
     std::vector<int> ks{1, 10, 100};
     std::vector<double> build_times;
-    std::vector<int> target_recalls(99);
-    std::iota(target_recalls.begin(), target_recalls.end(), 1);
 
     Mrpt index(M);
     index.grow(trees_max, depth_max, density, seed_mrpt);
@@ -101,11 +99,12 @@ int main(int argc, char **argv) {
       bool add = j ? true : false;
       at.write_results(result_file, add);
 
-      for(const auto &tr : target_recalls) {
+      std::vector<Parameters> pars = at.optimal_parameter_list();
+      for(const auto &par : pars) {
 
         double start_subset = omp_get_wtime();
         Mrpt index2(M);
-        at.subset_trees(tr, index, index2);
+        at.subset_trees(par.estimated_recall, index, index2);
         double end_subset = omp_get_wtime();
 
         if(index2.is_empty()) {
@@ -116,21 +115,21 @@ int main(int argc, char **argv) {
         std::vector<std::set<int>> idx;
 
         for (int i = 0; i < n_test; ++i) {
-                std::vector<int> result(k);
-                Map<VectorXf> q(&test[i * dim], dim);
+          std::vector<int> result(k);
+          Map<VectorXf> q(&test[i * dim], dim);
 
-                double start = omp_get_wtime();
-                at.query(q, &result[0], index2);
-                double end = omp_get_wtime();
+          double start = omp_get_wtime();
+          at.query(q, &result[0], index2);
+          double end = omp_get_wtime();
 
-                times.push_back(end - start);
-                idx.push_back(std::set<int>(result.begin(), result.begin() + k));
+          times.push_back(end - start);
+          idx.push_back(std::set<int>(result.begin(), result.begin() + k));
         }
 
         if(verbose)
-            std::cout << "k: " << k << ", # of trees: " << index2.get_n_trees() << ", depth: " << index2.get_depth() << ", density: " << density << ", votes: " << index2.get_votes() << "\n";
+          std::cout << "k: " << k << ", # of trees: " << index2.get_n_trees() << ", depth: " << index2.get_depth() << ", density: " << density << ", votes: " << index2.get_votes() << "\n";
         else
-            std::cout << k << " " << index2.get_n_trees() << " " << index2.get_depth() << " " << density << " " << index2.get_votes() << " ";
+          std::cout << k << " " << index2.get_n_trees() << " " << index2.get_depth() << " " << density << " " << index2.get_votes() << " ";
 
         results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
         std::cout << end_subset - start_subset << std::endl;

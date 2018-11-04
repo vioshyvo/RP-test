@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
 
     if(!parallel) omp_set_num_threads(1);
-    
+
     double build_start = omp_get_wtime();
     Mrpt index_dense(M);
     index_dense.grow(n_trees, depth, sparsity);
@@ -88,37 +88,35 @@ int main(int argc, char **argv) {
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];
       for (int arg = last_arg + 1; arg < argc; ++arg) {
-          int votes = atoi(argv[arg]);
-          if (votes > n_trees) continue;
+        int votes = atoi(argv[arg]);
+        if (votes > n_trees) continue;
 
-          std::vector<double> times;
-          std::vector<std::set<int>> idx;
+        std::vector<double> times;
+        std::vector<std::set<int>> idx;
 
-          for (int i = 0; i < ntest; ++i) {
-                  std::vector<int> result(k);
-                  double start = omp_get_wtime();
-                  index_dense.query(Map<VectorXf>(&test[i * dim], dim), k, votes, &result[0]);
+        for (int i = 0; i < ntest; ++i) {
+          std::vector<int> result(k);
+          double start = omp_get_wtime();
+          index_dense.query(Map<VectorXf>(&test[i * dim], dim), k, votes, &result[0]);
 
-                  double end = omp_get_wtime();
-                  times.push_back(end - start);
-                  idx.push_back(std::set<int>(result.begin(), result.begin() + k)); // k_found (<= k) is the number of k-nn canditates returned
-              }
+          double end = omp_get_wtime();
+          times.push_back(end - start);
+          idx.push_back(std::set<int>(result.begin(), result.begin() + k)); // k_found (<= k) is the number of k-nn canditates returned
+        }
 
-          if(verbose)
-              std::cout << "k: " << k << ", # of trees: " << n_trees << ", depth: " << depth << ", sparsity: " << sparsity << ", votes: " << votes << "\n";
-          else
-              std::cout << k << " " << n_trees << " " << depth << " " << sparsity << " " << votes << " ";
+        if(verbose)
+            std::cout << "k: " << k << ", # of trees: " << n_trees << ", depth: " << depth << ", sparsity: " << sparsity << ", votes: " << votes << "\n";
+        else
+            std::cout << k << " " << n_trees << " " << depth << " " << sparsity << " " << votes << " ";
 
-          results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
-          std::cout << build_time << endl;
+        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
+        std::cout << build_time << endl;
       }
-
     }
 
 
     delete[] test;
     if(!mmap) delete[] train;
-
 
     return 0;
 }
