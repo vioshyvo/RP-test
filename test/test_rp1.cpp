@@ -65,10 +65,6 @@ class MrptTest : public testing::Test {
     int n_el = 0;
     index_dense.query(V, k, votes, &result[0], &distances[0], &n_el);
 
-    std::cout << "n_trees: " << n_trees << " depth: " << depth << " votes: " << votes << " k: " << k << "\n";
-    std::cout << "Candidate set size: " << n_el << "\n";
-    std::cout << "\n\n";
-
     EXPECT_EQ(result, approximate_knn);
     for(int i = 0; i < k; ++i)  {
       if(i > 0) {
@@ -227,54 +223,6 @@ class MrptTest : public testing::Test {
     TestLeaves(index, index_old);
   }
 
-  void AutotuningTester(double target_recall, int trees_max, int depth_min, int depth_max, int votes_max, int k) {
-    float density = 1.0 / std::sqrt(d);
-
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-    Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
-
-    MatrixXi exact(k, n_test);
-    Mrpt index_exact(M);
-    compute_exact(index_exact, exact);
-
-    Autotuning at(M, test_queries);
-    at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
-
-    print_optimal_parameters(at);
-
-    Mrpt index(M);
-    index.grow(trees_max, depth_max, density, seed_mrpt);
-
-    double query_time = 0, recall = 0;
-    std::vector<double> query_times;
-
-    for(int i = 0; i < n_test; ++i) {
-      std::vector<int> result(k, -1);
-
-      double start = omp_get_wtime();
-      at.query(Map<VectorXf>(Q.data() + i * d, d), target_recall, &result[0], index);
-      double end = omp_get_wtime();
-
-      std::sort(result.begin(), result.end());
-      std::set<int> intersect;
-      std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
-                       std::inserter(intersect, intersect.begin()));
-
-      query_times.push_back(end - start);
-      query_time += end - start;
-      recall += intersect.size();
-    }
-
-    std::sort(query_times.begin(), query_times.end());
-    // for(int i = 0; i < query_times.size(); ++i)
-    //   std::cout << query_times[i] * 1000 << " ";
-
-    std::cout << "\n";
-
-    std::cout << "Mean recall: " << recall / (k * n_test) << "\n";
-    std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
-    std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
-  }
 
   void compute_exact(Mrpt &index, MatrixXi &out_exact) {
     int k = out_exact.rows();
@@ -288,31 +236,6 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void print_optimal_parameters(Autotuning &at) {
-
-    std::vector<Parameters> pars = at.optimal_parameter_list();
-
-    for(const auto &op : pars) {
-      std::cout << "n_trees:                      " << op.n_trees << "\n";
-      std::cout << "depth:                        " << op.depth << "\n";
-      std::cout << "votes:                        " << op.votes << "\n";
-      std::cout << "estimated query time:         " << op.estimated_qtime * n_test << " " << "\n";
-      if(op.validation_qtime > 0) {
-      std::cout << "validation set query time:    " << op.validation_qtime * n_test << " " << "\n";
-      }
-      if(op.validation_qtime_sd > 0) {
-      std::cout << "validation set query time sd: " << op.validation_qtime_sd << " " << "\n";
-      }
-      std::cout << "estimated recall:             " << op.estimated_recall << "\n";
-      if(op.validation_recall > 0) {
-      std::cout << "validation set recall:        " << op.validation_recall << "\n";
-      }
-      if(op.validation_recall_sd > 0) {
-      std::cout << "validation set recall sd:     " << op.validation_recall_sd << "\n";
-      }
-      std::cout << std::endl;
-    }
-  }
 
   void print_parameters(Parameters op) {
     std::cout << "n_trees:                      " << op.n_trees << "\n";
@@ -415,7 +338,7 @@ TEST_F(MrptTest, RandomSeed) {
   Mrpt index_dense2(M);
   index_dense2.grow(n_trees, depth, density);
 
-  int k = 10, votes = 3;
+  int k = 10, votes = 1;
   std::vector<int> r(k), r2(k);
 
   const Map<VectorXf> V(q.data(), d);
@@ -605,195 +528,9 @@ TEST(SaveTest, Loading) {
   }
 }
 
-TEST_F(MrptTest, RecallMatrix) {
-  omp_set_num_threads(1);
-
-  int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
-  float density = 1.0 / std::sqrt(d);
-
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
-
-  Autotuning at(M, test_queries);
-  at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
-
-  MatrixXi exact(k, n_test);
-  Mrpt index_exact(M);
-  compute_exact(index_exact, exact);
-
-  std::vector<MatrixXd> recalls(depth_max - depth_min + 1);
-  std::vector<MatrixXd> cs_sizes(depth_max - depth_min + 1);
-  std::vector<MatrixXd> query_times(depth_max - depth_min + 1);
-  std::vector<MatrixXd> projection_times(depth_max - depth_min + 1);
-  std::vector<MatrixXd> voting_times(depth_max - depth_min + 1);
-  std::vector<MatrixXd> exact_times(depth_max - depth_min + 1);
-
-  std::vector<MatrixXd> query_times_at(depth_max - depth_min + 1);
-  std::vector<MatrixXd> projection_times_at(depth_max - depth_min + 1);
-  std::vector<MatrixXd> voting_times_at(depth_max - depth_min + 1);
-  std::vector<MatrixXd> exact_times_at(depth_max - depth_min + 1);
-
-  for(int depth = depth_min; depth <= depth_max; ++depth) {
-    MatrixXd recall_matrix = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd candidate_set_size = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd query_time = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd projection_time = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd voting_time = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd exact_time = MatrixXd::Zero(votes_max, trees_max);
-
-    MatrixXd query_time_at = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd projection_time_at = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd voting_time_at = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd exact_time_at = MatrixXd::Zero(votes_max, trees_max);
-    MatrixXd candidate_set_size_at = MatrixXd::Zero(votes_max, trees_max);
-
-    float proj_sum = 0, idx_sum = 0, exact_sum = 0;
-
-    for(int t = 1; t <= trees_max; ++t) {
-      Mrpt index(M);
-      index.grow(t, depth, density, seed_mrpt);
-
-      int votes_index = votes_max < t ? votes_max : t;
-      for(int v = 1; v <= votes_index; ++v) {
-        int n_elected = 0;
-        for(int i = 0; i < n_test; ++i) {
-          std::vector<int> result(k);
-          std::vector<float> distances(k);
-          int n_elected_tmp = 0;
-
-          double start = omp_get_wtime();
-          index.query(Map<VectorXf>(Q.data() + i * d, d), k, v, &result[0],
-            &distances[0], &n_elected_tmp);
-          double end = omp_get_wtime();
-
-          double start_proj = omp_get_wtime();
-          VectorXf projected_query(t * depth);
-          index.project_query(Map<VectorXf>(Q.data() + i * d, d), projected_query);
-          double end_proj = omp_get_wtime();
-          proj_sum += projected_query.norm();
-
-          double start_voting = omp_get_wtime();
-          int n_el = 0;
-          VectorXi elected;
-          index.vote(projected_query, v, elected, n_el, t);
-          double end_voting = omp_get_wtime();
-          for(int i = 0; i < n_el; ++i)
-            idx_sum += elected(i);
-
-          double start_exact = omp_get_wtime();
-          std::vector<int> res(k);
-          index.exact_knn(Map<VectorXf>(Q.data() + i * d, d), k, elected, n_el, &res[0]);
-          double end_exact = omp_get_wtime();
-          for(int i = 0; i < k; ++i)
-            exact_sum += res[i];
-
-          n_elected += n_elected_tmp;
-          std::sort(result.begin(), result.end());
-
-          std::set<int> intersect;
-          std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
-                           std::inserter(intersect, intersect.begin()));
-
-          recall_matrix(v - 1, t - 1) += intersect.size();
-          query_time(v - 1, t - 1) += end - start;
-          projection_time(v - 1, t - 1) += end_proj - start_proj;
-          voting_time(v - 1, t - 1) += end_voting - start_voting;
-          exact_time(v - 1, t - 1) += end_exact - start_exact;
-        }
-
-      candidate_set_size(v - 1, t - 1) = n_elected;
-
-      query_time_at(v - 1, t - 1) = at.get_query_time(t, depth, v);
-      projection_time_at(v - 1, t - 1) = at.get_projection_time(t, depth, v);
-      voting_time_at(v - 1, t - 1) = at.get_voting_time(t, depth, v);
-      exact_time_at(v - 1, t - 1) = at.get_exact_time(t, depth, v);
-      candidate_set_size_at(v - 1, t - 1) = at.get_candidate_set_size(t, depth, v);
-      }
-    }
-
-    recall_matrix /= (k * n_test);
-    candidate_set_size /= n_test;
-    query_time /= n_test;
-    projection_time /= n_test;
-    voting_time /= n_test;
-    exact_time /= n_test;
-
-    recalls[depth - depth_min] = recall_matrix;
-    cs_sizes[depth - depth_min] = candidate_set_size;
-    query_times[depth - depth_min] = query_time;
-    projection_times[depth - depth_min] = projection_time;
-    voting_times[depth - depth_min] = voting_time;
-    exact_times[depth - depth_min] = exact_time;
-
-    query_times_at[depth - depth_min] = query_time_at;
-    projection_times_at[depth - depth_min] = projection_time_at;
-    voting_times_at[depth - depth_min] = voting_time_at;
-    exact_times_at[depth - depth_min] = exact_time_at;
-
-    // std::cout << "recall, depth: " << depth << "\n";
-    // std::cout << recall_matrix << "\n\n";
-
-    // std::cout << "cs size, depth: " << depth << "\n";
-    // std::cout << candidate_set_size << "\n\n";
-    //
-    // std::cout << "cs size (at), depth: " << depth << "\n";
-    // std::cout << candidate_set_size_at << "\n\n";
-
-
-    std::cout << "proj_sum: " << proj_sum << " idx_sum: " << idx_sum << " exact_sum: " << exact_sum << "\n";
-
-    // std::cout << "query time, depth: " << depth << "\n";
-    // std::cout << query_time * 1000 << "\n\n";
-    //
-    std::cout << "projection time, depth: " << depth << "\n";
-    std::cout << projection_time * 1000 << "\n\n";
-
-    std::cout << "projection time (at), depth: " << depth << "\n";
-    std::cout << projection_time_at * 1000 << "\n\n";
-
-    std::cout << "voting time, depth: " << depth << "\n";
-    std::cout << voting_time * 1000 << "\n\n";
-
-    std::cout << "voting time (at), depth: " << depth << "\n";
-    std::cout << voting_time_at * 1000 << "\n\n";
-
-    std::cout << "exact time, depth: " << depth << "\n";
-    std::cout << exact_time * 1000 << "\n\n";
-
-    std::cout << "exact time (at), depth: " << depth << "\n";
-    std::cout << exact_time_at * 1000 << "\n\n";
-
-  }
-
-  // int depth = depth_max;
-  // for(int t = 1; t <= trees_max; ++t)
-  //   for(int v = 1; v <= votes_max; ++v) {
-  //     ASSERT_FLOAT_EQ(recalls[depth - depth_min](v - 1, t - 1), at.get_recall(t, depth, v));
-  //     ASSERT_FLOAT_EQ(cs_sizes[depth - depth_min](v - 1, t - 1), at.get_candidate_set_size(t, depth, v));
-  //   }
-
-  // std::cout << "\n\n\n\n";
-  for(int depth = depth_min; depth <= depth_max; ++depth) {
-    std::cout << "query time, depth: " << depth << "\n";
-    std::cout << query_times[depth - depth_min] * 1000 << "\n\n";
-
-    std::cout << "composite query time, depth: " << depth << "\n";
-    std::cout << (projection_times[depth - depth_min] + voting_times[depth - depth_min]
-      + exact_times[depth - depth_min]) * 1000 << "\n\n";
-
-    std::cout << "composite query time (at), depth: " << depth << "\n";
-    std::cout << query_times_at[depth - depth_min] * 1000 << "\n\n";
-  }
-}
 
 
 TEST_F(MrptTest, Autotuning) {
-  // AutotuningTester(10, 10, 5, 7, 9, 5);
-  AutotuningTester(0.20, 10, 5, 7, 9, 5);
-  // AutotuningTester(99, 10, 5, 7, 9, 5);
-}
-
-TEST_F(MrptTest, TreeDeleting) {
 
  omp_set_num_threads(1);
 
@@ -821,8 +558,8 @@ TEST_F(MrptTest, TreeDeleting) {
  std::vector<double> query_times;
 
  Parameters par = at.get_optimal_parameters(target_recall);
- print_parameters(par);
- std::cout << std::endl;
+ // print_parameters(par);
+ // std::cout << std::endl;
 
  std::vector<std::vector<int>> res, res2, res3, res4;
 
@@ -891,20 +628,18 @@ TEST_F(MrptTest, TreeDeleting) {
 
  std::sort(query_times.begin(), query_times.end());
 
- std::cout << "\n";
- std::cout << "Mean recall: " << recall  << "\n";
- std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
- std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
+ // std::cout << "Mean recall: " << recall  << "\n";
+ // std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
+ // std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
+ //
+ // std::cout << '\n';
 
- // print_optimal_parameters(at);
- std::cout << '\n';
-
- std::vector<Parameters> pars = at.optimal_parameter_list();
- for(const auto &par : pars) {
-   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
-   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
-   std::cout << "\n";
- }
+ // std::vector<Parameters> pars = at.optimal_parameter_list();
+ // for(const auto &par : pars) {
+ //   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
+ //   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
+ //   std::cout << "\n";
+ // }
 
 }
 
@@ -941,8 +676,6 @@ TEST_F(UtilityTest, Statistics) {
   EXPECT_FLOAT_EQ(Autotuning::mean(x), 19.14286);
   EXPECT_FLOAT_EQ(Autotuning::var(x), 1316.143);
 }
-
-
 
 
 }
