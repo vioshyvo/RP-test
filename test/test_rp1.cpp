@@ -103,6 +103,30 @@ class MrptTest : public testing::Test {
     }
   }
 
+  void TestSplitPoints(Mrpt &index, Mrpt &index_old) {
+    int n_trees = index.get_n_trees();
+    int n_trees_old = index_old.get_n_trees();
+    ASSERT_EQ(n_trees, n_trees_old);
+
+    int depth = index.get_depth(), depth_old = index_old.get_depth();
+    ASSERT_EQ(depth, depth_old);
+
+    for(int tree = 0; tree < n_trees; ++tree) {
+      int per_level = 1, idx = 0;
+
+      for(int level = 0; level < depth; ++level) {
+        for(int j = 0; j < per_level; ++j) {
+          float split = index.get_split_point(tree, idx);
+          float split_old = index_old.get_split_point(tree, idx);
+          ++idx;
+          ASSERT_FLOAT_EQ(split, split_old);
+        }
+      }
+      per_level *= 2;
+    }
+  }
+
+
   void SplitPointTester(int n_trees, int depth, float density,
         const Map<const MatrixXf> *M) {
     Mrpt index(M);
@@ -114,6 +138,46 @@ class MrptTest : public testing::Test {
   }
 
   void TestLeaves(Mrpt &index, Mrpt_old &index_old) {
+    int n_trees = index.get_n_trees();
+    int n_trees_old = index_old.get_n_trees();
+    ASSERT_EQ(n_trees, n_trees_old);
+
+    int depth = index.get_depth(), depth_old = index_old.get_depth();
+    ASSERT_EQ(depth, depth_old);
+
+    int n_points = index.get_n_points();
+    int n_points_old = index_old.get_n_points();
+    ASSERT_EQ(n_points, n_points_old);
+
+    for(int tree = 0; tree < n_trees; ++tree) {
+      int n_leaf = std::pow(2, depth);
+      VectorXi leaves = VectorXi::Zero(n_points);
+
+      for(int j = 0; j < n_leaf; ++j) {
+        int leaf_size = index.get_leaf_size(tree, j);
+        int leaf_size_old = index_old.get_leaf_size(tree, j);
+        ASSERT_EQ(leaf_size, leaf_size_old);
+
+        std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
+        for(int i = 0; i < leaf_size; ++i) {
+          leaf[i] = index.get_leaf_point(tree, j, i);
+          leaf_old[i] = index_old.get_leaf_point(tree, j, i);
+        }
+        std::sort(leaf.begin(), leaf.end());
+        std::sort(leaf_old.begin(), leaf_old.end());
+
+        for(int i = 0; i < leaf_size; ++i) {
+          ASSERT_EQ(leaf_old[i], leaf[i]);
+          leaves(leaf[i]) = 1;
+        }
+      }
+
+      // Test that all data points are found at a tree
+      EXPECT_EQ(leaves.sum(), n_points);
+    }
+  }
+
+  void TestLeaves(Mrpt &index, Mrpt &index_old) {
     int n_trees = index.get_n_trees();
     int n_trees_old = index_old.get_n_trees();
     ASSERT_EQ(n_trees, n_trees_old);
@@ -752,10 +816,13 @@ TEST_F(MrptTest, TreeDeleting) {
  compute_exact(index_exact, exact);
 
  Autotuning at(M, test_queries);
- at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
+ Mrpt index_at = at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
 
  Mrpt index(M);
  index.grow(trees_max, depth_max, density, seed_mrpt);
+
+ TestSplitPoints(index, index_at);
+ TestLeaves(index, index_at);
 
  double query_time = 0, recall = 0;
  std::vector<double> query_times;
@@ -790,6 +857,7 @@ TEST_F(MrptTest, TreeDeleting) {
 
  double rec1 = get_recall(res, exact);
  EXPECT_FLOAT_EQ(recall, rec1);
+ EXPECT_FLOAT_EQ(par.estimated_recall, rec1);
 
 
  for(int i = 0; i < n_test; ++i) {
@@ -803,7 +871,7 @@ TEST_F(MrptTest, TreeDeleting) {
  EXPECT_FLOAT_EQ(rec1, get_recall(res2, exact));
 
  Mrpt index2(M);
- at.subset_trees(index, index2);
+ at.subset_trees(target_recall, index, index2);
 
  for(int i = 0; i < n_test; ++i) {
    const Map<VectorXf> q(Q.data() + i * d, d);
@@ -815,7 +883,7 @@ TEST_F(MrptTest, TreeDeleting) {
  EXPECT_EQ(res, res3);
  EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
 
- at.delete_extra_trees(index);
+ at.delete_extra_trees(target_recall, index);
 
  for(int i = 0; i < n_test; ++i) {
    const Map<VectorXf> q(Q.data() + i * d, d);
@@ -835,6 +903,8 @@ TEST_F(MrptTest, TreeDeleting) {
  std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
  std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
 
+ // print_optimal_parameters(at);
+ std::cout << '\n';
 
 }
 

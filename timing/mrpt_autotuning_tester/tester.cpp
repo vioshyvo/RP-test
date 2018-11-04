@@ -30,7 +30,7 @@ using namespace Eigen;
 
 int main(int argc, char **argv) {
     size_t n = atoi(argv[1]);
-    size_t ntest = atoi(argv[2]);
+    size_t n_test = atoi(argv[2]);
     int k = atoi(argv[3]);
     int trees_max = atoi(argv[4]);
     int depth_min = atoi(argv[5]);
@@ -48,14 +48,14 @@ int main(int argc, char **argv) {
     float density = atof(argv[12]);
     bool parallel = atoi(argv[13]);
 
-    size_t n_points = n - ntest;
+    size_t n_points = n - n_test;
     bool verbose = false;
 
     /////////////////////////////////////////////////////////////////////////////////////////
     // test mrpt
     float *train, *test;
 
-    test = read_memory((infile_path + "test.bin").c_str(), ntest, dim);
+    test = read_memory((infile_path + "test.bin").c_str(), n_test, dim);
     if(!test) {
         std::cerr << "in mrpt_comparison: test data " << infile_path + "test.bin" << " could not be read\n";
         return -1;
@@ -74,13 +74,15 @@ int main(int argc, char **argv) {
 
 
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
-    Map<MatrixXf> *test_queries = new Map<MatrixXf>(test, dim, ntest);
+    Map<MatrixXf> *test_queries = new Map<MatrixXf>(test, dim, n_test);
 
     if(!parallel) omp_set_num_threads(1);
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};
     std::vector<double> build_times;
+    std::vector<int> target_recalls(99);
+    std::iota(target_recalls.begin(), target_recalls.end(), 1);
 
     Mrpt index(M);
     index.grow(trees_max, depth_max, density, seed_mrpt);
@@ -97,7 +99,41 @@ int main(int argc, char **argv) {
       bool add = j ? true : false;
       at.write_results(result_file, add);
 
+      for(const auto &tr : target_recalls) {
+        double start_subset = omp_get_wtime();
+        Mrpt index2(M);
+        at.subset_trees(tr, index, index2);
+        double end_subset = omp_get_wtime();
+
+        std::vector<double> times;
+        std::vector<std::set<int>> idx;
+
+        for (int i = 0; i < n_test; ++i) {
+                std::vector<int> result(k);
+                Map<VectorXf> q(&test[i * dim], dim);
+
+                double start = omp_get_wtime();
+                index_dense.query(q, k, votes, &result[0]);
+                double end = omp_get_wtime();
+
+                times.push_back(end - start);
+                idx.push_back(std::set<int>(result.begin(), result.begin() + k));
+        }
+
+        if(verbose)
+            std::cout << "k: " << k << ", # of trees: " << n_trees << ", depth: " << depth << ", sparsity: " << sparsity << ", votes: " << votes << "\n";
+        else
+            std::cout << k << " " << n_trees << " " << depth << " " << sparsity << " " << votes << " ";
+
+        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
+        std::cout << end_subset - start_subset << std::endl;
+
+
+      }
+
     }
+
+
 
     delete[] test;
     if(!mmap) delete[] train;
