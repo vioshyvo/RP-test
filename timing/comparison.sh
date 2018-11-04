@@ -47,7 +47,7 @@ pushd mrpt_autotuning_tester
   make
 popd
 
-mrpt_autotuning_tester/tester $N $N_TEST $K $MRPT_AUTO_MAX_TREES $MRPT_AUTO_MIN_DEPTH $MRPT_AUTO_MAX_DEPTH $MRPT_AUTO_MAX_VOTES $DIM $MMAP "$RESULT_FILE_AUTO" "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL"
+mrpt_autotuning_tester/tester $N $N_TEST $K $MRPT_AUTO_MAX_TREES $MRPT_AUTO_MIN_DEPTH $MRPT_AUTO_MAX_DEPTH $MRPT_AUTO_MAX_VOTES $DIM $MMAP "${RESULT_FILE_AUTO}_write" "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL" >> "$RESULT_FILE_AUTO"
 
 
 # pushd mrpt_tester

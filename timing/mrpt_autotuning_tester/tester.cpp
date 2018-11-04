@@ -51,6 +51,8 @@ int main(int argc, char **argv) {
     size_t n_points = n - n_test;
     bool verbose = false;
 
+    std::string result_path = "results/mnist/";
+
     /////////////////////////////////////////////////////////////////////////////////////////
     // test mrpt
     float *train, *test;
@@ -100,10 +102,15 @@ int main(int argc, char **argv) {
       at.write_results(result_file, add);
 
       for(const auto &tr : target_recalls) {
+
         double start_subset = omp_get_wtime();
         Mrpt index2(M);
         at.subset_trees(tr, index, index2);
         double end_subset = omp_get_wtime();
+
+        if(index2.is_empty()) {
+          continue;
+        }
 
         std::vector<double> times;
         std::vector<std::set<int>> idx;
@@ -113,7 +120,7 @@ int main(int argc, char **argv) {
                 Map<VectorXf> q(&test[i * dim], dim);
 
                 double start = omp_get_wtime();
-                index_dense.query(q, k, votes, &result[0]);
+                at.query(q, &result[0], index2);
                 double end = omp_get_wtime();
 
                 times.push_back(end - start);
@@ -121,9 +128,9 @@ int main(int argc, char **argv) {
         }
 
         if(verbose)
-            std::cout << "k: " << k << ", # of trees: " << n_trees << ", depth: " << depth << ", sparsity: " << sparsity << ", votes: " << votes << "\n";
+            std::cout << "k: " << k << ", # of trees: " << index2.get_n_trees() << ", depth: " << index2.get_depth() << ", density: " << density << ", votes: " << index2.get_votes() << "\n";
         else
-            std::cout << k << " " << n_trees << " " << depth << " " << sparsity << " " << votes << " ";
+            std::cout << k << " " << index2.get_n_trees() << " " << index2.get_depth() << " " << density << " " << index2.get_votes() << " ";
 
         results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
         std::cout << end_subset - start_subset << std::endl;
