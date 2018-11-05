@@ -572,10 +572,10 @@ TEST_F(MrptTest, Autotuning) {
  std::vector<double> query_times;
 
  Parameters par = index_at.get_optimal_parameters(target_recall);
- print_parameters(par);
- std::cout << std::endl;
+ // print_parameters(par);
+ // std::cout << std::endl;
 
- std::vector<std::vector<int>> res, res2, res3;
+ std::vector<std::vector<int>> res, res2, res3, res4;
 
  Mrpt index_new(M);
  index_at.subset_trees(target_recall, index_new);
@@ -630,6 +630,19 @@ TEST_F(MrptTest, Autotuning) {
 
  EXPECT_EQ(res, res3); // Test that the original index with extra trees deleted gives the same results
  EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
+
+ Mrpt index_at2(M);
+ index_at2.grow(target_recall, test_queries, k, trees_max, depth_min, depth_max, votes_max, density, seed_mrpt);
+
+ for(int i = 0; i < n_test; ++i) {
+   const Map<VectorXf> q(Q.data() + i * d, d);
+   std::vector<int> result(k, -1);
+   index_at2.query(q, &result[0]);
+   res4.push_back(result);
+ }
+
+ EXPECT_EQ(res, res4); // Test that the autotuning with the preset target recall gives the same results
+ EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
 
 
  // std::sort(query_times.begin(), query_times.end());
