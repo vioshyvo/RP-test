@@ -24,8 +24,6 @@
 #include "common.h"
 
 
-
-
 using namespace Eigen;
 
 int main(int argc, char **argv) {
@@ -39,7 +37,9 @@ int main(int argc, char **argv) {
 
     size_t dim = atoi(argv[8]);
     int mmap = atoi(argv[9]);
-    std::string result_file(argv[10]);
+    std::string result_path(argv[10]);
+    if (!result_path.empty() && result_path.back() != '/')
+      result_path += '/';
 
     std::string infile_path(argv[11]);
     if (!infile_path.empty() && infile_path.back() != '/')
@@ -50,8 +50,6 @@ int main(int argc, char **argv) {
 
     size_t n_points = n - n_test;
     bool verbose = false;
-
-    std::string result_path = "results/mnist/";
 
     /////////////////////////////////////////////////////////////////////////////////////////
     // test mrpt
@@ -82,7 +80,7 @@ int main(int argc, char **argv) {
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};
-    std::vector<double> build_times;
+    double build_time;
 
     Mrpt index(M);
     index.grow(trees_max, depth_max, density, seed_mrpt);
@@ -91,21 +89,15 @@ int main(int argc, char **argv) {
       int k = ks[j];
 
       double build_start = omp_get_wtime();
-      Autotuning at(M, test_queries);
-      at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
-      double build_time = omp_get_wtime() - build_start;
-      build_times.push_back(build_time);
-
-      bool add = j ? true : false;
-      at.write_results(result_file, add);
+      Mrpt at(M);
+      at.grow(test_queries, k, trees_max, depth_min, depth_max, votes_max, density, seed_mrpt);
+      double build_end = omp_get_wtime();
 
       std::vector<Parameters> pars = at.optimal_parameter_list();
       for(const auto &par : pars) {
 
-        double start_subset = omp_get_wtime();
         Mrpt index2(M);
-        at.subset_trees(par.estimated_recall, index, index2);
-        double end_subset = omp_get_wtime();
+        at.subset_trees(par.estimated_recall, index2);
 
         if(index2.is_empty()) {
           continue;
@@ -119,7 +111,7 @@ int main(int argc, char **argv) {
           Map<VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
-          at.query(q, &result[0], index2);
+          index2.query(q, &result[0]);
           double end = omp_get_wtime();
 
           times.push_back(end - start);
@@ -132,8 +124,7 @@ int main(int argc, char **argv) {
           std::cout << k << " " << index2.get_n_trees() << " " << index2.get_depth() << " " << density << " " << index2.get_votes() << " ";
 
         results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
-        std::cout << end_subset - start_subset << std::endl;
-
+        std::cout << build_end - build_start << std::endl;
 
       }
 
