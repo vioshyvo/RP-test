@@ -14,6 +14,23 @@
 
 namespace {
 
+static double mean(const std::vector<double> &x) {
+  int n = x.size();
+  double xsum = 0;
+  for(int i = 0; i < n; ++i)
+    xsum += x[i];
+  return xsum / n;
+}
+
+static double var(const std::vector<double> &x) {
+  int n = x.size();
+  double xmean = mean(x);
+  double ssr = 0;
+  for(int i = 0; i < n; ++i)
+    ssr += (x[i] - xmean) * (x[i] - xmean);
+  return ssr / (n - 1);
+}
+
 
 
 class MrptTest : public testing::Test {
@@ -237,15 +254,12 @@ class MrptTest : public testing::Test {
   }
 
 
-  void print_parameters(Parameters op) {
+  void print_parameters(const Parameters &op) {
     std::cout << "n_trees:                      " << op.n_trees << "\n";
     std::cout << "depth:                        " << op.depth << "\n";
     std::cout << "votes:                        " << op.votes << "\n";
     std::cout << "estimated query time:         " << op.estimated_qtime * 1000.0 << " ms.\n";
     std::cout << "estimated recall:             " << op.estimated_recall << "\n";
-    if(op.validation_qtime > 0) {
-      std::cout << "validation set query time:    " << op.validation_qtime * 1000 << " ms.\n";
-    }
   }
 
   double get_recall(std::vector<std::vector<int>> results, MatrixXi exact) {
@@ -545,30 +559,33 @@ TEST_F(MrptTest, Autotuning) {
  Mrpt index_exact(M);
  compute_exact(index_exact, exact);
 
- Autotuning at(M, test_queries);
- Mrpt index_at = at.tune(trees_max, depth_min, depth_max, votes_max, density, k, seed_mrpt);
+ Mrpt index_at(M);
+ index_at.grow(test_queries, k, trees_max, depth_min, depth_max, votes_max, density, seed_mrpt);
 
- Mrpt index(M);
- index.grow(trees_max, depth_max, density, seed_mrpt);
+ Mrpt index_normal(M);
+ index_normal.grow(trees_max, depth_max, density, seed_mrpt);
 
- TestSplitPoints(index, index_at);
- TestLeaves(index, index_at);
+ TestSplitPoints(index_normal, index_at);
+ TestLeaves(index_normal, index_at);
 
  double query_time = 0, recall = 0;
  std::vector<double> query_times;
 
- Parameters par = at.get_optimal_parameters(target_recall);
- // print_parameters(par);
- // std::cout << std::endl;
+ Parameters par = index_at.get_optimal_parameters(target_recall);
+ print_parameters(par);
+ std::cout << std::endl;
 
  std::vector<std::vector<int>> res, res2, res3, res4;
+
+ Mrpt index_new(M);
+ index_at.subset_trees(target_recall, index_new);
 
  for(int i = 0; i < n_test; ++i) {
    std::vector<int> result(k, -1);
    const Map<VectorXf> q(Q.data() + i * d, d);
 
    double start = omp_get_wtime();
-   at.query(q, target_recall, &result[0], index);
+   index_new.query(q, &result[0]);
    double end = omp_get_wtime();
 
    res.push_back(result);
@@ -593,53 +610,53 @@ TEST_F(MrptTest, Autotuning) {
  for(int i = 0; i < n_test; ++i) {
    const Map<VectorXf> q(Q.data() + i * d, d);
    std::vector<int> result(k, -1);
-   index.query(q, k, par.votes, &result[0], par.n_trees, par.depth);
+   index_at.query(q, k, par.votes, &result[0], par.n_trees, par.depth);
    res2.push_back(result);
  }
 
  EXPECT_EQ(res, res2);
  EXPECT_FLOAT_EQ(rec1, get_recall(res2, exact));
 
- Mrpt index2(M);
- at.subset_trees(target_recall, index, index2);
-
- for(int i = 0; i < n_test; ++i) {
-   const Map<VectorXf> q(Q.data() + i * d, d);
-   std::vector<int> result(k, -1);
-   at.query(q, &result[0], index2);
-   res3.push_back(result);
- }
-
- EXPECT_EQ(res, res3);
- EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
-
- at.delete_extra_trees(target_recall, index);
-
- for(int i = 0; i < n_test; ++i) {
-   const Map<VectorXf> q(Q.data() + i * d, d);
-   std::vector<int> result(k, -1);
-   at.query(q, &result[0], index);
-   res4.push_back(result);
- }
-
- EXPECT_EQ(res, res4);
- EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
-
-
- std::sort(query_times.begin(), query_times.end());
-
- // std::cout << "Mean recall: " << recall  << "\n";
- // std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
- // std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
+ // Mrpt index2(M);
+ // index_at.subset_trees(target_recall, index, index2);
  //
- // std::cout << '\n';
-
- // std::vector<Parameters> pars = at.optimal_parameter_list();
- // for(const auto &par : pars) {
- //   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
- //   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
- //   std::cout << "\n";
+ // for(int i = 0; i < n_test; ++i) {
+ //   const Map<VectorXf> q(Q.data() + i * d, d);
+ //   std::vector<int> result(k, -1);
+ //   index_at.query(q, &result[0], index2);
+ //   res3.push_back(result);
  // }
+ //
+ // EXPECT_EQ(res, res3);
+ // EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
+ //
+ // index_at.delete_extra_trees(target_recall, index);
+ //
+ // for(int i = 0; i < n_test; ++i) {
+ //   const Map<VectorXf> q(Q.data() + i * d, d);
+ //   std::vector<int> result(k, -1);
+ //   index_at.query(q, &result[0], index);
+ //   res4.push_back(result);
+ // }
+ //
+ // EXPECT_EQ(res, res4);
+ // EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
+ //
+ //
+ // std::sort(query_times.begin(), query_times.end());
+ //
+ // // std::cout << "Mean recall: " << recall  << "\n";
+ // // std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
+ // // std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
+ // //
+ // // std::cout << '\n';
+ //
+ // // std::vector<Parameters> pars = index_at.optimal_parameter_list();
+ // // for(const auto &par : pars) {
+ // //   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
+ // //   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
+ // //   std::cout << "\n";
+ // // }
 
 }
 
@@ -650,7 +667,7 @@ TEST_F(UtilityTest, TheilSen) {
   std::iota(x.begin(), x.end(), 1);
   std::vector<double> y {1,2,2,3,5,4,7,7,8,9};
 
-  std::pair<double,double> theil_sen = Autotuning::fit_theil_sen(x, y);
+  std::pair<double,double> theil_sen = Mrpt::fit_theil_sen(x, y);
 
   double intercept = -1.0, slope = 1.0;
   EXPECT_FLOAT_EQ(theil_sen.first, intercept);
@@ -673,8 +690,8 @@ TEST_F(UtilityTest, LeafSizes) {
 
 TEST_F(UtilityTest, Statistics) {
   std::vector<double> x {8.0, 4.0, 10.0, -8.0, 100.0, 13.0, 7.0};
-  EXPECT_FLOAT_EQ(Autotuning::mean(x), 19.14286);
-  EXPECT_FLOAT_EQ(Autotuning::var(x), 1316.143);
+  EXPECT_FLOAT_EQ(mean(x), 19.14286);
+  EXPECT_FLOAT_EQ(var(x), 1316.143);
 }
 
 
