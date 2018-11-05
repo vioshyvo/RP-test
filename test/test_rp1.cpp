@@ -575,7 +575,7 @@ TEST_F(MrptTest, Autotuning) {
  print_parameters(par);
  std::cout << std::endl;
 
- std::vector<std::vector<int>> res, res2, res3, res4;
+ std::vector<std::vector<int>> res, res2, res3;
 
  Mrpt index_new(M);
  index_at.subset_trees(target_recall, index_new);
@@ -606,43 +606,32 @@ TEST_F(MrptTest, Autotuning) {
  EXPECT_FLOAT_EQ(recall, rec1);
  EXPECT_FLOAT_EQ(par.estimated_recall, rec1);
 
+ Mrpt index2(M);
+ index_at.subset_trees(target_recall, index2);
 
  for(int i = 0; i < n_test; ++i) {
    const Map<VectorXf> q(Q.data() + i * d, d);
    std::vector<int> result(k, -1);
-   index_at.query(q, k, par.votes, &result[0], par.n_trees, par.depth);
+   index2.query(q, &result[0]);
    res2.push_back(result);
  }
 
- EXPECT_EQ(res, res2);
+ EXPECT_EQ(res, res2); // Test that 2 subsetted indices with same target recall give the same results
  EXPECT_FLOAT_EQ(rec1, get_recall(res2, exact));
 
- // Mrpt index2(M);
- // index_at.subset_trees(target_recall, index, index2);
- //
- // for(int i = 0; i < n_test; ++i) {
- //   const Map<VectorXf> q(Q.data() + i * d, d);
- //   std::vector<int> result(k, -1);
- //   index_at.query(q, &result[0], index2);
- //   res3.push_back(result);
- // }
- //
- // EXPECT_EQ(res, res3);
- // EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
- //
- // index_at.delete_extra_trees(target_recall, index);
- //
- // for(int i = 0; i < n_test; ++i) {
- //   const Map<VectorXf> q(Q.data() + i * d, d);
- //   std::vector<int> result(k, -1);
- //   index_at.query(q, &result[0], index);
- //   res4.push_back(result);
- // }
- //
- // EXPECT_EQ(res, res4);
- // EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
- //
- //
+ index_at.delete_extra_trees(target_recall);
+
+ for(int i = 0; i < n_test; ++i) {
+   const Map<VectorXf> q(Q.data() + i * d, d);
+   std::vector<int> result(k, -1);
+   index_at.query(q, &result[0]);
+   res3.push_back(result);
+ }
+
+ EXPECT_EQ(res, res3); // Test that the original index with extra trees deleted gives the same results
+ EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
+
+
  // std::sort(query_times.begin(), query_times.end());
  //
  // // std::cout << "Mean recall: " << recall  << "\n";
