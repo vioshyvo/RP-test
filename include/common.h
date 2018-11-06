@@ -13,6 +13,23 @@
 #include <sys/types.h>
 #include <cstdlib>
 
+double mean(const std::vector<double> &x) {
+  int n = x.size();
+  double xsum = 0;
+  for(int i = 0; i < n; ++i)
+    xsum += x[i];
+  return xsum / n;
+}
+
+double var(const std::vector<double> &x) {
+  int n = x.size();
+  double xmean = mean(x);
+  double ssr = 0;
+  for(int i = 0; i < n; ++i)
+    ssr += (x[i] - xmean) * (x[i] - xmean);
+  return ssr / (n - 1);
+}
+
 
 using namespace std;
 

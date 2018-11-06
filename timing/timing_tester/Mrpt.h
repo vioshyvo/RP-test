@@ -148,13 +148,20 @@ class Mrpt {
     * @return
     */
     void query(const Map<VectorXf> &q, int k, int votes_required, int *out,
-       float *out_distances = nullptr, int *out_n_elected = nullptr) const {
+              double &projection_time, double &voting_time, double &exact_time,
+              float *out_distances = nullptr, int *out_n_elected = nullptr) const {
+
+        double start = omp_get_wtime();
         VectorXf projected_query(n_pool);
         if (density < 1)
             projected_query.noalias() = sparse_random_matrix * q;
         else
             projected_query.noalias() = dense_random_matrix * q;
+        double end = omp_get_wtime();
+        projection_time = end - start;
 
+
+        start = omp_get_wtime();
         std::vector<int> found_leaves(n_trees);
         /*
         * The following loops over all trees, and routes the query to exactly one
@@ -192,9 +199,15 @@ class Mrpt {
                     elected(n_elected++) = idx;
             }
         }
+        end = omp_get_wtime();
+        voting_time = end - start;
 
         if(out_n_elected) *out_n_elected += n_elected;
+
+        start = omp_get_wtime();
         exact_knn(q, k, elected, n_elected, out, out_distances);
+        end = omp_get_wtime();
+        exact_time = end - start;
     }
 
 
@@ -649,11 +662,14 @@ class Mrpt {
 
 
     void query(const Map<VectorXf> &q, int *out,
-        float *out_distances = nullptr, int *out_n_elected = nullptr) {
+               double &projection_time, double &voting_time, double &exact_time,
+               float *out_distances = nullptr, int *out_n_elected = nullptr) {
+
       if(recall_level < 0) {
         return;
       }
-      query(q, k, votes, out, out_distances, out_n_elected);
+      query(q, k, votes, out, projection_time, voting_time, exact_time,
+            out_distances, out_n_elected);
     }
 
 
@@ -976,7 +992,7 @@ class Mrpt {
           for(int v = 1; v <= votes_index; ++v) {
             double qt = get_query_time(t, d, v);
             query_time(v - 1, t - 1) = qt;
-            Parameters par; 
+            Parameters par;
             par.n_trees = t;
             par.depth = d;
             par.votes = v;

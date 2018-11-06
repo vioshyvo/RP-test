@@ -100,21 +100,28 @@ int main(int argc, char **argv) {
           continue;
         }
 
-        std::vector<double> times;
+        std::vector<double> times, projection_times, voting_times, exact_times;
         std::vector<std::set<int>> idx;
 
         for (int i = 0; i < n_test; ++i) {
+          double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
           std::vector<int> result(k);
           Map<VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
-          index2.query(q, &result[0]);
+          index2.query(q, &result[0], projection_time, voting_time, exact_time);
           double end = omp_get_wtime();
 
           times.push_back(end - start);
           idx.push_back(std::set<int>(result.begin(), result.begin() + k));
+          projection_times.push_back(projection_time);
+          voting_times.push_back(voting_time);
+          exact_times.push_back(exact_time);
         }
 
+        double mean_projection_time = mean(projection_times);
+        double mean_voting_time = mean(voting_times);
+        double mean_exact_time = mean(exact_times);
         double est_projection_time = at.get_projection_time(par.n_trees, par.depth, par.votes);
         double est_voting_time = at.get_voting_time(par.n_trees, par.depth, par.votes);
         double est_exact_time = at.get_exact_time(par.n_trees, par.depth, par.votes);
@@ -131,6 +138,10 @@ int main(int argc, char **argv) {
         std::cout << est_projection_time * n_test << " ";
         std::cout << est_voting_time * n_test << " ";
         std::cout << est_exact_time * n_test << " ";
+        std::cout << (mean_projection_time + mean_voting_time + mean_exact_time) * n_test << " ";
+        std::cout << mean_projection_time * n_test << " ";
+        std::cout << mean_voting_time * n_test << " ";
+        std::cout << mean_exact_time * n_test << " ";
         std::cout << std::endl;
 
       }
