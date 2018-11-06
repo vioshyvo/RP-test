@@ -90,6 +90,11 @@ void results(int k, const vector<double> &times, const vector<set<int>> &idx,
     vector<set<int>> correct;
 
     ifstream fs(truth);
+    if (!fs) {
+       std::cerr << "File " << truth << " could not be opened for reading!" << std::endl;
+       exit(1);
+    }
+
     for (int j = 0; fs >> time; ++j) {
         set<int> res;
         for (int i = 0; i < k; ++i) {
@@ -101,15 +106,18 @@ void results(int k, const vector<double> &times, const vector<set<int>> &idx,
     }
 
     vector<pair<double, double>> results;
-
     double total_time = 0, total_accuracy = 0;
+
     for (unsigned i = 0; i < times.size(); ++i) {
         set<int> intersect;
+
         set_intersection(correct[i].begin(), correct[i].end(), idx[i].begin(), idx[i].end(),
                          inserter(intersect, intersect.begin()));
         double accuracy = intersect.size() / static_cast<double>(k);
+
         total_time += times[i];
         total_accuracy += accuracy;
+
         results.push_back(make_pair(times[i], accuracy));
     }
 

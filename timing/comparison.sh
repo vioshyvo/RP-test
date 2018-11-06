@@ -47,6 +47,7 @@ pushd mrpt_autotuning_tester
   make
 popd
 
+K=10
 echo -n > "$RESULT_FILE_AUTO"
 mrpt_autotuning_tester/tester $N $N_TEST $K $MRPT_AUTO_MAX_TREES $MRPT_AUTO_MIN_DEPTH $MRPT_AUTO_MAX_DEPTH $MRPT_AUTO_MAX_VOTES $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL" >> "$RESULT_FILE_AUTO"
 

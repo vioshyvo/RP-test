@@ -572,8 +572,13 @@ TEST_F(MrptTest, Autotuning) {
  std::vector<double> query_times;
 
  Parameters par = index_at.get_optimal_parameters(target_recall);
- // print_parameters(par);
- // std::cout << std::endl;
+
+ std::cout << std::endl;
+ print_parameters(par);
+ std::cout << "estimated projection time:    " << index_at.get_projection_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+ std::cout << "estimated voting time:        " << index_at.get_voting_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+ std::cout << "estimated exact search time:  " << index_at.get_exact_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+ std::cout << std::endl;
 
  std::vector<std::vector<int>> res, res2, res3, res4;
 
@@ -645,20 +650,20 @@ TEST_F(MrptTest, Autotuning) {
  EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
 
 
- // std::sort(query_times.begin(), query_times.end());
- //
- // // std::cout << "Mean recall: " << recall  << "\n";
- // // std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
- // // std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
- // //
- // // std::cout << '\n';
- //
- // // std::vector<Parameters> pars = index_at.optimal_parameter_list();
- // // for(const auto &par : pars) {
- // //   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
- // //   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
- // //   std::cout << "\n";
- // // }
+ std::sort(query_times.begin(), query_times.end());
+
+ std::cout << "Mean recall: " << recall  << "\n";
+ std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
+ std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
+
+ std::cout << '\n';
+
+ // std::vector<Parameters> pars = index_at.optimal_parameter_list();
+ // for(const auto &par : pars) {
+ //   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
+ //   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
+ //   std::cout << "\n";
+ // }
 
 }
 

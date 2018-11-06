@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
     size_t n_points = n - n_test;
     bool verbose = false;
 
+
     /////////////////////////////////////////////////////////////////////////////////////////
     // test mrpt
     float *train, *test;
@@ -72,7 +73,6 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
     Map<MatrixXf> *test_queries = new Map<MatrixXf>(test, dim, n_test);
 
@@ -84,7 +84,6 @@ int main(int argc, char **argv) {
 
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];
-
       double build_start = omp_get_wtime();
       Mrpt at(M);
       at.grow(test_queries, k, trees_max, depth_min, depth_max, votes_max, density, seed_mrpt);
@@ -95,6 +94,7 @@ int main(int argc, char **argv) {
 
         Mrpt index2(M);
         at.subset_trees(par.estimated_recall, index2);
+
 
         if(index2.is_empty()) {
           continue;
@@ -115,13 +115,23 @@ int main(int argc, char **argv) {
           idx.push_back(std::set<int>(result.begin(), result.begin() + k));
         }
 
+        double est_projection_time = at.get_projection_time(par.n_trees, par.depth, par.votes);
+        double est_voting_time = at.get_voting_time(par.n_trees, par.depth, par.votes);
+        double est_exact_time = at.get_exact_time(par.n_trees, par.depth, par.votes);
+
         if(verbose)
           std::cout << "k: " << k << ", # of trees: " << index2.get_n_trees() << ", depth: " << index2.get_depth() << ", density: " << density << ", votes: " << index2.get_votes() << "\n";
         else
           std::cout << k << " " << index2.get_n_trees() << " " << index2.get_depth() << " " << density << " " << index2.get_votes() << " ";
 
-        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
-        std::cout << build_end - build_start << std::endl;
+        results(k, times, idx, ("results/mnist/truth_" + std::to_string(k)).c_str(), verbose);
+        std::cout << build_end - build_start <<  " ";
+        std::cout << par.estimated_recall << " ";
+        std::cout << par.estimated_qtime * n_test << " ";
+        std::cout << est_projection_time * n_test << " ";
+        std::cout << est_voting_time * n_test << " ";
+        std::cout << est_exact_time * n_test << " ";
+        std::cout << std::endl;
 
       }
 
