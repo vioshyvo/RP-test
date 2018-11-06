@@ -1,7 +1,8 @@
 CXX=g++-8
 EIGEN_PATH=../../../mrpt/cpp/lib
 # MRPT_PATH=../../../mrpt-comparison/mrpt
-MRPT_PATH=../../../mrpt/cpp
+# MRPT_PATH=../../../mrpt/cpp
+MRPT_PATH=.
 INCLUDE_PATH=../../include
 
 CXXFLAGS=-O3 -march=native -fno-rtti -fno-stack-protector -fno-exceptions -ffast-math -DNDEBUG -fopenmp
