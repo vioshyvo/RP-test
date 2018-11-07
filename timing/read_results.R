@@ -1,6 +1,6 @@
 source("~/git/rp_test/timing/tools/read_res.R")
 
-res <- read_times("mrpt_times_new20")
+res <- read_times("mrpt_times_new21")
 t <- tail(res, 20)
 
 ###################################################
@@ -26,7 +26,7 @@ lines(grid, beta[1] + beta[2] * grid, lwd = 2, col = 'blue')
 ###################################################
 # Plot exact search time vs. |S|  for timed code
 
-ex <- read_exact("exact_times6")
+ex <- read_exact("exact_times7")
 
 for(k in c(1, 10, 100)) {
   exk100 <- ex[ex$k == k, ]
@@ -49,8 +49,16 @@ lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
 ###################################################
 # Plot estimated voting time vs true voting time
 
-plot(res$est..voting.time, res$voting.time, pch = 20, col = 'blue', cex = .6,
+plot(res$est..voting.time, res$voting.time, pch = 20, col = res$votes, cex = .6,
      xlab = 'Estimated voting time', ylab = 'True voting time', main = 'Voting time')
+lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
+
+
+depth <- 4
+depth <- depth + 1
+plot(res$est..voting.time[res$depth == depth], res$voting.time[res$depth == depth], pch = 20, col = res$votes[res$depth == depth], cex = .6,
+     xlab = 'Estimated voting time', ylab = 'True voting time', 
+     main = paste('Voting time, depth =', depth), xlim = c(0, 0.12), ylim = c(0, 0.12) )
 lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
 
 ###################################################

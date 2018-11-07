@@ -875,7 +875,7 @@ class Mrpt {
     void fit_times() {
       int n_test = Q->cols();
       std::vector<double> projection_times, projection_x;
-      std::vector<int> tested_trees;
+      std::vector<int> tested_trees {1,2,3,4,5,7,10,15,20,25,30,40,50};
       std::vector<double> exact_times;
       std::vector<int> exact_x;
 
@@ -886,11 +886,14 @@ class Mrpt {
       std::uniform_int_distribution<int> uni(0, n_test-1);
       std::uniform_int_distribution<int> uni2(0, n_samples-1);
 
-      int n_tested_trees = 5;
+      int n_tested_trees = 10;
       n_tested_trees = n_trees > n_tested_trees ? n_tested_trees : n_trees;
       int incr = n_trees / n_tested_trees;
       for(int i = 1; i <= n_tested_trees; ++i)
-        tested_trees.push_back(i * incr);
+        if(std::find(tested_trees.begin(), tested_trees.end(), i * incr) == tested_trees.end()) {
+          tested_trees.push_back(i * incr);
+        }
+
 
       for(int d = depth_min; d <= depth; ++d) {
         for(int i = 0; i < tested_trees.size(); ++i) {
@@ -976,9 +979,9 @@ class Mrpt {
 
       std::ofstream outf;
       if(k == 1) {
-        outf.open("results/times_mnist/exact_times6");
+        outf.open("results/times_mnist/exact_times7");
       } else {
-        outf.open("results/times_mnist/exact_times6", std::ios::app);
+        outf.open("results/times_mnist/exact_times7", std::ios::app);
       }
 
       if(!outf) {
