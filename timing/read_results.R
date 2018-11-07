@@ -1,6 +1,6 @@
 source("~/git/rp_test/timing/tools/read_res.R")
 
-res <- read_times("mrpt_times_new18")
+res <- read_times("mrpt_times_new20")
 t <- tail(res, 20)
 
 ###################################################
@@ -17,7 +17,7 @@ k100 <- res[res$k == 100, ]
 ###################################################
 # Plot exact search time vs. |S| 
 
-plot(k100$n_elected, k100$exact.time, pch = 20, col = 'blue', cex = .6, ylim = c(0, 0.30))
+plot(k100$n_elected, k100$exact.time, pch = 20, col = 'blue', cex = .6)
 
 beta <- fit_theil_sen(k100$n_elected, k100$exact.time)
 grid <- 0:10000
@@ -26,7 +26,7 @@ lines(grid, beta[1] + beta[2] * grid, lwd = 2, col = 'blue')
 ###################################################
 # Plot exact search time vs. |S|  for timed code
 
-ex <- read_exact("exact_times4")
+ex <- read_exact("exact_times6")
 
 for(k in c(1, 10, 100)) {
   exk100 <- ex[ex$k == k, ]
@@ -36,6 +36,36 @@ for(k in c(1, 10, 100)) {
   grid <- 0:10000
   lines(grid, beta[1] + beta[2] * grid, lwd = 2, col = k + 1)
 }
+
+
+###################################################
+# Plot estimated projection time vs true projection time
+
+plot(res$est..proj..time, res$projection.time, pch = 20, col = 'blue', cex = .6,
+     xlab = 'Estimated projection time', ylab = 'True projection time', main = 'Projection time')
+grid <- seq(0,1,by=.01)
+lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
+
+###################################################
+# Plot estimated voting time vs true voting time
+
+plot(res$est..voting.time, res$voting.time, pch = 20, col = 'blue', cex = .6,
+     xlab = 'Estimated voting time', ylab = 'True voting time', main = 'Voting time')
+lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
+
+###################################################
+# Plot estimated exact time vs true exact time
+
+plot(res$est..exact.time, res$exact.time, pch = 20, col = 'blue', cex = .6,
+     xlab = 'Estimated exact time', ylab = 'True exact time', main = 'Exact time')
+lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
+
+###################################################
+# Plot estimated query time vs true query time
+
+plot(res$est..query.time, res$query.time, pch = 20, col = 'blue', cex = .6,
+     xlab = 'Estimated query time', ylab = 'True query time', main = 'Query time')
+lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
 
 
 

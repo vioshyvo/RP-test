@@ -918,7 +918,7 @@ class Mrpt {
       int s_max = n_samples / 20;
 
       int n_s_tested = 20;
-      std::vector<int> s_tested {1,2,5,10,20,50,100,200,300,400,500,750,1000,1500,2000,3000,5000};
+      std::vector<int> s_tested {1,2,5,10,20,50,100,200,300,400,500};
       std::vector<double> ex;
       int increment = s_max / n_s_tested;
       for(int i = 1; i <= n_s_tested; ++i)
@@ -976,33 +976,40 @@ class Mrpt {
 
       std::ofstream outf;
       if(k == 1) {
-        outf.open("results/times_mnist/exact_times4");
+        outf.open("results/times_mnist/exact_times6");
       } else {
-        outf.open("results/times_mnist/exact_times4", std::ios::app);
+        outf.open("results/times_mnist/exact_times6", std::ios::app);
       }
 
       if(!outf) {
         std::cerr << "File could not be written!" << std::endl;
       }
 
+      int n_sim = 100;
       for(int i = 0; i < s_tested.size(); ++i) {
-        auto ri = uni(rng);
-        // int ri = i % n_test;
+        double mean_exact_time = 0;
         int s_size = s_tested[i];
         ex.push_back(s_size);
-        VectorXi elected(s_size);
-        for(int j = 0; j < elected.size(); ++j)
-          elected(j) = uni2(rng);
 
-        double start_exact = omp_get_wtime();
-        std::vector<int> res(k);
-        exact_knn(Map<VectorXf>(Q->data() + ri * dim, dim), k, elected, s_size, &res[0]);
-        double end_exact = omp_get_wtime();
-        exact_times.push_back(end_exact - start_exact);
-        for(int l = 0; l < k; ++l)
-          idx_sum += res[l];
+        for(int m = 0; m < n_sim; ++m) {
+          auto ri = uni(rng);
+          VectorXi elected(s_size);
+          for(int j = 0; j < elected.size(); ++j)
+            elected(j) = uni2(rng);
 
-        outf << k << " " << s_size << " " << end_exact - start_exact << std::endl;
+          double start_exact = omp_get_wtime();
+          std::vector<int> res(k);
+          exact_knn(Map<VectorXf>(Q->data() + ri * dim, dim), k, elected, s_size, &res[0]);
+          double end_exact = omp_get_wtime();
+          mean_exact_time += (end_exact - start_exact);
+
+          for(int l = 0; l < k; ++l)
+            idx_sum += res[l];
+        }
+
+        mean_exact_time /= n_sim;
+        exact_times.push_back(mean_exact_time);
+        outf << k << " " << s_size << " " << mean_exact_time << std::endl;
       }
 
       beta_projection = fit_theil_sen(projection_x, projection_times);
