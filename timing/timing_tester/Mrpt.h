@@ -928,17 +928,14 @@ class Mrpt {
         if(std::find(s_tested.begin(), s_tested.end(), i * increment) == s_tested.end()) {
           s_tested.push_back(i * increment);
         }
-      std::vector<double> vote_thresholds_x;
 
-      int n_votes = 5; // for how many different vote thresholds voting is tested
-      int min_all_votes = 5; // ... and it is also always tested for the smallest vote thresholds
-      for(int i = 1; i <= min_all_votes; ++i)
-        vote_thresholds_x.push_back(i);
+      std::vector<double> vote_thresholds_x {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+      int n_votes = 10; // for how many different vote thresholds voting is tested
 
       n_votes = votes_max > n_votes ? n_votes : votes_max;
       int inc = votes_max / n_votes;
       for(int i = 1; i <= n_votes; ++i)
-        if(i * inc > min_all_votes) {
+        if(std::find(vote_thresholds_x.begin(), vote_thresholds_x.end(), i * inc) == vote_thresholds_x.end()) {
           vote_thresholds_x.push_back(i * inc);
         }
 
@@ -979,9 +976,9 @@ class Mrpt {
 
       std::ofstream outf;
       if(k == 1) {
-        outf.open("results/times_mnist/exact_times7");
+        outf.open("results/times_mnist/exact_times8");
       } else {
-        outf.open("results/times_mnist/exact_times7", std::ios::app);
+        outf.open("results/times_mnist/exact_times8", std::ios::app);
       }
 
       if(!outf) {

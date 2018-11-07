@@ -1,6 +1,6 @@
 source("~/git/rp_test/timing/tools/read_res.R")
 
-res <- read_times("mrpt_times_new21")
+res <- read_times("mrpt_times_new23")
 t <- tail(res, 20)
 
 ###################################################
@@ -26,7 +26,7 @@ lines(grid, beta[1] + beta[2] * grid, lwd = 2, col = 'blue')
 ###################################################
 # Plot exact search time vs. |S|  for timed code
 
-ex <- read_exact("exact_times7")
+ex <- read_exact("exact_times9")
 
 for(k in c(1, 10, 100)) {
   exk100 <- ex[ex$k == k, ]
