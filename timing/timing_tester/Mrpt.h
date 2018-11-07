@@ -919,12 +919,13 @@ class Mrpt {
       int s_max = *std::max_element(exact_x.begin(), exact_x.end());
 
       int n_s_tested = 20;
-      std::vector<int> s_tested;
+      std::vector<int> s_tested {1,2,5,10,20,50,100,200,300,400,500,750,1000,1500,2000,3000,5000};
       std::vector<double> ex;
       int increment = s_max / n_s_tested;
       for(int i = 1; i <= n_s_tested; ++i)
-        s_tested.push_back(i * increment);
-
+        if(std::find(s_tested.begin(), s_tested.end(), i * increment) == s_tested.end()) {
+          s_tested.push_back(i * increment);
+        }
       std::vector<double> vote_thresholds_x;
 
       int n_votes = 5; // for how many different vote thresholds voting is tested
@@ -975,7 +976,7 @@ class Mrpt {
       }
 
 
-      for(int i = 0; i < n_s_tested; ++i) {
+      for(int i = 0; i < s_tested.size(); ++i) {
         auto ri = uni(rng);
         int s_size = s_tested[i];
         ex.push_back(s_size);
@@ -990,6 +991,8 @@ class Mrpt {
         exact_times.push_back(end_exact - start_exact);
         for(int l = 0; l < k; ++l)
           idx_sum += res[l];
+
+        std::cerr << "|S|: " << s_size << " exact time: " << end_exact - start_exact << std::endl;
       }
 
       beta_projection = fit_theil_sen(projection_x, projection_times);

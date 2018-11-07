@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
     Map<MatrixXf> *test_queries = new Map<MatrixXf>(test, dim, n_test);
 
     if(!parallel) omp_set_num_threads(1);
+    std::cerr << "parallel: " << parallel << "\n\n\n";
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};
@@ -102,14 +103,17 @@ int main(int argc, char **argv) {
 
         std::vector<double> times, projection_times, voting_times, exact_times;
         std::vector<std::set<int>> idx;
+        int elected = 0;
 
         for (int i = 0; i < n_test; ++i) {
           double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
           std::vector<int> result(k);
+          std::vector<float> distances(k);
+          int n_elected = 0;
           Map<VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
-          index2.query(q, &result[0], projection_time, voting_time, exact_time);
+          index2.query(q, &result[0], projection_time, voting_time, exact_time, &distances[0], &n_elected);
           double end = omp_get_wtime();
 
           times.push_back(end - start);
@@ -117,6 +121,7 @@ int main(int argc, char **argv) {
           projection_times.push_back(projection_time);
           voting_times.push_back(voting_time);
           exact_times.push_back(exact_time);
+          elected += n_elected;
         }
 
         double mean_projection_time = mean(projection_times);
@@ -125,6 +130,7 @@ int main(int argc, char **argv) {
         double est_projection_time = at.get_projection_time(par.n_trees, par.depth, par.votes);
         double est_voting_time = at.get_voting_time(par.n_trees, par.depth, par.votes);
         double est_exact_time = at.get_exact_time(par.n_trees, par.depth, par.votes);
+        double mean_n_elected = elected / static_cast<double>(n_test);
 
         if(verbose)
           std::cout << "k: " << k << ", # of trees: " << index2.get_n_trees() << ", depth: " << index2.get_depth() << ", density: " << density << ", votes: " << index2.get_votes() << "\n";
@@ -142,6 +148,7 @@ int main(int argc, char **argv) {
         std::cout << mean_projection_time * n_test << " ";
         std::cout << mean_voting_time * n_test << " ";
         std::cout << mean_exact_time * n_test << " ";
+        std::cout << mean_n_elected << " ";
         std::cout << std::endl;
 
       }
