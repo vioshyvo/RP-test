@@ -22,7 +22,7 @@ struct Parameters {
   int depth = 0;
   int votes = 0;
   double estimated_qtime = 0.0;
-  double estimated_recall = 0.0;
+  mutable double estimated_recall = 0.0;
 };
 
 class Mrpt {
@@ -373,15 +373,16 @@ class Mrpt {
           projected_query.noalias() = dense_random_matrix * q;
     }
 
-    void vote(const VectorXf &projected_query, int votes_required, VectorXi &elected, int &n_elected, int n_trees) {
+    void vote(const VectorXf &projected_query, int votes_required, VectorXi &elected,
+      int &n_elected, int n_trees, int depth_crnt) {
       std::vector<int> found_leaves(n_trees);
-      const std::vector<int> &leaf_first_indices = leaf_first_indices_all[depth];
+      const std::vector<int> &leaf_first_indices = leaf_first_indices_all[depth_crnt];
 
 
       #pragma omp parallel for
       for (int n_tree = 0; n_tree < n_trees; ++n_tree) {
         int idx_tree = 0;
-        for (int d = 0; d < depth; ++d) {
+        for (int d = 0; d < depth_crnt; ++d) {
           const int j = n_tree * depth + d;
           const int idx_left = 2 * idx_tree + 1;
           const int idx_right = idx_left + 1;
@@ -392,10 +393,10 @@ class Mrpt {
               idx_tree = idx_right;
           }
         }
-        found_leaves[n_tree] = idx_tree - (1 << depth) + 1;
+        found_leaves[n_tree] = idx_tree - (1 << depth_crnt) + 1;
       }
 
-      int max_leaf_size = n_samples / (1 << depth) + 1;
+      int max_leaf_size = n_samples / (1 << depth_crnt) + 1;
       elected = VectorXi(n_trees * max_leaf_size);
       VectorXi votes = VectorXi::Zero(n_samples);
 
@@ -628,15 +629,16 @@ class Mrpt {
     }
 
     double get_voting_time(int n_trees, int depth, int v) {
-      if(v <= 0 || beta_voting.empty()) {
+      const std::map<int,std::pair<double,double>> &beta = beta_voting[depth - depth_min];
+      if(v <= 0 || beta.empty()) {
         return 0.0;
       }
-      for(const auto &b : beta_voting)
+      for(const auto &b : beta)
         if(v <= b.first) {
           return predict_theil_sen(n_trees, b.second);
         }
 
-      return predict_theil_sen(n_trees, beta_voting.rbegin()->second);
+      return predict_theil_sen(n_trees, beta.rbegin()->second);
     }
 
     double get_exact_time(int n_trees, int depth, int v) {
@@ -877,7 +879,7 @@ class Mrpt {
       std::vector<double> exact_times;
       std::vector<int> exact_x;
 
-      float idx_sum = 0;
+      long double idx_sum = 0;
 
       std::random_device rd;
       std::mt19937 rng(rd());
@@ -924,7 +926,6 @@ class Mrpt {
         s_tested.push_back(i * increment);
 
       std::vector<double> vote_thresholds_x;
-      beta_voting = std::map<int,std::pair<double,double>>();
 
       int n_votes = 5; // for how many different vote thresholds voting is tested
       int min_all_votes = 5; // ... and it is also always tested for the smallest vote thresholds
@@ -938,29 +939,41 @@ class Mrpt {
           vote_thresholds_x.push_back(i * inc);
         }
 
-      for(const auto &v : vote_thresholds_x) {
-        std::vector<double> voting_times, voting_x;
+      for(const auto &tt : tested_trees)
+        std::cerr << tt << " ";
+      std::cerr << std::endl;
 
-        for(int i = 0; i < tested_trees.size(); ++i) {
-          int t = tested_trees[i];
-          int n_el = 0;
-          VectorXi elected;
-          auto ri = uni(rng);
-          VectorXf projected_query(t * depth);
-          projected_query.noalias() = sparse_random_matrix * Q->col(ri);
+      beta_voting = std::vector<std::map<int,std::pair<double,double>>>();
 
-          double start_voting = omp_get_wtime();
-          vote(projected_query, v, elected, n_el, t);
-          double end_voting = omp_get_wtime();
+      for(int d = depth_min; d <= depth; ++d) {
+        std::map<int,std::pair<double,double>> beta;
+        for(const auto &v : vote_thresholds_x) {
+          std::vector<double> voting_times, voting_x;
 
-          voting_times.push_back(end_voting - start_voting);
-          voting_x.push_back(t);
-          for(int i = 0; i < n_el; ++i)
-            idx_sum += elected(i);
+          for(int i = 0; i < tested_trees.size(); ++i) {
+            int t = tested_trees[i];
+            int n_el = 0;
+            VectorXi elected;
+            auto ri = uni(rng);
+            VectorXf projected_query(t * d);
+            projected_query.noalias() = sparse_random_matrix * Q->col(ri);
+
+            double start_voting = omp_get_wtime();
+            vote(projected_query, v, elected, n_el, t, d);
+            double end_voting = omp_get_wtime();
+
+            voting_times.push_back(end_voting - start_voting);
+            voting_x.push_back(t);
+            for(int i = 0; i < n_el; ++i)
+              idx_sum += elected(i);
+
+            std::cerr << "depth: " << d << " v: " << v << " # of trees: " << t << " voting time: " << end_voting - start_voting << std::endl;
+          }
+          beta[v] = fit_theil_sen(voting_x, voting_times);
         }
-
-        beta_voting[v] = fit_theil_sen(voting_x, voting_times);
+        beta_voting.push_back(beta);
       }
+
 
       for(int i = 0; i < n_s_tested; ++i) {
         auto ri = uni(rng);
@@ -1004,6 +1017,9 @@ class Mrpt {
         query_times[d - depth_min] = query_time;
       }
 
+      // Just to make sure that the compiler does not optimize away timed code.
+      pars.begin()->estimated_recall += idx_sum > 1.0 ? 0.0002 : 0.0001;
+
       opt_pars = std::set<Parameters,decltype(is_faster)*>(is_faster);
       double best_recall = -1.0;
       for(const auto &par : pars) // compute pareto frontier for query times and recalls
@@ -1037,7 +1053,7 @@ class Mrpt {
     std::vector<MatrixXd> recalls, cs_sizes, query_times;
     int depth_min, votes_max, k, n_test;
     std::pair<double,double> beta_projection, beta_exact;
-    std::map<int,std::pair<double,double>> beta_voting;
+    std::vector<std::map<int,std::pair<double,double>>> beta_voting;
     double recall_level = -1.0;
     Parameters optimal_parameters;
     std::set<Parameters,decltype(is_faster)*> opt_pars;
