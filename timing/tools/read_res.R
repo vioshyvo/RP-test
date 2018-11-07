@@ -28,6 +28,14 @@ read_times <- function(filename) {
   res[, 1:20] 
 } 
 
+read_exact <- function(filename) {
+  dir <- "~/git/rp_test/timing/results/times_mnist/"
+  res <- read_table(paste0(dir, filename), sep = ' ', header = FALSE, 
+                    strip.white = TRUE, col.names = c("k", "n_elected", "exact_time"))
+  res
+}
+                      
+
 
 fit_theil_sen <- function(x, y) {
   n <- length(x)

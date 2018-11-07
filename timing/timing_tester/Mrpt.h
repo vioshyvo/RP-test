@@ -915,8 +915,7 @@ class Mrpt {
         }
       }
 
-      // int s_min = *std::min_element(exact_x.begin(), exact_x.end());
-      int s_max = *std::max_element(exact_x.begin(), exact_x.end());
+      int s_max = n_samples / 20;
 
       int n_s_tested = 20;
       std::vector<int> s_tested {1,2,5,10,20,50,100,200,300,400,500,750,1000,1500,2000,3000,5000};
@@ -975,9 +974,20 @@ class Mrpt {
         beta_voting.push_back(beta);
       }
 
+      std::ofstream outf;
+      if(k == 1) {
+        outf.open("results/times_mnist/exact_times4");
+      } else {
+        outf.open("results/times_mnist/exact_times4", std::ios::app);
+      }
+
+      if(!outf) {
+        std::cerr << "File could not be written!" << std::endl;
+      }
 
       for(int i = 0; i < s_tested.size(); ++i) {
         auto ri = uni(rng);
+        // int ri = i % n_test;
         int s_size = s_tested[i];
         ex.push_back(s_size);
         VectorXi elected(s_size);
@@ -992,7 +1002,7 @@ class Mrpt {
         for(int l = 0; l < k; ++l)
           idx_sum += res[l];
 
-        std::cerr << "|S|: " << s_size << " exact time: " << end_exact - start_exact << std::endl;
+        outf << k << " " << s_size << " " << end_exact - start_exact << std::endl;
       }
 
       beta_projection = fit_theil_sen(projection_x, projection_times);
