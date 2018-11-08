@@ -1,6 +1,6 @@
 source("~/git/rp_test/timing/tools/read_res.R")
 
-res <- read_times("mrpt_times_new23")
+res <- read_times("mrpt_times_new24")
 t <- tail(res, 20)
 
 ###################################################
@@ -14,8 +14,6 @@ plot(k100$recall, log10(k100$query.time), type = 'l', col = 'red', lwd = 2,
 lines(k100$recall, log10(pmax(0.0001, k100$est..query.time)), type = 'l', col = 'blue', lwd = 2)
 legend('topleft', bty = 'n', legend = c('true', 'estimated'), col = c('red', 'blue'), lwd = 2)
 
-lines(k100$recall, log10(k100$projection.time), type = 'l', col = 'green')
-lines(k100$recall, log10(k100$projection.time), type = 'l', col = 'green')
 
 # normal scale
 plot(k100$recall, k100$est..query.time, type = 'l', col = 'blue', ylim = c(0, 0.15), lwd = 2,
@@ -95,13 +93,15 @@ legend("bottomright", legend = 5:9, title = "depth", col = (5:9) - 4, bty = 'n',
 ##################################################################
 # Plot procection, voting, and exact search times vs. recall 
 
-k <- 1
+k <- 100
 k100 <- res[res$k == k, ]
 
+ylim <- switch(as.character(k), '1' = c(-4, -1.5), '10' = c(-4, -1), '100' = c(-4, -0.5))
+
 # log scale for k = 100 ylim = c(-4, -0.5), k = 10 ylim = c(-4, -1), k = 1 ylin = c(-4,-1.5)
-pdf(paste0('fig/mnist_times_log_k', k, '.pdf'), width=8, height=6, paper='special') 
+pdf(paste0('fig/mnist_times_median_log_k', k, '.pdf'), width=8, height=6, paper='special') 
 plot(k100$recall, log10(k100$query.time), type = 'l', col = 'red', lwd = 2, 
-     xlab = 'recall', ylab = 'log(query time)', main = paste('k =', k), ylim = c(-5, -1.5), bty = 'n')
+     xlab = 'recall', ylab = 'log(query time)', main = paste('k =', k), ylim = ylim, bty = 'n')
 lines(k100$recall, log10(k100$projection.time), type = 'l', col = 'green', lwd = 2)
 lines(k100$recall, log10(k100$voting.time), type = 'l', col = 'blue', lwd = 2)
 lines(k100$recall, log10(k100$exact.time), type = 'l', col = 'purple', lwd = 2)
@@ -111,8 +111,12 @@ legend('topleft', bty = 'n', legend = c('query', 'projection', 'voting', 'exact'
 dev.off()
 
 # normal scale 
-pdf(paste0('fig/mnist_times_k', k, '.pdf'), width=8, height=6, paper='special') 
-plot(k100$recall, k100$query.time, type = 'l', col = 'red', lwd = 2, ylim = c(0, 0.015),
+k <- 100
+k100 <- res[res$k == k, ]
+ylim <- switch(as.character(k), '1' = c(0, 0.015), '10' = c(0, 0.035), '100' = c(0, 0.07))
+
+pdf(paste0('fig/mnist_times_median_k', k, '.pdf'), width=8, height=6, paper='special') 
+plot(k100$recall, k100$query.time, type = 'l', col = 'red', lwd = 2, ylim = ylim,
      xlab = 'recall', ylab = 'log(query time)', main = paste('k =', k))
 lines(k100$recall, k100$projection.time, type = 'l', col = 'green', lwd = 2)
 lines(k100$recall, k100$voting.time, type = 'l', col = 'blue', lwd = 2)

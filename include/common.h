@@ -30,6 +30,18 @@ double var(const std::vector<double> &x) {
   return ssr / (n - 1);
 }
 
+double median(std::vector<double> x) {
+  int n = x.size();
+  std::nth_element(x.begin(), x.begin() + n/2, x.end());
+
+  if(n % 2) {
+    return x[n/2];
+  }
+
+  double smaller = *std::max_element(x.begin(), x.begin() + n/2);
+  return (smaller + x[n/2]) / 2.0;
+}
+
 
 using namespace std;
 

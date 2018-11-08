@@ -124,9 +124,9 @@ int main(int argc, char **argv) {
           elected += n_elected;
         }
 
-        double mean_projection_time = mean(projection_times);
-        double mean_voting_time = mean(voting_times);
-        double mean_exact_time = mean(exact_times);
+        double median_projection_time = median(projection_times);
+        double median_voting_time = median(voting_times);
+        double median_exact_time = median(exact_times);
         double est_projection_time = at.get_projection_time(par.n_trees, par.depth, par.votes);
         double est_voting_time = at.get_voting_time(par.n_trees, par.depth, par.votes);
         double est_exact_time = at.get_exact_time(par.n_trees, par.depth, par.votes);
@@ -144,10 +144,10 @@ int main(int argc, char **argv) {
         std::cout << est_projection_time * n_test << " ";
         std::cout << est_voting_time * n_test << " ";
         std::cout << est_exact_time * n_test << " ";
-        std::cout << (mean_projection_time + mean_voting_time + mean_exact_time) * n_test << " ";
-        std::cout << mean_projection_time * n_test << " ";
-        std::cout << mean_voting_time * n_test << " ";
-        std::cout << mean_exact_time * n_test << " ";
+        std::cout << (median_projection_time + median_voting_time + median_exact_time) * n_test << " ";
+        std::cout << median_projection_time * n_test << " ";
+        std::cout << median_voting_time * n_test << " ";
+        std::cout << median_exact_time * n_test << " ";
         std::cout << mean_n_elected << " ";
         std::cout << std::endl;
 
