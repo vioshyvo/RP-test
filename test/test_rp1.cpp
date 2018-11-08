@@ -682,8 +682,11 @@ TEST_F(MrptTest, Autotuning) {
 TEST_F(MrptTest, DefaultArguments) {
   omp_set_num_threads(1);
 
-  double target_recall = 0.2;
-  int trees_max = std::sqrt(n), depth_max = std::log2(n) - 4, depth_min = 5, votes_max = trees_max / 10, k = 5;
+  int trees_max = std::sqrt(n);
+  int depth_max = std::log2(n) - 4;
+  int depth_min = 5;
+  int votes_max = std::max(trees_max / 10, std::min(trees_max, 10));
+  int k = 5;
   float density = 1.0 / std::sqrt(d);
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -694,26 +697,11 @@ TEST_F(MrptTest, DefaultArguments) {
   compute_exact(index_exact, exact);
 
   Mrpt index(M);
-  index.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+  index.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
-  Mrpt index2(M, seed_mrpt);
-  index2.grow(target_recall, test_queries, k);
-
-  TestSplitPoints(index, index2);
-  TestLeaves(index, index2);
-
-  std::vector<std::vector<int>> res, res2;
-
-  for(int i = 0; i < n_test; ++i) {
-    const Map<VectorXf> q(Q.data() + i * d, d);
-    std::vector<int> result(k), result2(k);
-    index.query(q, &result[0]);
-    res.push_back(result);
-    index2.query(q, &result[0]);
-    res2.push_back(result2);
-  }
-
-  EXPECT_EQ(res, res2);
+  EXPECT_EQ(index.get_n_trees(), trees_max);
+  EXPECT_EQ(index.get_depth(), depth_max);
+  EXPECT_FLOAT_EQ(index.get_density(), density);
 }
 
 
