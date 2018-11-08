@@ -4,15 +4,25 @@ res <- read_times("mrpt_times_new23")
 t <- tail(res, 20)
 
 ###################################################
-# Plot query time vs. recall 
+# Plot query time (true & estimated) vs. recall 
 
+k <- 100
 k100 <- res[res$k == 100, ]
-# plot(k100$recall, log10(pmax(0.0001, k100$est..query.time)), type = 'l', col = 'blue')
-# lines(k100$recall, log10(k100$query.time), type = 'l', col = 'red')
-# 
-# plot(k100$recall, k100$est..query.time, type = 'l', col = 'blue', ylim = c(-0.05, 0.2))
-# lines(k100$recall, k100$query.time, type = 'l', col = 'red')
-# abline(h = 0)
+# log scale
+plot(k100$recall, log10(k100$query.time), type = 'l', col = 'red', lwd = 2, 
+     xlab = 'recall', ylab = 'log(query time)', main = paste('k =', k))
+lines(k100$recall, log10(pmax(0.0001, k100$est..query.time)), type = 'l', col = 'blue', lwd = 2)
+legend('topleft', bty = 'n', legend = c('true', 'estimated'), col = c('red', 'blue'), lwd = 2)
+
+lines(k100$recall, log10(k100$projection.time), type = 'l', col = 'green')
+lines(k100$recall, log10(k100$projection.time), type = 'l', col = 'green')
+
+# normal scale
+plot(k100$recall, k100$est..query.time, type = 'l', col = 'blue', ylim = c(0, 0.15), lwd = 2,
+     xlab = 'recall', ylab = 'query time (s. / 100 queries)', main = paste('k =', k))
+lines(k100$recall, k100$query.time, type = 'l', col = 'red', lwd = 2)
+legend('topleft', bty = 'n', legend = c('true', 'estimated'), col = c('red', 'blue'), lwd = 2)
+
 
 ###################################################
 # Plot exact search time vs. |S| 
@@ -76,9 +86,38 @@ plot(res$est..query.time, res$query.time, pch = 20, col = 'blue', cex = .6,
 lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
 
 
-
 ###################################################
 # Plot recall vs. |S|
 
 plot(k100$n_elected, k100$recall, pch = 20, col = k100$depth - 4, cex = .6)
 legend("bottomright", legend = 5:9, title = "depth", col = (5:9) - 4, bty = 'n', lty = 1, lwd = 2)
+
+##################################################################
+# Plot procection, voting, and exact search times vs. recall 
+
+k <- 1
+k100 <- res[res$k == k, ]
+
+# log scale for k = 100 ylim = c(-4, -0.5), k = 10 ylim = c(-4, -1), k = 1 ylin = c(-4,-1.5)
+pdf(paste0('fig/mnist_times_log_k', k, '.pdf'), width=8, height=6, paper='special') 
+plot(k100$recall, log10(k100$query.time), type = 'l', col = 'red', lwd = 2, 
+     xlab = 'recall', ylab = 'log(query time)', main = paste('k =', k), ylim = c(-5, -1.5), bty = 'n')
+lines(k100$recall, log10(k100$projection.time), type = 'l', col = 'green', lwd = 2)
+lines(k100$recall, log10(k100$voting.time), type = 'l', col = 'blue', lwd = 2)
+lines(k100$recall, log10(k100$exact.time), type = 'l', col = 'purple', lwd = 2)
+
+legend('topleft', bty = 'n', legend = c('query', 'projection', 'voting', 'exact'),
+       col = c('red', 'green', 'blue', 'purple'), lwd = 2)
+dev.off()
+
+# normal scale 
+pdf(paste0('fig/mnist_times_k', k, '.pdf'), width=8, height=6, paper='special') 
+plot(k100$recall, k100$query.time, type = 'l', col = 'red', lwd = 2, ylim = c(0, 0.015),
+     xlab = 'recall', ylab = 'log(query time)', main = paste('k =', k))
+lines(k100$recall, k100$projection.time, type = 'l', col = 'green', lwd = 2)
+lines(k100$recall, k100$voting.time, type = 'l', col = 'blue', lwd = 2)
+lines(k100$recall, k100$exact.time, type = 'l', col = 'purple', lwd = 2)
+
+legend('topleft', bty = 'n', legend = c('query', 'projection', 'voting', 'exact'),
+       col = c('red', 'green', 'blue', 'purple'), lwd = 2)
+dev.off()
