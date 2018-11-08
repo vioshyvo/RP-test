@@ -31,6 +31,19 @@ static double var(const std::vector<double> &x) {
   return ssr / (n - 1);
 }
 
+double median(std::vector<double> x) {
+  int n = x.size();
+  std::nth_element(x.begin(), x.begin() + n/2, x.end());
+
+  if(n % 2) {
+    return x[n/2];
+  }
+
+  double smaller = *std::max_element(x.begin(), x.begin() + n/2);
+  return (smaller + x[n/2]) / 2.0;
+}
+
+
 
 
 class MrptTest : public testing::Test {
@@ -549,7 +562,7 @@ TEST_F(MrptTest, Autotuning) {
  omp_set_num_threads(1);
 
  double target_recall = 0.2;
- int trees_max = 10, depth_min = 5, depth_max = 7, votes_max = trees_max - 1, k = 5;
+ int trees_max = 10, depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
  float density = 1.0 / std::sqrt(d);
 
  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -560,7 +573,7 @@ TEST_F(MrptTest, Autotuning) {
  compute_exact(index_exact, exact);
 
  Mrpt index_at(M);
- index_at.grow(test_queries, k, trees_max, depth_min, depth_max, votes_max, density, seed_mrpt);
+ index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
  Mrpt index_normal(M);
  index_normal.grow(trees_max, depth_max, density, seed_mrpt);
@@ -573,12 +586,12 @@ TEST_F(MrptTest, Autotuning) {
 
  Parameters par = index_at.get_optimal_parameters(target_recall);
 
- std::cout << std::endl;
- print_parameters(par);
- std::cout << "estimated projection time:    " << index_at.get_projection_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
- std::cout << "estimated voting time:        " << index_at.get_voting_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
- std::cout << "estimated exact search time:  " << index_at.get_exact_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
- std::cout << std::endl;
+ // std::cout << std::endl;
+ // print_parameters(par);
+ // std::cout << "estimated projection time:    " << index_at.get_projection_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+ // std::cout << "estimated voting time:        " << index_at.get_voting_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+ // std::cout << "estimated exact search time:  " << index_at.get_exact_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+ // std::cout << std::endl;
 
  std::vector<std::vector<int>> res, res2, res3, res4;
 
@@ -606,6 +619,7 @@ TEST_F(MrptTest, Autotuning) {
  }
 
  recall /= (k * n_test);
+ median(query_times);
 
  double rec1 = get_recall(res, exact);
  EXPECT_FLOAT_EQ(recall, rec1);
@@ -637,7 +651,7 @@ TEST_F(MrptTest, Autotuning) {
  EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
 
  Mrpt index_at2(M);
- index_at2.grow(target_recall, test_queries, k, trees_max, depth_min, depth_max, votes_max, density, seed_mrpt);
+ index_at2.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
  for(int i = 0; i < n_test; ++i) {
    const Map<VectorXf> q(Q.data() + i * d, d);
@@ -650,13 +664,11 @@ TEST_F(MrptTest, Autotuning) {
  EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
 
 
- std::sort(query_times.begin(), query_times.end());
-
- std::cout << "Mean recall: " << recall  << "\n";
- std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
- std::cout << "Median query time: " << query_times[query_times.size() / 2] * 1000 << " ms. \n\n";
-
- std::cout << '\n';
+ // std::cout << "Mean recall: " << recall  << "\n";
+ // std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
+ // std::cout << "Median query time: " << median(query_times) * 1000 << " ms. \n\n";
+ //
+ // std::cout << '\n';
 
  // std::vector<Parameters> pars = index_at.optimal_parameter_list();
  // for(const auto &par : pars) {
@@ -665,6 +677,43 @@ TEST_F(MrptTest, Autotuning) {
  //   std::cout << "\n";
  // }
 
+}
+
+TEST_F(MrptTest, DefaultArguments) {
+  omp_set_num_threads(1);
+
+  double target_recall = 0.2;
+  int trees_max = std::sqrt(n), depth_max = std::log2(n) - 4, depth_min = 5, votes_max = trees_max / 10, k = 5;
+  float density = 1.0 / std::sqrt(d);
+
+  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
+
+  MatrixXi exact(k, n_test);
+  Mrpt index_exact(M);
+  compute_exact(index_exact, exact);
+
+  Mrpt index(M);
+  index.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt index2(M, seed_mrpt);
+  index2.grow(target_recall, test_queries, k);
+
+  TestSplitPoints(index, index2);
+  TestLeaves(index, index2);
+
+  std::vector<std::vector<int>> res, res2;
+
+  for(int i = 0; i < n_test; ++i) {
+    const Map<VectorXf> q(Q.data() + i * d, d);
+    std::vector<int> result(k), result2(k);
+    index.query(q, &result[0]);
+    res.push_back(result);
+    index2.query(q, &result[0]);
+    res2.push_back(result2);
+  }
+
+  EXPECT_EQ(res, res2);
 }
 
 
