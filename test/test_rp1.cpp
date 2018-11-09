@@ -677,15 +677,16 @@ TEST_F(MrptTest, Saving) {
 
 
 TEST_F(MrptTest, Autotuning) {
-  int trees_max = 10;
-  autotuningTester(0.2, 1.0 / std::sqrt(d), trees_max);
-  autotuningTester(0.4, 1.0, trees_max);
+  // int trees_max = 10;
+  // autotuningTester(0.2, 1.0 / std::sqrt(d), trees_max);
+  // autotuningTester(0.4, 1.0, trees_max);
+  //
+  // autotuningTester(0.2, 1.0, trees_max);
+  // autotuningTester(0.4, 1.0 / std::sqrt(d), trees_max);
 
-  autotuningTester(0.2, 1.0, trees_max);
-  autotuningTester(0.4, 1.0 / std::sqrt(d), trees_max);
-
-  // autotuningTester(0.2, 1.0, 1);
-  // autotuningTester(0.4, 1.0 / std::sqrt(d), 2);
+  int tmax = 7;
+  autotuningTester(0.2, 1.0, tmax);
+  autotuningTester(0.2, 1.0 / std::sqrt(d), 7);
 }
 
 // Test that the calling autotuning with default values for the parameters
