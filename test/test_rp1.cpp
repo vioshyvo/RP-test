@@ -74,9 +74,27 @@ class MrptTest : public testing::Test {
 
   }
 
-  void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
-    
+  void defaultArgumentTester(int k) {
+    omp_set_num_threads(1);
+
+    int trees_max = std::sqrt(n);
+    int depth_max = std::log2(n) - 4;
+    float density = 1.0 / std::sqrt(d);
+
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
+
+    Mrpt index(M);
+    index.grow(test_queries, k);
+
+    EXPECT_EQ(index.n_trees, trees_max);
+    EXPECT_EQ(index.depth, depth_max);
+    EXPECT_FLOAT_EQ(index.density, density);
+  }
+
+  void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
+
+    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X2.data(), d, n2);
     Mrpt index(M);
     index.grow(n_trees, depth, density, seed_mrpt);
     index.save("save/mrpt_saved");
@@ -84,13 +102,13 @@ class MrptTest : public testing::Test {
     Mrpt index_reloaded(M);
     index_reloaded.load("save/mrpt_saved");
 
-    ASSERT_EQ(n_trees, index_reloaded.get_n_trees());
-    ASSERT_EQ(depth, index_reloaded.get_depth());
-    ASSERT_EQ(n, index_reloaded.get_n_points());
+    ASSERT_EQ(n_trees, index_reloaded.n_trees);
+    ASSERT_EQ(depth, index_reloaded.depth);
+    ASSERT_EQ(n2, index_reloaded.n_samples);
 
     for(int tree = 0; tree < n_trees; ++tree) {
       int n_leaf = std::pow(2, depth);
-      VectorXi leaves = VectorXi::Zero(n);
+      VectorXi leaves = VectorXi::Zero(n2);
 
       for(int j = 0; j < n_leaf; ++j) {
         int leaf_size = index.get_leaf_size(tree, j);
@@ -124,7 +142,7 @@ class MrptTest : public testing::Test {
       per_level *= 2;
 
       // Test that all data points are found at a tree
-      EXPECT_EQ(leaves.sum(), n);
+      EXPECT_EQ(leaves.sum(), n2);
     }
 
   }
@@ -161,11 +179,11 @@ class MrptTest : public testing::Test {
   }
 
   void TestSplitPoints(Mrpt &index, Mrpt_old &index_old) {
-    int n_trees = index.get_n_trees();
+    int n_trees = index.n_trees;
     int n_trees_old = index_old.get_n_trees();
     ASSERT_EQ(n_trees, n_trees_old);
 
-    int depth = index.get_depth(), depth_old = index_old.get_depth();
+    int depth = index.depth, depth_old = index_old.get_depth();
     ASSERT_EQ(depth, depth_old);
 
     for(int tree = 0; tree < n_trees; ++tree) {
@@ -184,11 +202,11 @@ class MrptTest : public testing::Test {
   }
 
   void TestSplitPoints(Mrpt &index, Mrpt &index_old) {
-    int n_trees = index.get_n_trees();
-    int n_trees_old = index_old.get_n_trees();
+    int n_trees = index.n_trees;
+    int n_trees_old = index_old.n_trees;
     ASSERT_EQ(n_trees, n_trees_old);
 
-    int depth = index.get_depth(), depth_old = index_old.get_depth();
+    int depth = index.depth, depth_old = index_old.depth;
     ASSERT_EQ(depth, depth_old);
 
     for(int tree = 0; tree < n_trees; ++tree) {
@@ -218,14 +236,14 @@ class MrptTest : public testing::Test {
   }
 
   void TestLeaves(Mrpt &index, Mrpt_old &index_old) {
-    int n_trees = index.get_n_trees();
+    int n_trees = index.n_trees;
     int n_trees_old = index_old.get_n_trees();
     ASSERT_EQ(n_trees, n_trees_old);
 
-    int depth = index.get_depth(), depth_old = index_old.get_depth();
+    int depth = index.depth, depth_old = index_old.get_depth();
     ASSERT_EQ(depth, depth_old);
 
-    int n_points = index.get_n_points();
+    int n_points = index.n_samples;
     int n_points_old = index_old.get_n_points();
     ASSERT_EQ(n_points, n_points_old);
 
@@ -258,15 +276,15 @@ class MrptTest : public testing::Test {
   }
 
   void TestLeaves(Mrpt &index, Mrpt &index_old) {
-    int n_trees = index.get_n_trees();
-    int n_trees_old = index_old.get_n_trees();
+    int n_trees = index.n_trees;
+    int n_trees_old = index_old.n_trees;
     ASSERT_EQ(n_trees, n_trees_old);
 
-    int depth = index.get_depth(), depth_old = index_old.get_depth();
+    int depth = index.depth, depth_old = index_old.depth;
     ASSERT_EQ(depth, depth_old);
 
-    int n_points = index.get_n_points();
-    int n_points_old = index_old.get_n_points();
+    int n_points = index.n_samples;
+    int n_points_old = index_old.n_samples;
     ASSERT_EQ(n_points, n_points_old);
 
     for(int tree = 0; tree < n_trees; ++tree) {
@@ -688,30 +706,14 @@ TEST_F(MrptTest, Autotuning) {
 
 }
 
+// Test that the calling autotuning with default values for the parameters
+// gives the index with the expected parameters
 TEST_F(MrptTest, DefaultArguments) {
-  omp_set_num_threads(1);
-
-  int trees_max = std::sqrt(n);
-  int depth_max = std::log2(n) - 4;
-  int depth_min = 5;
-  int votes_max = std::max(trees_max / 10, std::min(trees_max, 10));
-  int k = 5;
-  float density = 1.0 / std::sqrt(d);
-
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
-
-  MatrixXi exact(k, n_test);
-  Mrpt index_exact(M);
-  compute_exact_neighbors(index_exact, exact);
-
-  Mrpt index(M);
-  index.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-
-  EXPECT_EQ(index.get_n_trees(), trees_max);
-  EXPECT_EQ(index.get_depth(), depth_max);
-  EXPECT_FLOAT_EQ(index.get_density(), density);
+  defaultArgumentTester(1);
+  defaultArgumentTester(5);
+  defaultArgumentTester(20);
 }
+
 
 // Test that the implementation of Theil-Sen estimator gives a correct solution
 // for the toy data.
