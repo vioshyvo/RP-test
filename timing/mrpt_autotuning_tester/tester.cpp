@@ -87,7 +87,8 @@ int main(int argc, char **argv) {
 
       double build_start = omp_get_wtime();
       Mrpt at(M);
-      at.grow(test_queries, k, trees_max, depth_min, depth_max, votes_max, density, seed_mrpt);
+      // at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+      at.grow(test_queries, k);
       double build_end = omp_get_wtime();
 
       std::vector<Parameters> pars = at.optimal_parameter_list();

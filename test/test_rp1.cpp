@@ -12,7 +12,18 @@
 #include "Eigen/Dense"
 
 
-namespace {
+class Foo {
+public:
+  friend class FooTest;
+
+private:
+    int bar() {
+      return 0;
+    };
+};
+
+
+// namespace {
 
 static double mean(const std::vector<double> &x) {
   int n = x.size();
@@ -72,8 +83,6 @@ class MrptTest : public testing::Test {
               Q(i,j) = dist(mt);
 
   }
-
-
 
 
   // Test that:
@@ -314,6 +323,14 @@ class UtilityTest : public testing::Test {
     Mrpt::count_first_leaf_indices_all(indices, n, indices_reference.size() - 1);
     EXPECT_EQ(indices, indices_reference);
   }
+
+  void testTheilSen(std::vector<double> x, std::vector<double> y, double intercept, double slope) {
+    std::pair<double,double> theil_sen = Mrpt::fit_theil_sen(x, y);
+
+    EXPECT_FLOAT_EQ(theil_sen.first, intercept);
+    EXPECT_FLOAT_EQ(theil_sen.second, slope);
+  }
+
 };
 
 
@@ -702,20 +719,14 @@ TEST_F(MrptTest, DefaultArguments) {
   EXPECT_EQ(index.get_n_trees(), trees_max);
   EXPECT_EQ(index.get_depth(), depth_max);
   EXPECT_FLOAT_EQ(index.get_density(), density);
+  EXPECT_EQ(index.depth, depth_max);
 }
 
 
 TEST_F(UtilityTest, TheilSen) {
-  int n_points = 10;
-  std::vector<double> x(n_points);
-  std::iota(x.begin(), x.end(), 1);
+  std::vector<double> x {1,2,3,4,5,6,7,8,9,10};
   std::vector<double> y {1,2,2,3,5,4,7,7,8,9};
-
-  std::pair<double,double> theil_sen = Mrpt::fit_theil_sen(x, y);
-
-  double intercept = -1.0, slope = 1.0;
-  EXPECT_FLOAT_EQ(theil_sen.first, intercept);
-  EXPECT_FLOAT_EQ(theil_sen.second, slope);
+  testTheilSen(x, y, -1.0, 1.0);
 }
 
 TEST_F(UtilityTest, LeafSizes) {
@@ -739,4 +750,18 @@ TEST_F(UtilityTest, Statistics) {
 }
 
 
+class FooTest : public testing::Test {
+protected:
+  int bar() {
+    return foo.bar();
+  }
+private:
+  Foo foo;
+};
+
+TEST_F(FooTest, barReturnsZero) {
+    EXPECT_EQ(bar(), 0);
 }
+
+
+// }
