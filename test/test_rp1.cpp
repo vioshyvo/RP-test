@@ -45,8 +45,6 @@ double median(std::vector<double> x) {
 }
 
 
-
-
 class MrptTest : public testing::Test {
   protected:
 
@@ -72,6 +70,124 @@ class MrptTest : public testing::Test {
             for(int j = 0; j < n_test; ++j)
               Q(i,j) = dist(mt);
 
+  }
+
+  void autotuningTester(double target_recall, float density, int trees_max) {
+    omp_set_num_threads(1);
+
+    int depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
+
+    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
+
+    MatrixXi exact(k, n_test);
+    Mrpt index_exact(M);
+    compute_exact_neighbors(index_exact, exact);
+
+    Mrpt index_at(M);
+    index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+    Mrpt index_normal(M);
+    index_normal.grow(trees_max, depth_max, density, seed_mrpt);
+
+    TestSplitPoints(index_normal, index_at);
+    TestLeaves(index_normal, index_at);
+
+    double query_time = 0, recall = 0;
+    std::vector<double> query_times;
+
+    Parameters par = index_at.get_optimal_parameters(target_recall);
+
+    // std::cout << std::endl;
+    // print_parameters(par);
+    // std::cout << "estimated projection time:    " << index_at.get_projection_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+    // std::cout << "estimated voting time:        " << index_at.get_voting_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+    // std::cout << "estimated exact search time:  " << index_at.get_exact_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+    // std::cout << std::endl;
+
+    std::vector<std::vector<int>> res, res2, res3, res4;
+
+    Mrpt index_new(M);
+    index_at.subset_trees(target_recall, index_new);
+
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(k, -1);
+      const Map<VectorXf> q(Q.data() + i * d, d);
+
+      double start = omp_get_wtime();
+      index_new.query(q, &result[0]);
+      double end = omp_get_wtime();
+
+      res.push_back(result);
+
+      std::sort(result.begin(), result.end());
+      std::set<int> intersect;
+      std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
+                       std::inserter(intersect, intersect.begin()));
+
+      query_times.push_back(end - start);
+      query_time += end - start;
+      recall += intersect.size();
+    }
+
+    recall /= (k * n_test);
+    median(query_times);
+
+    double rec1 = get_recall(res, exact);
+    EXPECT_FLOAT_EQ(recall, rec1);
+    EXPECT_FLOAT_EQ(par.estimated_recall, rec1);
+
+    Mrpt index2(M);
+    index_at.subset_trees(target_recall, index2);
+
+    for(int i = 0; i < n_test; ++i) {
+      const Map<VectorXf> q(Q.data() + i * d, d);
+      std::vector<int> result(k, -1);
+      index2.query(q, &result[0]);
+      res2.push_back(result);
+    }
+
+    EXPECT_EQ(res, res2); // Test that 2 subsetted indices with same target recall give the same results
+    EXPECT_FLOAT_EQ(rec1, get_recall(res2, exact));
+
+    index_at.delete_extra_trees(target_recall);
+
+    for(int i = 0; i < n_test; ++i) {
+      const Map<VectorXf> q(Q.data() + i * d, d);
+      std::vector<int> result(k, -1);
+      index_at.query(q, &result[0]);
+      res3.push_back(result);
+    }
+
+    EXPECT_EQ(res, res3); // Test that the original index with extra trees deleted gives the same results
+    EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
+
+    Mrpt index_at2(M);
+    index_at2.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+    for(int i = 0; i < n_test; ++i) {
+      const Map<VectorXf> q(Q.data() + i * d, d);
+      std::vector<int> result(k, -1);
+      index_at2.query(q, &result[0]);
+      res4.push_back(result);
+    }
+
+    EXPECT_EQ(res, res4); // Test that the autotuning with the preset target recall gives the same results
+    EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
+
+
+    // std::cout << "Mean recall: " << recall  << "\n";
+    // std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
+    // std::cout << "Median query time: " << median(query_times) * 1000 << " ms. \n\n";
+    //
+    // std::cout << '\n';
+
+    // std::vector<Parameters> pars = index_at.optimal_parameter_list();
+    // for(const auto &par : pars) {
+    //   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
+    //   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
+    //   std::cout << "\n";
+    // }
   }
 
   void defaultArgumentTester(int k) {
@@ -148,10 +264,6 @@ class MrptTest : public testing::Test {
   }
 
 
-  // Test that:
-  // a) the indices of the returned approximate k-nn are same as before
-  // b) approximate k-nn are returned in correct order
-  // c) distances to the approximate k-nn are computed correctly
   void QueryTester(int n_trees, int depth, float density, int votes, int k,
       std::vector<int> approximate_knn) {
     ASSERT_EQ(approximate_knn.size(), k);
@@ -370,35 +482,11 @@ class MrptTest : public testing::Test {
   VectorXf q;
 };
 
-class UtilityTest : public testing::Test {
-  protected:
 
-  UtilityTest() {}
-
-  void LeafTester(int n, int depth, const std::vector<int> &indices_reference) {
-    std::vector<int> indices;
-    Mrpt::count_first_leaf_indices(indices, n, depth);
-    EXPECT_EQ(indices, indices_reference);
-  }
-
-  void AllLeavesTester(int n, const std::vector<std::vector<int>> &indices_reference) {
-    std::vector<std::vector<int>> indices;
-    Mrpt::count_first_leaf_indices_all(indices, n, indices_reference.size() - 1);
-    EXPECT_EQ(indices, indices_reference);
-  }
-
-  void testTheilSen(std::vector<double> x, std::vector<double> y, double intercept, double slope) {
-    std::pair<double,double> theil_sen = Mrpt::fit_theil_sen(x, y);
-
-    EXPECT_FLOAT_EQ(theil_sen.first, intercept);
-    EXPECT_FLOAT_EQ(theil_sen.second, slope);
-  }
-
-};
-
-
-// Test that the nearest neighbors returned by the index
-// are same as before when a seed for rng is fixed
+// Test that:
+// a) the indices of the returned approximate k-nn are same as before
+// b) approximate k-nn are returned in correct order
+// c) distances to the approximate k-nn are computed correctly
 TEST_F(MrptTest, Query) {
   int n_trees = 10, depth = 6, votes = 1, k = 5;
   float density = 1;
@@ -465,7 +553,7 @@ TEST_F(MrptTest, RandomSeed) {
 }
 
 
-// Test that the exact k-nn search works correctly
+// Test that the exact k-nn search returns true nearest neighbors
 TEST_F(MrptTest, ExactKnn) {
 
   const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
@@ -509,6 +597,8 @@ TEST_F(MrptTest, ExactKnn) {
 
 }
 
+// Test that the split points of trees are identical to the split n_points
+// generated by the reference implementation.
 TEST_F(MrptTest, SplitPoints) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
@@ -540,6 +630,9 @@ TEST_F(MrptTest, SplitPoints) {
   SplitPointTester(n_trees, depth, 1, M2);
 }
 
+
+// Test that the leaves of the trees are identical to the leaves generated
+// by the reference implementation.
 TEST_F(MrptTest, Leaves) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
@@ -569,7 +662,6 @@ TEST_F(MrptTest, Leaves) {
   LeafTester(n_trees, depth, 0.05, M2);
   LeafTester(n_trees, depth, 0.5, M2);
   LeafTester(n_trees, depth, 1, M2);
-
 }
 
 
@@ -585,125 +677,15 @@ TEST_F(MrptTest, Saving) {
 
 
 TEST_F(MrptTest, Autotuning) {
+  int trees_max = 10;
+  autotuningTester(0.2, 1.0 / std::sqrt(d), trees_max);
+  autotuningTester(0.4, 1.0, trees_max);
 
- omp_set_num_threads(1);
+  autotuningTester(0.2, 1.0, trees_max);
+  autotuningTester(0.4, 1.0 / std::sqrt(d), trees_max);
 
- double target_recall = 0.2;
- int trees_max = 10, depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
- float density = 1.0 / std::sqrt(d);
-
- const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
- Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
-
- MatrixXi exact(k, n_test);
- Mrpt index_exact(M);
- compute_exact_neighbors(index_exact, exact);
-
- Mrpt index_at(M);
- index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-
- Mrpt index_normal(M);
- index_normal.grow(trees_max, depth_max, density, seed_mrpt);
-
- TestSplitPoints(index_normal, index_at);
- TestLeaves(index_normal, index_at);
-
- double query_time = 0, recall = 0;
- std::vector<double> query_times;
-
- Parameters par = index_at.get_optimal_parameters(target_recall);
-
- // std::cout << std::endl;
- // print_parameters(par);
- // std::cout << "estimated projection time:    " << index_at.get_projection_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
- // std::cout << "estimated voting time:        " << index_at.get_voting_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
- // std::cout << "estimated exact search time:  " << index_at.get_exact_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
- // std::cout << std::endl;
-
- std::vector<std::vector<int>> res, res2, res3, res4;
-
- Mrpt index_new(M);
- index_at.subset_trees(target_recall, index_new);
-
- for(int i = 0; i < n_test; ++i) {
-   std::vector<int> result(k, -1);
-   const Map<VectorXf> q(Q.data() + i * d, d);
-
-   double start = omp_get_wtime();
-   index_new.query(q, &result[0]);
-   double end = omp_get_wtime();
-
-   res.push_back(result);
-
-   std::sort(result.begin(), result.end());
-   std::set<int> intersect;
-   std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
-                    std::inserter(intersect, intersect.begin()));
-
-   query_times.push_back(end - start);
-   query_time += end - start;
-   recall += intersect.size();
- }
-
- recall /= (k * n_test);
- median(query_times);
-
- double rec1 = get_recall(res, exact);
- EXPECT_FLOAT_EQ(recall, rec1);
- EXPECT_FLOAT_EQ(par.estimated_recall, rec1);
-
- Mrpt index2(M);
- index_at.subset_trees(target_recall, index2);
-
- for(int i = 0; i < n_test; ++i) {
-   const Map<VectorXf> q(Q.data() + i * d, d);
-   std::vector<int> result(k, -1);
-   index2.query(q, &result[0]);
-   res2.push_back(result);
- }
-
- EXPECT_EQ(res, res2); // Test that 2 subsetted indices with same target recall give the same results
- EXPECT_FLOAT_EQ(rec1, get_recall(res2, exact));
-
- index_at.delete_extra_trees(target_recall);
-
- for(int i = 0; i < n_test; ++i) {
-   const Map<VectorXf> q(Q.data() + i * d, d);
-   std::vector<int> result(k, -1);
-   index_at.query(q, &result[0]);
-   res3.push_back(result);
- }
-
- EXPECT_EQ(res, res3); // Test that the original index with extra trees deleted gives the same results
- EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
-
- Mrpt index_at2(M);
- index_at2.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-
- for(int i = 0; i < n_test; ++i) {
-   const Map<VectorXf> q(Q.data() + i * d, d);
-   std::vector<int> result(k, -1);
-   index_at2.query(q, &result[0]);
-   res4.push_back(result);
- }
-
- EXPECT_EQ(res, res4); // Test that the autotuning with the preset target recall gives the same results
- EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
-
-
- // std::cout << "Mean recall: " << recall  << "\n";
- // std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
- // std::cout << "Median query time: " << median(query_times) * 1000 << " ms. \n\n";
- //
- // std::cout << '\n';
-
- // std::vector<Parameters> pars = index_at.optimal_parameter_list();
- // for(const auto &par : pars) {
- //   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
- //   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
- //   std::cout << "\n";
- // }
-
+  // autotuningTester(0.2, 1.0, 1);
+  // autotuningTester(0.4, 1.0 / std::sqrt(d), 2);
 }
 
 // Test that the calling autotuning with default values for the parameters
@@ -713,6 +695,33 @@ TEST_F(MrptTest, DefaultArguments) {
   defaultArgumentTester(5);
   defaultArgumentTester(20);
 }
+
+
+class UtilityTest : public testing::Test {
+  protected:
+
+  UtilityTest() {}
+
+  void LeafTester(int n, int depth, const std::vector<int> &indices_reference) {
+    std::vector<int> indices;
+    Mrpt::count_first_leaf_indices(indices, n, depth);
+    EXPECT_EQ(indices, indices_reference);
+  }
+
+  void AllLeavesTester(int n, const std::vector<std::vector<int>> &indices_reference) {
+    std::vector<std::vector<int>> indices;
+    Mrpt::count_first_leaf_indices_all(indices, n, indices_reference.size() - 1);
+    EXPECT_EQ(indices, indices_reference);
+  }
+
+  void testTheilSen(std::vector<double> x, std::vector<double> y, double intercept, double slope) {
+    std::pair<double,double> theil_sen = Mrpt::fit_theil_sen(x, y);
+
+    EXPECT_FLOAT_EQ(theil_sen.first, intercept);
+    EXPECT_FLOAT_EQ(theil_sen.second, slope);
+  }
+
+};
 
 
 // Test that the implementation of Theil-Sen estimator gives a correct solution
