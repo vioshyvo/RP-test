@@ -11,18 +11,8 @@
 #include "Mrpt_old.h"
 #include "Eigen/Dense"
 
-
-class Foo {
-public:
-  friend class FooTest;
-
-private:
-    int bar() {
-      return 0;
-    };
-};
-
-
+// Do not wrap the tests into a namespace, because otherwise the friend
+// declarations of Mrpt.h would not work.
 // namespace {
 
 static double mean(const std::vector<double> &x) {
@@ -81,6 +71,61 @@ class MrptTest : public testing::Test {
           for(int i = 0; i < d; ++i)
             for(int j = 0; j < n_test; ++j)
               Q(i,j) = dist(mt);
+
+  }
+
+  void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
+    
+    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    Mrpt index(M);
+    index.grow(n_trees, depth, density, seed_mrpt);
+    index.save("save/mrpt_saved");
+
+    Mrpt index_reloaded(M);
+    index_reloaded.load("save/mrpt_saved");
+
+    ASSERT_EQ(n_trees, index_reloaded.get_n_trees());
+    ASSERT_EQ(depth, index_reloaded.get_depth());
+    ASSERT_EQ(n, index_reloaded.get_n_points());
+
+    for(int tree = 0; tree < n_trees; ++tree) {
+      int n_leaf = std::pow(2, depth);
+      VectorXi leaves = VectorXi::Zero(n);
+
+      for(int j = 0; j < n_leaf; ++j) {
+        int leaf_size = index.get_leaf_size(tree, j);
+        int leaf_size_old = index_reloaded.get_leaf_size(tree, j);
+        ASSERT_EQ(leaf_size, leaf_size_old);
+
+        std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
+        for(int i = 0; i < leaf_size; ++i) {
+          leaf[i] = index.get_leaf_point(tree, j, i);
+          leaf_old[i] = index_reloaded.get_leaf_point(tree, j, i);
+        }
+        std::sort(leaf.begin(), leaf.end());
+        std::sort(leaf_old.begin(), leaf_old.end());
+
+        for(int i = 0; i < leaf_size; ++i) {
+          ASSERT_EQ(leaf_old[i], leaf[i]);
+          leaves(leaf[i]) = 1;
+        }
+      }
+
+      int per_level = 1, idx = 0;
+
+      for(int level = 0; level < depth; ++level) {
+        for(int j = 0; j < per_level; ++j) {
+          float split = index.get_split_point(tree, idx);
+          float split_old = index_reloaded.get_split_point(tree, idx);
+          ++idx;
+          ASSERT_FLOAT_EQ(split, split_old);
+        }
+      }
+      per_level *= 2;
+
+      // Test that all data points are found at a tree
+      EXPECT_EQ(leaves.sum(), n);
+    }
 
   }
 
@@ -263,7 +308,7 @@ class MrptTest : public testing::Test {
   }
 
 
-  void compute_exact(Mrpt &index, MatrixXi &out_exact) {
+  void compute_exact_neighbors(Mrpt &index, MatrixXi &out_exact) {
     int k = out_exact.rows();
     int nt = out_exact.cols();
     for(int i = 0; i < nt; ++i) {
@@ -509,69 +554,16 @@ TEST_F(MrptTest, Leaves) {
 
 }
 
-TEST(SaveTest, Loading) {
-  int n = 3749, d = 100, n_trees = 3, depth = 6, seed_mrpt = 12345, seed_data = 56789;
+
+// Test that the loaded index is identical to the original one that was saved.
+TEST_F(MrptTest, Saving) {
+  int n_trees = 3, depth = 6, seed_mrpt = 12345;
   float density = 1.0 / std::sqrt(d);
 
-  MatrixXf X(d,n);
-  std::mt19937 mtt(seed_data);
-  std::normal_distribution<double> distr(5.0,2.0);
-  for(int i = 0; i < d; ++i)
-    for(int j = 0; j < n; ++j)
-      X(i,j) = distr(mtt);
-
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  Mrpt index(M);
-  index.grow(n_trees, depth, density, seed_mrpt);
-  index.save("save/mrpt_saved");
-
-  Mrpt index_reloaded(M);
-  index_reloaded.load("save/mrpt_saved");
-
-  ASSERT_EQ(n_trees, index_reloaded.get_n_trees());
-  ASSERT_EQ(depth, index_reloaded.get_depth());
-  ASSERT_EQ(n, index_reloaded.get_n_points());
-
-  for(int tree = 0; tree < n_trees; ++tree) {
-    int n_leaf = std::pow(2, depth);
-    VectorXi leaves = VectorXi::Zero(n);
-
-    for(int j = 0; j < n_leaf; ++j) {
-      int leaf_size = index.get_leaf_size(tree, j);
-      int leaf_size_old = index_reloaded.get_leaf_size(tree, j);
-      ASSERT_EQ(leaf_size, leaf_size_old);
-
-      std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
-      for(int i = 0; i < leaf_size; ++i) {
-        leaf[i] = index.get_leaf_point(tree, j, i);
-        leaf_old[i] = index_reloaded.get_leaf_point(tree, j, i);
-      }
-      std::sort(leaf.begin(), leaf.end());
-      std::sort(leaf_old.begin(), leaf_old.end());
-
-      for(int i = 0; i < leaf_size; ++i) {
-        ASSERT_EQ(leaf_old[i], leaf[i]);
-        leaves(leaf[i]) = 1;
-      }
-    }
-
-    int per_level = 1, idx = 0;
-
-    for(int level = 0; level < depth; ++level) {
-      for(int j = 0; j < per_level; ++j) {
-        float split = index.get_split_point(tree, idx);
-        float split_old = index_reloaded.get_split_point(tree, idx);
-        ++idx;
-        ASSERT_FLOAT_EQ(split, split_old);
-      }
-    }
-    per_level *= 2;
-
-    // Test that all data points are found at a tree
-    EXPECT_EQ(leaves.sum(), n);
-  }
+  saveTester(n_trees, depth, density, seed_mrpt);
+  saveTester(n_trees, depth, 1.0, seed_mrpt);
+  saveTester(1, depth, density, seed_mrpt);
 }
-
 
 
 TEST_F(MrptTest, Autotuning) {
@@ -587,7 +579,7 @@ TEST_F(MrptTest, Autotuning) {
 
  MatrixXi exact(k, n_test);
  Mrpt index_exact(M);
- compute_exact(index_exact, exact);
+ compute_exact_neighbors(index_exact, exact);
 
  Mrpt index_at(M);
  index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
@@ -711,7 +703,7 @@ TEST_F(MrptTest, DefaultArguments) {
 
   MatrixXi exact(k, n_test);
   Mrpt index_exact(M);
-  compute_exact(index_exact, exact);
+  compute_exact_neighbors(index_exact, exact);
 
   Mrpt index(M);
   index.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
@@ -719,16 +711,27 @@ TEST_F(MrptTest, DefaultArguments) {
   EXPECT_EQ(index.get_n_trees(), trees_max);
   EXPECT_EQ(index.get_depth(), depth_max);
   EXPECT_FLOAT_EQ(index.get_density(), density);
-  EXPECT_EQ(index.depth, depth_max);
 }
 
-
+// Test that the implementation of Theil-Sen estimator gives a correct solution
+// for the toy data.
 TEST_F(UtilityTest, TheilSen) {
   std::vector<double> x {1,2,3,4,5,6,7,8,9,10};
   std::vector<double> y {1,2,2,3,5,4,7,7,8,9};
   testTheilSen(x, y, -1.0, 1.0);
 }
 
+// Test that when we split the data into half at each node, and if the number
+// of data points at that node is odd, the extra point goes always to the
+// left branch, and the tree is represented by a vector of length n so that
+// the points of each branch are always stored contiguously, the beginning and
+// the end points of each branch at each level are computed correctly.
+//
+// For instance, when there are 19 data points:
+//  - at the root : the index of first data point is 0, and 18 is the index of
+//    the last data point
+//  - when depth = 1 : the index of the first data point of the left branch is
+//    0, the index of the first data point of the right branch is 10, etc.
 TEST_F(UtilityTest, LeafSizes) {
   std::vector<std::vector<int>> indices_reference;
   indices_reference.push_back({0,19});
@@ -743,25 +746,11 @@ TEST_F(UtilityTest, LeafSizes) {
   AllLeavesTester(19, indices_reference);
 }
 
+// Test that the mean and variance are computed correctly for the toy data.
 TEST_F(UtilityTest, Statistics) {
   std::vector<double> x {8.0, 4.0, 10.0, -8.0, 100.0, 13.0, 7.0};
   EXPECT_FLOAT_EQ(mean(x), 19.14286);
   EXPECT_FLOAT_EQ(var(x), 1316.143);
 }
-
-
-class FooTest : public testing::Test {
-protected:
-  int bar() {
-    return foo.bar();
-  }
-private:
-  Foo foo;
-};
-
-TEST_F(FooTest, barReturnsZero) {
-    EXPECT_EQ(bar(), 0);
-}
-
 
 // }

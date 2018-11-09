@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
         Mrpt index2(M);
         at.subset_trees(par.estimated_recall, index2);
 
-        if(index2.is_empty()) {
+        if(index2.empty()) {
           continue;
         }
 
@@ -132,6 +132,8 @@ int main(int argc, char **argv) {
 
     delete[] test;
     if(!mmap) delete[] train;
+    delete M;
+    delete test_queries;
 
     return 0;
 }

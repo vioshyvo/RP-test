@@ -159,6 +159,8 @@ int main(int argc, char **argv) {
 
     delete[] test;
     if(!mmap) delete[] train;
+    delete M;
+    delete test_queries;
 
     return 0;
 }

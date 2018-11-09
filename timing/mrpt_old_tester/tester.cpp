@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
 
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
 
-    if(!parallel) omp_set_num_threads(1); 
+    if(!parallel) omp_set_num_threads(1);
     double build_start = omp_get_wtime();
     Mrpt_old index_dense(M, n_trees, depth, sparsity);
     index_dense.grow();
@@ -114,6 +114,7 @@ int main(int argc, char **argv) {
     }
     delete[] test;
     if(!mmap) delete[] train;
+    delete M;
 
 
     return 0;
