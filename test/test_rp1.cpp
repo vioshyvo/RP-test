@@ -81,6 +81,45 @@ class MrptTest : public testing::Test {
     delete test_queries;
   }
 
+  /**
+  * Accessor for split points of trees (for testing purposes)
+  * @param tree - index of tree in (0, ... , T-1)
+  * @param index - the index of branch in (0, ... , (2^depth) - 1):
+  * 0 = root
+  * 1 = first branch of first level
+  * 2 = second branch of first level
+  * 3 = first branch of second level etc.
+  * @return split point of index:th branch of tree:th tree
+  */
+  float get_split_point(const Mrpt &mrpt, int tree, int index) {
+    return mrpt.split_points(index, tree);
+  }
+
+
+  /**
+  * Accessor for point stored in leaves of trees (for testing purposes)
+  * @param tree - index of tree in (0, ... T-1)
+  * @param leaf - index of leaf in (0, ... , 2^depth)
+  * @param index - index of a data point in a leaf
+  * @return index of index:th data point in leaf:th leaf of tree:th tree
+  */
+  int get_leaf_point(const Mrpt &mrpt, int tree, int leaf, int index) {
+    const std::vector<int> &leaf_first_indices = mrpt.leaf_first_indices_all[mrpt.depth];
+    int leaf_begin = leaf_first_indices[leaf];
+    return mrpt.tree_leaves[tree][leaf_begin + index];
+  }
+
+  /**
+  * Accessor for the number of points in a leaf of a tree (for test purposes)
+  * @param tree - index of tree in (0, ... T-1)
+  * @param leaf - index of leaf in (0, ... , 2^depth)
+  * @return - number of data points in leaf:th leaf of tree:th tree
+  */
+  int get_leaf_size(const Mrpt &mrpt, int tree, int leaf) const {
+    const std::vector<int> &leaf_first_indices = mrpt.leaf_first_indices_all[mrpt.depth];
+    return leaf_first_indices[leaf + 1] - leaf_first_indices[leaf];
+  }
+
 
   void autotuningTester(double target_recall, float density, int trees_max) {
     omp_set_num_threads(1);
@@ -98,12 +137,9 @@ class MrptTest : public testing::Test {
     TestSplitPoints(index_normal, index_at);
     TestLeaves(index_normal, index_at);
 
-    Parameters par = index_at.get_optimal_parameters(target_recall);
+    Parameters par = index_at.parameters(target_recall);
     std::cout << std::endl;
     print_parameters(par);
-    std::cout << "estimated projection time:    " << index_at.get_projection_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
-    std::cout << "estimated voting time:        " << index_at.get_voting_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
-    std::cout << "estimated exact search time:  " << index_at.get_exact_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
     std::cout << std::endl;
 
     std::vector<std::vector<int>> res, res2, res3;
@@ -165,9 +201,6 @@ class MrptTest : public testing::Test {
     int depth_max = std::log2(n) - 4;
     float density = 1.0 / std::sqrt(d);
 
-    // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-    // Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
-
     Mrpt index(M);
     index.grow(test_queries, k);
 
@@ -178,7 +211,6 @@ class MrptTest : public testing::Test {
 
   void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
 
-    // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X2.data(), d, n2);
     Mrpt index(M2);
     index.grow(n_trees, depth, density, seed_mrpt);
     index.save("save/mrpt_saved");
@@ -195,14 +227,14 @@ class MrptTest : public testing::Test {
       VectorXi leaves = VectorXi::Zero(n2);
 
       for(int j = 0; j < n_leaf; ++j) {
-        int leaf_size = index.get_leaf_size(tree, j);
-        int leaf_size_old = index_reloaded.get_leaf_size(tree, j);
+        int leaf_size = get_leaf_size(index, tree, j);
+        int leaf_size_old = get_leaf_size(index_reloaded,tree, j);
         ASSERT_EQ(leaf_size, leaf_size_old);
 
         std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
         for(int i = 0; i < leaf_size; ++i) {
-          leaf[i] = index.get_leaf_point(tree, j, i);
-          leaf_old[i] = index_reloaded.get_leaf_point(tree, j, i);
+          leaf[i] = get_leaf_point(index, tree, j, i);
+          leaf_old[i] = get_leaf_point(index_reloaded, tree, j, i);
         }
         std::sort(leaf.begin(), leaf.end());
         std::sort(leaf_old.begin(), leaf_old.end());
@@ -217,8 +249,8 @@ class MrptTest : public testing::Test {
 
       for(int level = 0; level < depth; ++level) {
         for(int j = 0; j < per_level; ++j) {
-          float split = index.get_split_point(tree, idx);
-          float split_old = index_reloaded.get_split_point(tree, idx);
+          float split = get_split_point(index, tree, idx);
+          float split_old = get_split_point(index_reloaded, tree, idx);
           ++idx;
           ASSERT_FLOAT_EQ(split, split_old);
         }
@@ -235,7 +267,7 @@ class MrptTest : public testing::Test {
   void QueryTester(int n_trees, int depth, float density, int votes, int k,
       std::vector<int> approximate_knn) {
     ASSERT_EQ(approximate_knn.size(), k);
-    // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+
     Mrpt index_dense(M);
     index_dense.grow(n_trees, depth, density, seed_mrpt);
 
@@ -271,7 +303,7 @@ class MrptTest : public testing::Test {
 
       for(int level = 0; level < depth; ++level) {
         for(int j = 0; j < per_level; ++j) {
-          float split = index.get_split_point(tree, idx);
+          float split = get_split_point(index, tree, idx);
           float split_old = index_old.get_split_point(tree, idx);
           ++idx;
           ASSERT_FLOAT_EQ(split, split_old);
@@ -294,8 +326,8 @@ class MrptTest : public testing::Test {
 
       for(int level = 0; level < depth; ++level) {
         for(int j = 0; j < per_level; ++j) {
-          float split = index.get_split_point(tree, idx);
-          float split_old = index_old.get_split_point(tree, idx);
+          float split = get_split_point(index, tree, idx);
+          float split_old = get_split_point(index_old, tree, idx);
           ++idx;
           ASSERT_FLOAT_EQ(split, split_old);
         }
@@ -332,13 +364,13 @@ class MrptTest : public testing::Test {
       VectorXi leaves = VectorXi::Zero(n_points);
 
       for(int j = 0; j < n_leaf; ++j) {
-        int leaf_size = index.get_leaf_size(tree, j);
+        int leaf_size = get_leaf_size(index, tree, j);
         int leaf_size_old = index_old.get_leaf_size(tree, j);
         ASSERT_EQ(leaf_size, leaf_size_old);
 
         std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
         for(int i = 0; i < leaf_size; ++i) {
-          leaf[i] = index.get_leaf_point(tree, j, i);
+          leaf[i] = get_leaf_point(index, tree, j, i);
           leaf_old[i] = index_old.get_leaf_point(tree, j, i);
         }
         std::sort(leaf.begin(), leaf.end());
@@ -372,14 +404,14 @@ class MrptTest : public testing::Test {
       VectorXi leaves = VectorXi::Zero(n_points);
 
       for(int j = 0; j < n_leaf; ++j) {
-        int leaf_size = index.get_leaf_size(tree, j);
-        int leaf_size_old = index_old.get_leaf_size(tree, j);
+        int leaf_size = get_leaf_size(index, tree, j);
+        int leaf_size_old = get_leaf_size(index_old, tree, j);
         ASSERT_EQ(leaf_size, leaf_size_old);
 
         std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
         for(int i = 0; i < leaf_size; ++i) {
-          leaf[i] = index.get_leaf_point(tree, j, i);
-          leaf_old[i] = index_old.get_leaf_point(tree, j, i);
+          leaf[i] = get_leaf_point(index, tree, j, i);
+          leaf_old[i] = get_leaf_point(index_old, tree, j, i);
         }
         std::sort(leaf.begin(), leaf.end());
         std::sort(leaf_old.begin(), leaf_old.end());
@@ -496,8 +528,6 @@ TEST_F(MrptTest, RandomSeed) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-
   Mrpt index_dense(M);
   index_dense.grow(n_trees, depth, density); // initialize rng with random seed
   Mrpt index_dense2(M);
@@ -526,7 +556,6 @@ TEST_F(MrptTest, RandomSeed) {
 // Test that the exact k-nn search returns true nearest neighbors
 TEST_F(MrptTest, ExactKnn) {
 
-  // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Mrpt index_dense(M);
   index_dense.grow(0, 0, 1.0);
 
@@ -573,9 +602,6 @@ TEST_F(MrptTest, SplitPoints) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  // const Map<const MatrixXf> *M2 = new Map<const MatrixXf>(X2.data(), d, n2);
-
   SplitPointTester(1, depth, density, M);
   SplitPointTester(5, depth, density, M);
   SplitPointTester(100, depth, density, M);
@@ -606,9 +632,6 @@ TEST_F(MrptTest, SplitPoints) {
 TEST_F(MrptTest, Leaves) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
-
-  // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  // const Map<const MatrixXf> *M2 = new Map<const MatrixXf>(X2.data(), d, n2);
 
   LeafTester(1, depth, density, M);
   LeafTester(5, depth, density, M);
