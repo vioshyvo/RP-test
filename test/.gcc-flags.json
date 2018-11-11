@@ -3,6 +3,7 @@
   "gccDefaultCFlags": "-Wall",
   "gccDefaultCppFlags": "-Wall -std=c++11",
   "gccErrorLimit": 15,
-  "gccIncludePaths": ".,./include,./path,../../mrpt/cpp/lib,../../mrpt/cpp/,../googletest/googletest",
+  "gccIncludePaths": ".,./include,./path,../../mrpt/cpp/lib,../../mrpt/cpp,
+    ../googletest/googletest/include,../Mrpt_old/cpp",
   "gccSuppressWarnings": true
 }

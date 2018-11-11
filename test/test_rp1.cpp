@@ -48,7 +48,7 @@ double median(std::vector<double> x) {
 class MrptTest : public testing::Test {
   protected:
 
-  MrptTest() : d(100), n(1024), n2(1255), n_test(100), seed_data(56789), seed_mrpt(12345) {
+  MrptTest() : d(100), n(1024), n2(155), n_test(100), seed_data(56789), seed_mrpt(12345) {
           std::mt19937 mt(seed_data);
           std::normal_distribution<double> dist(5.0,2.0);
 
@@ -121,6 +121,22 @@ class MrptTest : public testing::Test {
   }
 
 
+  void autotuningGrowTester(float density, int trees_max, int depth_max,
+        int depth_min, int votes_max, int k) {
+
+    omp_set_num_threads(1);
+
+    Mrpt index_at(M);
+    index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+    Mrpt index_normal(M);
+    index_normal.grow(trees_max, depth_max, density, seed_mrpt);
+
+    TestSplitPoints(index_normal, index_at);
+    TestLeaves(index_normal, index_at);
+  }
+
+
   void autotuningTester(double target_recall, float density, int trees_max) {
     omp_set_num_threads(1);
     int depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
@@ -130,12 +146,6 @@ class MrptTest : public testing::Test {
 
     MatrixXi exact(k, n_test);
     compute_exact_neighbors(index_at, exact);
-
-    Mrpt index_normal(M);
-    index_normal.grow(trees_max, depth_max, density, seed_mrpt);
-
-    TestSplitPoints(index_normal, index_at);
-    TestLeaves(index_normal, index_at);
 
     Parameters par = index_at.parameters(target_recall);
     std::cout << std::endl;
@@ -668,9 +678,36 @@ TEST_F(MrptTest, Saving) {
   saveTester(1, depth, density, seed_mrpt);
 }
 
-// Test that:
-// a) Index grown with autotuning gives a same index as the index grown
+// Test that an index grown with autotuning gives the same trees as the index grown
 // with an old school grow-function
+TEST_F(MrptTest, AutotuningGrowing) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = std::max(1, trees_max - 1), k = 5;
+  float density = 1.0 / std::sqrt(d);
+
+  autotuningGrowTester(1.0 / std::sqrt(d), trees_max, depth_max, depth_min, votes_max, k);
+  autotuningGrowTester(1.0, trees_max, depth_max, depth_min, votes_max, k);
+
+  autotuningGrowTester(density, 2, depth_max, depth_min, votes_max, k);
+  autotuningGrowTester(density, 5, depth_max, depth_min, votes_max, k);
+  autotuningGrowTester(density, 100, depth_max, depth_min, votes_max, k);
+
+  autotuningGrowTester(density, trees_max, 7, 5, votes_max, k);
+  autotuningGrowTester(density, trees_max, 3, 2, votes_max, k);
+  autotuningGrowTester(density, trees_max, 3, 1, votes_max, k);
+  autotuningGrowTester(density, trees_max, 1, 1, votes_max, k);
+  autotuningGrowTester(density, trees_max, 0, 0, votes_max, k);
+
+  autotuningGrowTester(density, trees_max, depth_max, depth_min, 1, k);
+  autotuningGrowTester(density, trees_max, depth_max, depth_min, 5, k);
+  autotuningGrowTester(density, trees_max, depth_max, depth_min, 10, k);
+
+  autotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, 1);
+  autotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, 100);
+  autotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, n2);
+
+}
+
+// Test that:
 // b) When subsetting the index from the original autotuning index and
 // and using the validation set of autotuning as a test set, the
 // recall level is exactly the estimated recall level.
