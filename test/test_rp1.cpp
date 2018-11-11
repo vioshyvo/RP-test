@@ -74,18 +74,16 @@ class MrptTest : public testing::Test {
 
   void autotuningTester(double target_recall, float density, int trees_max) {
     omp_set_num_threads(1);
-
     int depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
 
     const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
     Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
 
-    MatrixXi exact(k, n_test);
-    Mrpt index_exact(M);
-    compute_exact_neighbors(index_exact, exact);
-
     Mrpt index_at(M);
     index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+    MatrixXi exact(k, n_test);
+    compute_exact_neighbors(index_at, exact);
 
     Mrpt index_normal(M);
     index_normal.grow(trees_max, depth_max, density, seed_mrpt);
@@ -93,19 +91,16 @@ class MrptTest : public testing::Test {
     TestSplitPoints(index_normal, index_at);
     TestLeaves(index_normal, index_at);
 
-    double query_time = 0, recall = 0;
-    std::vector<double> query_times;
-
     Parameters par = index_at.get_optimal_parameters(target_recall);
+    std::cout << std::endl;
+    print_parameters(par);
+    std::cout << "estimated projection time:    " << index_at.get_projection_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+    std::cout << "estimated voting time:        " << index_at.get_voting_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+    std::cout << "estimated exact search time:  " << index_at.get_exact_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
+    std::cout << std::endl;
 
-    // std::cout << std::endl;
-    // print_parameters(par);
-    // std::cout << "estimated projection time:    " << index_at.get_projection_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
-    // std::cout << "estimated voting time:        " << index_at.get_voting_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
-    // std::cout << "estimated exact search time:  " << index_at.get_exact_time(par.n_trees, par.depth, par.votes) * 1000.0 << " ms." << std::endl;
-    // std::cout << std::endl;
-
-    std::vector<std::vector<int>> res, res2, res3, res4;
+    std::vector<std::vector<int>> res, res2, res3;
+    double recall = 0;
 
     Mrpt index_new(M);
     index_at.subset_trees(target_recall, index_new);
@@ -114,24 +109,17 @@ class MrptTest : public testing::Test {
       std::vector<int> result(k, -1);
       const Map<VectorXf> q(Q.data() + i * d, d);
 
-      double start = omp_get_wtime();
       index_new.query(q, &result[0]);
-      double end = omp_get_wtime();
-
       res.push_back(result);
 
       std::sort(result.begin(), result.end());
       std::set<int> intersect;
       std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
                        std::inserter(intersect, intersect.begin()));
-
-      query_times.push_back(end - start);
-      query_time += end - start;
       recall += intersect.size();
     }
 
     recall /= (k * n_test);
-    median(query_times);
 
     double rec1 = get_recall(res, exact);
     EXPECT_FLOAT_EQ(recall, rec1);
@@ -161,33 +149,6 @@ class MrptTest : public testing::Test {
 
     EXPECT_EQ(res, res3); // Test that the original index with extra trees deleted gives the same results
     EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
-
-    Mrpt index_at2(M);
-    index_at2.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-
-    for(int i = 0; i < n_test; ++i) {
-      const Map<VectorXf> q(Q.data() + i * d, d);
-      std::vector<int> result(k, -1);
-      index_at2.query(q, &result[0]);
-      res4.push_back(result);
-    }
-
-    EXPECT_EQ(res, res4); // Test that the autotuning with the preset target recall gives the same results
-    EXPECT_FLOAT_EQ(rec1, get_recall(res4, exact));
-
-
-    // std::cout << "Mean recall: " << recall  << "\n";
-    // std::cout << "Mean query time: " << query_time / n_test * 1000 << " ms.\n";
-    // std::cout << "Median query time: " << median(query_times) * 1000 << " ms. \n\n";
-    //
-    // std::cout << '\n';
-
-    // std::vector<Parameters> pars = index_at.optimal_parameter_list();
-    // for(const auto &par : pars) {
-    //   std::cout << "Estimated recall : " << par.estimated_recall << "\n";
-    //   std::cout << "Estimated query time: " << par.estimated_qtime << "\n";
-    //   std::cout << "\n";
-    // }
   }
 
   void defaultArgumentTester(int k) {
@@ -675,7 +636,16 @@ TEST_F(MrptTest, Saving) {
   saveTester(1, depth, density, seed_mrpt);
 }
 
-
+// Test that:
+// a) Index grown with autotuning gives a same index as the index grown
+// with an old school grow-function
+// b) When subsetting the index from the original autotuning index and
+// and using the validation set of autotuning as a test set, the
+// recall level is exactly the estimated recall level.
+// c) When subsetting a second index from the same autotuning index with
+// the same target recall, the recall level stays the same.
+// d) When deleting the trees of the original index with the same recall level
+// as the subsetted index, the recall level stays the same 
 TEST_F(MrptTest, Autotuning) {
   // int trees_max = 10;
   // autotuningTester(0.2, 1.0 / std::sqrt(d), trees_max);
