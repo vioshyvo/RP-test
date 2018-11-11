@@ -1,0 +1,8 @@
+{
+  "execPath": "/usr/local/bin/g++-8",
+  "gccDefaultCFlags": "-Wall",
+  "gccDefaultCppFlags": "-Wall -std=c++11",
+  "gccErrorLimit": 15,
+  "gccIncludePaths": ".,./include,./path,../../mrpt/cpp/lib,../../mrpt/cpp/,../googletest/googletest",
+  "gccSuppressWarnings": true
+}

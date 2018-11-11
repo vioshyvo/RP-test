@@ -60,7 +60,7 @@ class MrptTest : public testing::Test {
           q = VectorXf(d);
           for(int i = 0; i < d; ++i) q(i) = dist(mt);
 
-          X2 = MatrixXf(d,n2);
+          X2 = MatrixXf(d, n2);
           for(int i = 0; i < d; ++i)
             for(int j = 0; j < n2; ++j)
               X2(i,j) = dist(mt);
@@ -70,14 +70,21 @@ class MrptTest : public testing::Test {
             for(int j = 0; j < n_test; ++j)
               Q(i,j) = dist(mt);
 
+          M = new Map<const MatrixXf>(X.data(), d, n);
+          M2 = new Map<const MatrixXf>(X2.data(), d, n2);
+          test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
   }
+
+  ~MrptTest() {
+    delete M;
+    delete M2;
+    delete test_queries;
+  }
+
 
   void autotuningTester(double target_recall, float density, int trees_max) {
     omp_set_num_threads(1);
     int depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
-
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-    Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
 
     Mrpt index_at(M);
     index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
@@ -158,8 +165,8 @@ class MrptTest : public testing::Test {
     int depth_max = std::log2(n) - 4;
     float density = 1.0 / std::sqrt(d);
 
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-    Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
+    // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    // Map<MatrixXf> *test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
 
     Mrpt index(M);
     index.grow(test_queries, k);
@@ -171,12 +178,12 @@ class MrptTest : public testing::Test {
 
   void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
 
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X2.data(), d, n2);
-    Mrpt index(M);
+    // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X2.data(), d, n2);
+    Mrpt index(M2);
     index.grow(n_trees, depth, density, seed_mrpt);
     index.save("save/mrpt_saved");
 
-    Mrpt index_reloaded(M);
+    Mrpt index_reloaded(M2);
     index_reloaded.load("save/mrpt_saved");
 
     ASSERT_EQ(n_trees, index_reloaded.n_trees);
@@ -228,7 +235,7 @@ class MrptTest : public testing::Test {
   void QueryTester(int n_trees, int depth, float density, int votes, int k,
       std::vector<int> approximate_knn) {
     ASSERT_EQ(approximate_knn.size(), k);
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+    // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
     Mrpt index_dense(M);
     index_dense.grow(n_trees, depth, density, seed_mrpt);
 
@@ -441,6 +448,8 @@ class MrptTest : public testing::Test {
   int d, n, n2, n_test, seed_data, seed_mrpt;
   MatrixXf X, X2, Q;
   VectorXf q;
+  const Map<const MatrixXf> *M, *M2;
+  Map<MatrixXf> *test_queries;
 };
 
 
@@ -487,7 +496,7 @@ TEST_F(MrptTest, RandomSeed) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
 
   Mrpt index_dense(M);
   index_dense.grow(n_trees, depth, density); // initialize rng with random seed
@@ -517,7 +526,7 @@ TEST_F(MrptTest, RandomSeed) {
 // Test that the exact k-nn search returns true nearest neighbors
 TEST_F(MrptTest, ExactKnn) {
 
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
   Mrpt index_dense(M);
   index_dense.grow(0, 0, 1.0);
 
@@ -564,8 +573,8 @@ TEST_F(MrptTest, SplitPoints) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  const Map<const MatrixXf> *M2 = new Map<const MatrixXf>(X2.data(), d, n2);
+  // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  // const Map<const MatrixXf> *M2 = new Map<const MatrixXf>(X2.data(), d, n2);
 
   SplitPointTester(1, depth, density, M);
   SplitPointTester(5, depth, density, M);
@@ -598,8 +607,8 @@ TEST_F(MrptTest, Leaves) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
-  const Map<const MatrixXf> *M2 = new Map<const MatrixXf>(X2.data(), d, n2);
+  // const Map<const MatrixXf> *M = new Map<const MatrixXf>(X.data(), d, n);
+  // const Map<const MatrixXf> *M2 = new Map<const MatrixXf>(X2.data(), d, n2);
 
   LeafTester(1, depth, density, M);
   LeafTester(5, depth, density, M);
@@ -645,7 +654,7 @@ TEST_F(MrptTest, Saving) {
 // c) When subsetting a second index from the same autotuning index with
 // the same target recall, the recall level stays the same.
 // d) When deleting the trees of the original index with the same recall level
-// as the subsetted index, the recall level stays the same 
+// as the subsetted index, the recall level stays the same
 TEST_F(MrptTest, Autotuning) {
   // int trees_max = 10;
   // autotuningTester(0.2, 1.0 / std::sqrt(d), trees_max);
