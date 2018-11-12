@@ -819,6 +819,24 @@ TEST_F(MrptTest, NormalQuerySubsetting) {
   normal_query_tester(mrpt_at, mrpt_at2, k, v);
 }
 
+// Test that the query meant for autotuned index returns early when used on the
+// non-autotuned index.
+TEST_F(MrptTest, RecallQuery) {
+  Mrpt mrpt(M2);
+  mrpt.grow(10, 7, 1.0 / std::sqrt(d), seed_mrpt);
+
+  std::vector<int> res {-10, 10000, 3, -45, -1}, res_ref = res;
+  std::vector<float> dist {-1.4, 3.2, 0.0, 4.713, -100.98}, dist_ref = dist;
+
+  mrpt.query(test_query, &res[0]);
+  EXPECT_EQ(res, res_ref);
+
+  mrpt.query(test_query, &res[0], &dist[0]);
+  EXPECT_EQ(res, res_ref);
+  for(int i = 0; i < dist.size(); ++i)
+    EXPECT_FLOAT_EQ(dist[i], dist_ref[i]);
+}
+
 
 class UtilityTest : public testing::Test {
   protected:
