@@ -760,6 +760,37 @@ TEST_F(MrptTest, EmptyIndex) {
   EXPECT_EQ(n_elected, n_elected_empty);
 }
 
+// Test that the normal query function works also on the autotuned index
+TEST_F(MrptTest, NormalQuery) {
+  int trees_max = 10, depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
+  float density = 1.0 / std::sqrt(d);
+
+  Mrpt mrpt_at(M2);
+  mrpt_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt_at2(M2);
+  mrpt_at2.grow(test_queries, 10, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt(M2);
+  mrpt.grow(trees_max, depth_max, density, seed_mrpt);
+
+  int v = 2;
+  std::vector<std::vector<int>> res, res_at, res_at2;
+
+  for(int i = 0; i < n_test; ++i) {
+    const Map<VectorXf> q(Q.data() + i * d, d);
+    std::vector<int> result(k), result_at(k), result_at2(k);
+    mrpt_at.query(q, k, v, &result_at[0]);
+    mrpt_at.query(q, k, v, &result_at2[0]);
+    mrpt.query(q, k, v, &result[0]);
+    res_at.push_back(result_at);
+    res_at2.push_back(result_at2);
+    res.push_back(result);
+  }
+
+  EXPECT_EQ(res, res_at);
+  EXPECT_EQ(res, res_at2);
+}
 
 
 
