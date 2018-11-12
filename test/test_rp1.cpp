@@ -73,6 +73,7 @@ class MrptTest : public testing::Test {
           M = new Map<const MatrixXf>(X.data(), d, n);
           M2 = new Map<const MatrixXf>(X2.data(), d, n2);
           test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
+          new (&test_query) Map<VectorXf>(q.data(), d);
   }
 
   ~MrptTest() {
@@ -287,9 +288,8 @@ class MrptTest : public testing::Test {
     std::vector<float> distances(k);
     for(int i = 0; i < k; ++i) distances[i] = 0;
 
-    const Map<VectorXf> V(q.data(), d);
     int n_el = 0;
-    index_dense.query(V, k, votes, &result[0], &distances[0], &n_el);
+    index_dense.query(test_query, k, votes, &result[0], &distances[0], &n_el);
 
     EXPECT_EQ(result, approximate_knn);
     for(int i = 0; i < k; ++i)  {
@@ -494,6 +494,7 @@ class MrptTest : public testing::Test {
   VectorXf q;
   const Map<const MatrixXf> *M, *M2;
   Map<MatrixXf> *test_queries;
+  Map<VectorXf> test_query = Map<VectorXf>(nullptr, 0);
 };
 
 
@@ -548,10 +549,8 @@ TEST_F(MrptTest, RandomSeed) {
   int k = 10, votes = 1;
   std::vector<int> r(k), r2(k);
 
-  const Map<VectorXf> V(q.data(), d);
-
-  index_dense.query(V, k, votes, &r[0]);
-  index_dense2.query(V, k, votes, &r2[0]);
+  index_dense.query(test_query, k, votes, &r[0]);
+  index_dense2.query(test_query, k, votes, &r2[0]);
 
   bool same_neighbors = true;
   for(int i = 0; i < k; ++i) {
@@ -575,11 +574,10 @@ TEST_F(MrptTest, ExactKnn) {
   std::vector<int> result(k);
   std::vector<float> distances(k);
 
-  const Map<VectorXf> V(q.data(), d);
   VectorXi idx(n);
   std::iota(idx.data(), idx.data() + n, 0);
 
-  index_dense.exact_knn(V, k, idx, n, &result[0], &distances[0]);
+  index_dense.exact_knn(test_query, k, idx, n, &result[0], &distances[0]);
 
   EXPECT_EQ(result[0], 501);
   EXPECT_EQ(result[1], 682);
@@ -746,36 +744,23 @@ TEST_F(MrptTest, EmptyIndex) {
   std::vector<int> res(k), res_empty(k, -1);
   std::vector<float> distances(k), distances_empty(k, -1);
   int n_elected, n_elected_empty = 0;
-  const Map<VectorXf> V(q.data(), d);
 
-  // mrpt.query(V, &res[0]);
-  // EXPECT_EQ(res, res_empty);
-  //
-  // mrpt.query(V, &res[0], &distances[0]);
-  // EXPECT_EQ(res, res_empty);
-  // for(int i = 0; i < k; ++i)
-  //   EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
-  //
-  // mrpt.query(V, &res[0], &distances[0], &n_elected);
-  // EXPECT_EQ(res, res_empty);
-  // for(int i = 0; i < k; ++i)
-  //   EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
-  // EXPECT_EQ(n_elected, n_elected_empty);
-
-  mrpt.query(V, k, v, &res[0]);
+  mrpt.query(test_query, k, v, &res[0]);
   EXPECT_EQ(res, res_empty);
 
-  mrpt.query(V, k, v, &res[0], &distances[0]);
+  mrpt.query(test_query, k, v, &res[0], &distances[0]);
   EXPECT_EQ(res, res_empty);
   for(int i = 0; i < k; ++i)
     EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
 
-  mrpt.query(V, k, v, &res[0], &distances[0], &n_elected);
+  mrpt.query(test_query, k, v, &res[0], &distances[0], &n_elected);
   EXPECT_EQ(res, res_empty);
   for(int i = 0; i < k; ++i)
     EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
   EXPECT_EQ(n_elected, n_elected_empty);
 }
+
+
 
 
 class UtilityTest : public testing::Test {
