@@ -779,10 +779,14 @@ TEST_F(MrptTest, EmptyIndex) {
   EXPECT_EQ(n_elected, n_elected_empty);
 }
 
-// Test that the normal query function works also on the autotuned index.
+// Test that the normal query function works also on the index which is
+// grown by autotuning without specifying the recall level.
 TEST_F(MrptTest, NormalQuery) {
   int trees_max = 10, depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
-  float density = 1.0 / std::sqrt(d), target_recall = 0.2;
+  float density = 1.0 / std::sqrt(d);
+
+  Mrpt mrpt(M2);
+  mrpt.grow(trees_max, depth_max, density, seed_mrpt);
 
   Mrpt mrpt_at(M2);
   mrpt_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
@@ -790,26 +794,30 @@ TEST_F(MrptTest, NormalQuery) {
   Mrpt mrpt_at2(M2);
   mrpt_at2.grow(test_queries, 10, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
-  Mrpt mrpt_at3(M2);
-  mrpt_at3.grow(target_recall, test_queries, 10, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-
-  Mrpt mrpt(M2);
-  mrpt.grow(trees_max, depth_max, density, seed_mrpt);
-
   int v = 2;
   normal_query_tester(mrpt, mrpt_at, k, v);
   normal_query_tester(mrpt, mrpt_at2, k, v);
-
-  std::vector<std::vector<int>> res = normal_query(mrpt_at3, k, v);
-  for(const auto &r : res) {
-    for(const auto &i : r) {
-      EXPECT_LE(i, n2);
-      EXPECT_GE(i, -1);
-    }
-    std::cout << "\n";
-  }
 }
 
+// Test that the normal query works, and returns the same results when used on
+// the index subsetted to the target recall level from the original index, and
+// when used on the original index from which trees are deleted to the
+// same target recall level.
+TEST_F(MrptTest, NormalQuerySubsetting) {
+  int trees_max = 10, depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
+  float density = 1.0 / std::sqrt(d), target_recall = 0.2;
+
+  Mrpt mrpt_at(M2);
+  mrpt_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt_at2(M2);
+  mrpt_at.subset_trees(target_recall, mrpt_at2);
+
+  mrpt_at.delete_extra_trees(target_recall);
+
+  int v = 2;
+  normal_query_tester(mrpt_at, mrpt_at2, k, v);
+}
 
 
 class UtilityTest : public testing::Test {
