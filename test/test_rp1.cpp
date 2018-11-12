@@ -204,6 +204,7 @@ class MrptTest : public testing::Test {
     EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
   }
 
+
   void defaultArgumentTester(int k) {
     omp_set_num_threads(1);
 
@@ -218,6 +219,7 @@ class MrptTest : public testing::Test {
     EXPECT_EQ(index.depth, depth_max);
     EXPECT_FLOAT_EQ(index.density, density);
   }
+
 
   void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
 
@@ -708,20 +710,20 @@ TEST_F(MrptTest, AutotuningGrowing) {
 }
 
 // Test that:
-// b) When subsetting the index from the original autotuning index and
+// a) When subsetting the index from the original autotuning index and
 // and using the validation set of autotuning as a test set, the
 // recall level is exactly the estimated recall level.
-// c) When subsetting a second index from the same autotuning index with
+// b) When subsetting a second index from the same autotuning index with
 // the same target recall, the recall level stays the same.
-// d) When deleting the trees of the original index with the same recall level
+// c) When deleting the trees of the original index with the same recall level
 // as the subsetted index, the recall level stays the same
 TEST_F(MrptTest, Autotuning) {
-  // int trees_max = 10;
-  // autotuningTester(0.2, 1.0 / std::sqrt(d), trees_max);
-  // autotuningTester(0.4, 1.0, trees_max);
-  //
-  // autotuningTester(0.2, 1.0, trees_max);
-  // autotuningTester(0.4, 1.0 / std::sqrt(d), trees_max);
+  int trees_max = 10;
+  autotuningTester(0.2, 1.0 / std::sqrt(d), trees_max);
+  autotuningTester(0.4, 1.0, trees_max);
+
+  autotuningTester(0.2, 1.0, trees_max);
+  autotuningTester(0.4, 1.0 / std::sqrt(d), trees_max);
 
   int tmax = 7;
   autotuningTester(0.2, 1.0, tmax);
@@ -734,6 +736,45 @@ TEST_F(MrptTest, DefaultArguments) {
   defaultArgumentTester(1);
   defaultArgumentTester(5);
   defaultArgumentTester(20);
+}
+
+// Test that doing queries into an empty index returns correctly and sets
+// output buffers to -1
+TEST_F(MrptTest, EmptyIndex) {
+  int k = 5, v = 1;
+  Mrpt mrpt(M);
+  std::vector<int> res(k), res_empty(k, -1);
+  std::vector<float> distances(k), distances_empty(k, -1);
+  int n_elected, n_elected_empty = 0;
+  const Map<VectorXf> V(q.data(), d);
+
+  // mrpt.query(V, &res[0]);
+  // EXPECT_EQ(res, res_empty);
+  //
+  // mrpt.query(V, &res[0], &distances[0]);
+  // EXPECT_EQ(res, res_empty);
+  // for(int i = 0; i < k; ++i)
+  //   EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
+  //
+  // mrpt.query(V, &res[0], &distances[0], &n_elected);
+  // EXPECT_EQ(res, res_empty);
+  // for(int i = 0; i < k; ++i)
+  //   EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
+  // EXPECT_EQ(n_elected, n_elected_empty);
+
+  mrpt.query(V, k, v, &res[0]);
+  EXPECT_EQ(res, res_empty);
+
+  mrpt.query(V, k, v, &res[0], &distances[0]);
+  EXPECT_EQ(res, res_empty);
+  for(int i = 0; i < k; ++i)
+    EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
+
+  mrpt.query(V, k, v, &res[0], &distances[0], &n_elected);
+  EXPECT_EQ(res, res_empty);
+  for(int i = 0; i < k; ++i)
+    EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
+  EXPECT_EQ(n_elected, n_elected_empty);
 }
 
 
