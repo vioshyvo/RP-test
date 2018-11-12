@@ -489,6 +489,25 @@ class MrptTest : public testing::Test {
     return recall / (k * n_test);
   }
 
+  std::vector<std::vector<int>> normal_query(const Mrpt &mrpt, int k, int v) {
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      const Map<VectorXf> q(Q.data() + i * d, d);
+      std::vector<int> result(k);
+      mrpt.query(q, k, v, &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
+  void normal_query_tester(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
+    std::vector<std::vector<int>> res1 = normal_query(mrpt1, k, v);
+    std::vector<std::vector<int>> res2 = normal_query(mrpt2, k, v);
+
+    EXPECT_EQ(res1, res2);
+  }
+
+
   int d, n, n2, n_test, seed_data, seed_mrpt;
   MatrixXf X, X2, Q;
   VectorXf q;
@@ -775,21 +794,8 @@ TEST_F(MrptTest, NormalQuery) {
   mrpt.grow(trees_max, depth_max, density, seed_mrpt);
 
   int v = 2;
-  std::vector<std::vector<int>> res, res_at, res_at2;
-
-  for(int i = 0; i < n_test; ++i) {
-    const Map<VectorXf> q(Q.data() + i * d, d);
-    std::vector<int> result(k), result_at(k), result_at2(k);
-    mrpt_at.query(q, k, v, &result_at[0]);
-    mrpt_at.query(q, k, v, &result_at2[0]);
-    mrpt.query(q, k, v, &result[0]);
-    res_at.push_back(result_at);
-    res_at2.push_back(result_at2);
-    res.push_back(result);
-  }
-
-  EXPECT_EQ(res, res_at);
-  EXPECT_EQ(res, res_at2);
+  normal_query_tester(mrpt, mrpt_at, k, v);
+  normal_query_tester(mrpt, mrpt_at2, k, v);
 }
 
 
