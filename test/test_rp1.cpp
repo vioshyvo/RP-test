@@ -900,6 +900,27 @@ TEST_F(MrptTest, AutotuningKThrows) {
   EXPECT_FALSE(mrpt2.empty());
 }
 
+// Test that the autotuning throws an out-of-range expection when depth_max is
+// non-positive or larger than log2(n)
+TEST_F(MrptTest, AutotuningDepthmaxThrows) {
+  Mrpt mrpt(M2);
+  int k = 5, trees_max = 10;
+
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, -2), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, 0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, 8), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
+  EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, -1));
+  EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt2(M2);
+  EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, std::log2(n2)));
+  EXPECT_FALSE(mrpt2.empty());
+}
+
 // Test that the autotuning throws an out-of-range exception when depth_min is
 // not positive or is larger than depth_max.
 TEST_F(MrptTest, AutotuningDepthminThrows) {
@@ -941,6 +962,32 @@ TEST_F(MrptTest, AutotuningVotesmaxThrows) {
   EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, depth_max, depth_min, trees_max));
   EXPECT_FALSE(mrpt2.empty());
 }
+
+// Test that the autotuning throws an out-of-range exception if density is
+// non-positive or greater than one.
+TEST_F(MrptTest, AutotuningDensityThrows) {
+  Mrpt mrpt(M2);
+  int k = 5, trees_max = 10, depth_max = 7, depth_min = 5, votes_max = trees_max - 1;
+
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, -0.001), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, -1.001), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, 1.1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
+  EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, -1.0));
+  EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt2(M2);
+  EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, 1.0));
+  EXPECT_FALSE(mrpt2.empty());
+
+  Mrpt mrpt3(M2);
+  EXPECT_NO_THROW(mrpt3.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, 0.001));
+  EXPECT_FALSE(mrpt3.empty());
+}
+
 
 // Test that the autotuning grows invalid argument error if the dimensions
 // of the data set and the validation set do not match.
