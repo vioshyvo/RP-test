@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <numeric>
 #include <utility>
+#include <stdexcept>
 
 #include "gtest/gtest.h"
 #include "Mrpt.h"
@@ -507,12 +508,6 @@ class MrptTest : public testing::Test {
     EXPECT_EQ(res1, res2);
   }
 
-  void empty_tester(int n_trees, int depth, int density) {
-    Mrpt mrpt(M2);
-    mrpt.grow(-1, depth, density, seed_mrpt);
-    EXPECT_TRUE(mrpt.empty());
-  }
-
   int d, n, n2, n_test, seed_data, seed_mrpt;
   MatrixXf X, X2, Q;
   VectorXf q;
@@ -592,7 +587,6 @@ TEST_F(MrptTest, RandomSeed) {
 TEST_F(MrptTest, ExactKnn) {
 
   Mrpt index_dense(M);
-  index_dense.grow(0, 0, 1.0);
 
   int k = 5;
   std::vector<int> result(k);
@@ -842,18 +836,26 @@ TEST_F(MrptTest, RecallQuery) {
     EXPECT_FLOAT_EQ(dist[i], dist_ref[i]);
 }
 
-// Test that normal tree growing returns an empty index when parameters
-// are out of bounds
-TEST_F(MrptTest, GrowEarlyReturn) {
+// Test that normal tree growing returns throws a correct expection when
+// the parameters are out of bounds
+TEST_F(MrptTest, GrowExpections) {
   int n_trees = 10, depth = 7;
   float density = 1.0 / std::sqrt(d);
 
-  empty_tester(-1, depth, density);
-  empty_tester(0, depth, density);
+  Mrpt mrpt(M2);
 
-  empty_tester(n_trees, -1, density);
-  empty_tester(n_trees, 0, density);
-  empty_tester(n_trees, 8, density);
+  ASSERT_THROW(mrpt.grow(-1, depth, density), std::out_of_range);
+  ASSERT_THROW(mrpt.grow(0, depth, density), std::out_of_range);
+
+  ASSERT_THROW(mrpt.grow(n_trees, -1, density), std::out_of_range);
+  ASSERT_THROW(mrpt.grow(n_trees, 0, density), std::out_of_range);
+  ASSERT_THROW(mrpt.grow(n_trees, 8, density), std::out_of_range);
+  ASSERT_NO_THROW(mrpt.grow(n_trees, 7, density));
+
+  ASSERT_THROW(mrpt.grow(n_trees, depth, -0.001), std::out_of_range);
+  ASSERT_THROW(mrpt.grow(n_trees, depth, 1.1), std::out_of_range);
+  ASSERT_NO_THROW(mrpt.grow(n_trees, depth, 0.001));
+  ASSERT_NO_THROW(mrpt.grow(n_trees, depth, 1.0));
 }
 
 
