@@ -1054,6 +1054,52 @@ TEST_F(MrptTest, ParameterGetterAutotuning) {
   EXPECT_FLOAT_EQ(par.estimated_recall, 0.0);
 }
 
+// Test that the getter for the list of optimal parameters throws a
+// logic expection when called on either an empty index or an index which
+// has not been autotuned.
+TEST_F(MrptTest, NotAutotunedOptimalParameterListThrows) {
+  Mrpt mrpt(M2);
+
+  EXPECT_THROW(mrpt.optimal_parameter_list(), std::logic_error);
+
+  mrpt.grow(10, 6);
+  EXPECT_THROW(mrpt.optimal_parameter_list(), std::logic_error);
+}
+
+// Test that the getter for the list of optimal parameters throws a
+// logic expection when called on an index which is autotuned to the
+// target recall level.
+TEST_F(MrptTest, AutotunedOptimalParameterListThrows) {
+  Mrpt mrpt(M2);
+  mrpt.grow(0.2, test_queries, 5);
+  EXPECT_THROW(mrpt.optimal_parameter_list(), std::logic_error);
+}
+
+// Test that the getter for the list of optimal parameters throws a
+// logic expection when called on an index which is autotuned , but also
+// already pruned to the target recall level.
+TEST_F(MrptTest, PrunedOptimalParameterListThrows) {
+  Mrpt mrpt(M2);
+  mrpt.grow(test_queries, 5);
+  mrpt.delete_extra_trees(0.2);
+  EXPECT_THROW(mrpt.optimal_parameter_list(), std::logic_error);
+}
+
+// Test that the getter for the list of optimal parameters throws a
+// logic expection when called on an index which is subsetted from
+// the autotuned index, but does not throw when called on the original
+// autotuned index.
+TEST_F(MrptTest, SubsettedOptimalParameterListThrows) {
+  Mrpt mrpt(M2);
+  Mrpt mrpt_subsetted(M2);
+  mrpt.grow(test_queries, 5);
+  mrpt.subset_trees(0.2, mrpt_subsetted);
+  EXPECT_THROW(mrpt_subsetted.optimal_parameter_list(), std::logic_error);
+  EXPECT_NO_THROW(mrpt.optimal_parameter_list());
+}
+
+
+
 class UtilityTest : public testing::Test {
   protected:
 
