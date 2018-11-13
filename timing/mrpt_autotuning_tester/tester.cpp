@@ -117,9 +117,9 @@ int main(int argc, char **argv) {
         }
 
         if(verbose)
-          std::cout << "k: " << k << ", # of trees: " << index2.get_n_trees() << ", depth: " << index2.get_depth() << ", density: " << density << ", votes: " << index2.get_votes() << "\n";
+          std::cout << "k: " << k << ", # of trees: " << par.n_trees << ", depth: " << par.depth << ", density: " << density << ", votes: " << par.votes << "\n";
         else
-          std::cout << k << " " << index2.get_n_trees() << " " << index2.get_depth() << " " << density << " " << index2.get_votes() << " ";
+          std::cout << k << " " << par.n_trees << " " << par.depth << " " << density << " " << par.votes << " ";
 
         results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
         std::cout << build_end - build_start << std::endl;

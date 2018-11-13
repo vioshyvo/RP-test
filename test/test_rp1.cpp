@@ -507,6 +507,11 @@ class MrptTest : public testing::Test {
     EXPECT_EQ(res1, res2);
   }
 
+  void empty_tester(int n_trees, int depth, int density) {
+    Mrpt mrpt(M2);
+    mrpt.grow(-1, depth, density, seed_mrpt);
+    EXPECT_TRUE(mrpt.empty());
+  }
 
   int d, n, n2, n_test, seed_data, seed_mrpt;
   MatrixXf X, X2, Q;
@@ -835,6 +840,20 @@ TEST_F(MrptTest, RecallQuery) {
   EXPECT_EQ(res, res_ref);
   for(int i = 0; i < dist.size(); ++i)
     EXPECT_FLOAT_EQ(dist[i], dist_ref[i]);
+}
+
+// Test that normal tree growing returns an empty index when parameters
+// are out of bounds
+TEST_F(MrptTest, GrowEarlyReturn) {
+  int n_trees = 10, depth = 7;
+  float density = 1.0 / std::sqrt(d);
+
+  empty_tester(-1, depth, density);
+  empty_tester(0, depth, density);
+
+  empty_tester(n_trees, -1, density);
+  empty_tester(n_trees, 0, density);
+  empty_tester(n_trees, 8, density);
 }
 
 
