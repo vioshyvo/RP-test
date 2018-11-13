@@ -756,26 +756,19 @@ TEST_F(MrptTest, DefaultArguments) {
 
 // Test that doing queries into an empty index returns correctly and sets
 // output buffers to -1
-TEST_F(MrptTest, EmptyIndex) {
+TEST_F(MrptTest, EmptyIndexThrows) {
   int k = 5, v = 1;
   Mrpt mrpt(M);
-  std::vector<int> res(k), res_empty(k, -1);
-  std::vector<float> distances(k), distances_empty(k, -1);
-  int n_elected, n_elected_empty = 0;
+  std::vector<int> res(k);
+  std::vector<float> distances(k);
+  int n_elected;
 
-  mrpt.query(test_query, k, v, &res[0]);
-  EXPECT_EQ(res, res_empty);
+  EXPECT_THROW(mrpt.query(test_query, k, v, &res[0]), std::logic_error);
+  EXPECT_THROW(mrpt.query(test_query, k, v, &res[0], &distances[0]), std::logic_error);
+  EXPECT_THROW(mrpt.query(test_query, k, v, &res[0], &distances[0], &n_elected), std::logic_error);
 
-  mrpt.query(test_query, k, v, &res[0], &distances[0]);
-  EXPECT_EQ(res, res_empty);
-  for(int i = 0; i < k; ++i)
-    EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
-
-  mrpt.query(test_query, k, v, &res[0], &distances[0], &n_elected);
-  EXPECT_EQ(res, res_empty);
-  for(int i = 0; i < k; ++i)
-    EXPECT_FLOAT_EQ(distances[i], distances_empty[i]);
-  EXPECT_EQ(n_elected, n_elected_empty);
+  mrpt.grow(1, 5);
+  EXPECT_NO_THROW(mrpt.query(test_query, k, v, &res[0]));
 }
 
 // Test that the normal query function works also on the index which is
@@ -802,7 +795,7 @@ TEST_F(MrptTest, NormalQuery) {
 // the index subsetted to the target recall level from the original index, and
 // when used on the original index from which trees are deleted to the
 // same target recall level.
-TEST_F(MrptTest, NormalQuerySubsetting) {
+TEST_F(MrptTest, QuerySubsetting) {
   int trees_max = 10, depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
   float density = 1.0 / std::sqrt(d), target_recall = 0.2;
 
@@ -811,51 +804,68 @@ TEST_F(MrptTest, NormalQuerySubsetting) {
 
   Mrpt mrpt_at2(M2);
   mrpt_at.subset_trees(target_recall, mrpt_at2);
-
   mrpt_at.delete_extra_trees(target_recall);
 
   int v = 2;
   normal_query_tester(mrpt_at, mrpt_at2, k, v);
 }
 
-// Test that the query meant for autotuned index returns early when used on the
-// non-autotuned index.
-TEST_F(MrptTest, RecallQuery) {
+// Test that the normal query throws an out-of-range exception when called with
+// bad values for k or vote threshold.
+TEST_F(MrptTest, QueryThrows) {
   Mrpt mrpt(M2);
+  int n_trees = 10, v = 1, k =5;
+  std::vector<int> res(n2);
+  mrpt.grow(n_trees, 7, 1.0 / std::sqrt(d), seed_mrpt);
+
+  EXPECT_THROW(mrpt.query(test_query, -1, v, &res[0]), std::out_of_range);
+  EXPECT_THROW(mrpt.query(test_query, 0, v, &res[0]), std::out_of_range);
+  EXPECT_THROW(mrpt.query(test_query, n2 + 1, v, &res[0]), std::out_of_range);
+  EXPECT_NO_THROW(mrpt.query(test_query, 1, v, &res[0]));
+  EXPECT_NO_THROW(mrpt.query(test_query, n2, v, &res[0]));
+
+  EXPECT_THROW(mrpt.query(test_query, k, -1, &res[0]), std::out_of_range);
+  EXPECT_THROW(mrpt.query(test_query, k, 0, &res[0]), std::out_of_range);
+  EXPECT_THROW(mrpt.query(test_query, k, n_trees + 1, &res[0]), std::out_of_range);
+  EXPECT_NO_THROW(mrpt.query(test_query, k, 1, &res[0]));
+  EXPECT_NO_THROW(mrpt.query(test_query, k, n_trees, &res[0]));
+}
+
+// Test that the query meant for autotuned index throws an exception when
+// called on the non-autotuned index.
+TEST_F(MrptTest, RecallQueryThrows) {
+  Mrpt mrpt(M2);
+  int k = 5;
   mrpt.grow(10, 7, 1.0 / std::sqrt(d), seed_mrpt);
 
-  std::vector<int> res {-10, 10000, 3, -45, -1}, res_ref = res;
-  std::vector<float> dist {-1.4, 3.2, 0.0, 4.713, -100.98}, dist_ref = dist;
+  std::vector<int> res(k);
+  std::vector<float> dist(k);
 
-  mrpt.query(test_query, &res[0]);
-  EXPECT_EQ(res, res_ref);
-
-  mrpt.query(test_query, &res[0], &dist[0]);
-  EXPECT_EQ(res, res_ref);
-  for(int i = 0; i < dist.size(); ++i)
-    EXPECT_FLOAT_EQ(dist[i], dist_ref[i]);
+  EXPECT_THROW(mrpt.query(test_query, &res[0]), std::logic_error);
+  EXPECT_THROW(mrpt.query(test_query, &res[0], &dist[0]), std::logic_error);
 }
 
 // Test that normal tree growing returns throws a correct expection when
 // the parameters are out of bounds
-TEST_F(MrptTest, GrowExpections) {
+TEST_F(MrptTest, GrowThrows) {
   int n_trees = 10, depth = 7;
   float density = 1.0 / std::sqrt(d);
 
   Mrpt mrpt(M2);
 
-  ASSERT_THROW(mrpt.grow(-1, depth, density), std::out_of_range);
-  ASSERT_THROW(mrpt.grow(0, depth, density), std::out_of_range);
+  EXPECT_THROW(mrpt.grow(-1, depth, density), std::out_of_range);
+  EXPECT_THROW(mrpt.grow(0, depth, density), std::out_of_range);
 
-  ASSERT_THROW(mrpt.grow(n_trees, -1, density), std::out_of_range);
-  ASSERT_THROW(mrpt.grow(n_trees, 0, density), std::out_of_range);
-  ASSERT_THROW(mrpt.grow(n_trees, 8, density), std::out_of_range);
-  ASSERT_NO_THROW(mrpt.grow(n_trees, 7, density));
+  EXPECT_THROW(mrpt.grow(n_trees, -1, density), std::out_of_range);
+  EXPECT_THROW(mrpt.grow(n_trees, 0, density), std::out_of_range);
+  EXPECT_THROW(mrpt.grow(n_trees, 8, density), std::out_of_range);
+  EXPECT_NO_THROW(mrpt.grow(n_trees, 7, density));
 
-  ASSERT_THROW(mrpt.grow(n_trees, depth, -0.001), std::out_of_range);
-  ASSERT_THROW(mrpt.grow(n_trees, depth, 1.1), std::out_of_range);
-  ASSERT_NO_THROW(mrpt.grow(n_trees, depth, 0.001));
-  ASSERT_NO_THROW(mrpt.grow(n_trees, depth, 1.0));
+  EXPECT_THROW(mrpt.grow(n_trees, depth, -0.001), std::out_of_range);
+  EXPECT_THROW(mrpt.grow(n_trees, depth, 1.1), std::out_of_range);
+  EXPECT_NO_THROW(mrpt.grow(n_trees, depth, 0.001));
+  EXPECT_NO_THROW(mrpt.grow(n_trees, depth, 1.0));
+  EXPECT_NO_THROW(mrpt.grow(n_trees, depth));
 }
 
 
