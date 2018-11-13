@@ -854,18 +854,111 @@ TEST_F(MrptTest, GrowThrows) {
   Mrpt mrpt(M2);
 
   EXPECT_THROW(mrpt.grow(-1, depth, density), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
   EXPECT_THROW(mrpt.grow(0, depth, density), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
 
   EXPECT_THROW(mrpt.grow(n_trees, -1, density), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
   EXPECT_THROW(mrpt.grow(n_trees, 0, density), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
   EXPECT_THROW(mrpt.grow(n_trees, 8, density), std::out_of_range);
-  EXPECT_NO_THROW(mrpt.grow(n_trees, 7, density));
+  EXPECT_TRUE(mrpt.empty());
 
-  EXPECT_THROW(mrpt.grow(n_trees, depth, -0.001), std::out_of_range);
-  EXPECT_THROW(mrpt.grow(n_trees, depth, 1.1), std::out_of_range);
-  EXPECT_NO_THROW(mrpt.grow(n_trees, depth, 0.001));
-  EXPECT_NO_THROW(mrpt.grow(n_trees, depth, 1.0));
-  EXPECT_NO_THROW(mrpt.grow(n_trees, depth));
+  EXPECT_NO_THROW(mrpt.grow(n_trees, 7, density));
+  EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt2(M2);
+  EXPECT_THROW(mrpt2.grow(n_trees, depth, -0.001), std::out_of_range);
+  EXPECT_TRUE(mrpt2.empty());
+  EXPECT_THROW(mrpt2.grow(n_trees, depth, 1.1), std::out_of_range);
+  EXPECT_TRUE(mrpt2.empty());
+
+  EXPECT_NO_THROW(mrpt2.grow(n_trees, depth, 0.001));
+  EXPECT_FALSE(mrpt2.empty());
+  EXPECT_NO_THROW(mrpt2.grow(n_trees, depth, 1.0));
+  EXPECT_NO_THROW(mrpt2.grow(n_trees, depth));
+}
+
+// Test that the autotuning throws an out-of-range exception, when called
+// with bad value for k.
+TEST_F(MrptTest, AutotuningKThrows) {
+  Mrpt mrpt(M2);
+
+  EXPECT_THROW(mrpt.grow(test_queries, -1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, 0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, n2 + 1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
+  EXPECT_NO_THROW(mrpt.grow(test_queries, 1));
+  EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt2(M2);
+  EXPECT_NO_THROW(mrpt2.grow(test_queries, n2));
+  EXPECT_FALSE(mrpt2.empty());
+}
+
+// Test that the autotuning throws an out-of-range exception when depth_min is
+// not positive or is larger than depth_max.
+TEST_F(MrptTest, AutotuningDepthminThrows) {
+  Mrpt mrpt(M2);
+  int k = 5, trees_max = 10, depth_max = 6;
+
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, -2), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, 0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, 7), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
+  EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, -1));
+  EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt2(M2);
+  EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, depth_max, depth_max));
+  EXPECT_FALSE(mrpt2.empty());
+}
+
+// Test that the autotuning throws an out-of-range exception when votes_max is
+// not positive or is larger than trees_max.
+TEST_F(MrptTest, AutotuningVotesmaxThrows) {
+  Mrpt mrpt(M2);
+  int k = 5, trees_max = 10, depth_max = 7, depth_min = 5;
+
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, -2), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, 0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, trees_max + 1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
+  EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, -1));
+  EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt2(M2);
+  EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, depth_max, depth_min, trees_max));
+  EXPECT_FALSE(mrpt2.empty());
+}
+
+// Test that the autotuning grows invalid argument error if the dimensions
+// of the data set and the validation set do not match.
+TEST_F(MrptTest, AutotuningDimThrows) {
+  int n_test2 = 100, d2 = 50, k = 5;
+  MatrixXf q2 = MatrixXf::Random(d2, n_test2);
+  Map<MatrixXf> *test_queries2 = new Map<MatrixXf>(q2.data(), d2, n_test2);
+  Mrpt mrpt(M2);
+
+  EXPECT_THROW(mrpt.grow(test_queries2, k), std::invalid_argument);
+  EXPECT_TRUE(mrpt.empty());
+
+  Map<MatrixXf> *test_queries3 = new Map<MatrixXf>(q.data(), d, 1);
+  EXPECT_NO_THROW(mrpt.grow(test_queries3, k));
+  EXPECT_FALSE(mrpt.empty());
+
+  delete test_queries2;
+  delete test_queries3;
 }
 
 
