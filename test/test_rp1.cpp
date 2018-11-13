@@ -468,6 +468,7 @@ class MrptTest : public testing::Test {
     std::cout << "n_trees:                      " << op.n_trees << "\n";
     std::cout << "depth:                        " << op.depth << "\n";
     std::cout << "votes:                        " << op.votes << "\n";
+    std::cout << "k:                            " << op.k << "\n";
     std::cout << "estimated query time:         " << op.estimated_qtime * 1000.0 << " ms.\n";
     std::cout << "estimated recall:             " << op.estimated_recall << "\n";
   }
@@ -529,7 +530,6 @@ TEST_F(MrptTest, Query) {
   QueryTester(5, depth, density, votes, k, std::vector<int> {949, 720, 84, 959, 447});
   QueryTester(100, depth, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
 
-  QueryTester(1, 0, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
   QueryTester(n_trees, 1, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
   QueryTester(n_trees, 3, density, votes, k, std::vector<int> {501, 682, 541, 747, 882});
   QueryTester(n_trees, 8, density, votes, k, std::vector<int> {949, 629, 860, 954, 121});
@@ -705,15 +705,14 @@ TEST_F(MrptTest, AutotuningGrowing) {
   autotuningGrowTester(1.0 / std::sqrt(d), trees_max, depth_max, depth_min, votes_max, k);
   autotuningGrowTester(1.0, trees_max, depth_max, depth_min, votes_max, k);
 
-  autotuningGrowTester(density, 2, depth_max, depth_min, votes_max, k);
-  autotuningGrowTester(density, 5, depth_max, depth_min, votes_max, k);
-  autotuningGrowTester(density, 100, depth_max, depth_min, votes_max, k);
+  autotuningGrowTester(density, 2, depth_max, depth_min, 2, k);
+  autotuningGrowTester(density, 5, depth_max, depth_min, 5, k);
+  autotuningGrowTester(density, 100, depth_max, depth_min, 100, k);
 
   autotuningGrowTester(density, trees_max, 7, 5, votes_max, k);
   autotuningGrowTester(density, trees_max, 3, 2, votes_max, k);
   autotuningGrowTester(density, trees_max, 3, 1, votes_max, k);
   autotuningGrowTester(density, trees_max, 1, 1, votes_max, k);
-  autotuningGrowTester(density, trees_max, 0, 0, votes_max, k);
 
   autotuningGrowTester(density, trees_max, depth_max, depth_min, 1, k);
   autotuningGrowTester(density, trees_max, depth_max, depth_min, 5, k);
@@ -1008,6 +1007,52 @@ TEST_F(MrptTest, AutotuningDimThrows) {
   delete test_queries3;
 }
 
+// Test that when the index is not yet built, the parameter getter returns
+// default values for the parameters and the estimated query time and the
+// estimated recall.
+TEST_F(MrptTest, ParameterGetterEmptyIndex) {
+  Mrpt mrpt(M2);
+  Parameters par = mrpt.parameters();
+  EXPECT_EQ(par.n_trees, 0);
+  EXPECT_EQ(par.depth, 0);
+  EXPECT_EQ(par.votes, 0);
+  EXPECT_EQ(par.k, 0);
+  EXPECT_FLOAT_EQ(par.estimated_qtime, 0.0);
+  EXPECT_FLOAT_EQ(par.estimated_recall, 0.0);
+}
+
+// Test that when the index is not autotuned, the getter for parameters returns
+// the number and depth of trees, but not vote threshold and estimated query
+// time and recall level.
+TEST_F(MrptTest, ParameterGetter) {
+  Mrpt mrpt(M2);
+  int n_trees = 10, depth = 6;
+  mrpt.grow(n_trees, depth);
+  Parameters par = mrpt.parameters();
+  EXPECT_EQ(par.n_trees, n_trees);
+  EXPECT_EQ(par.depth, depth);
+  EXPECT_EQ(par.votes, 0);
+  EXPECT_EQ(par.k, 0);
+  EXPECT_FLOAT_EQ(par.estimated_qtime, 0.0);
+  EXPECT_FLOAT_EQ(par.estimated_recall, 0.0);
+}
+
+// Test that when the index is autotuned, but the target recall level
+// is not yet set, the getter for parameters returns the maximum number and
+// maximum depth of the trees, but not vote threshold and estimated query time
+// and recall level.
+TEST_F(MrptTest, ParameterGetterAutotuning) {
+  Mrpt mrpt(M2);
+  int k = 5, trees_max = 8, depth_max = 7;
+  mrpt.grow(test_queries, k, trees_max, depth_max);
+  Parameters par = mrpt.parameters();
+  EXPECT_EQ(par.n_trees, trees_max);
+  EXPECT_EQ(par.depth, depth_max);
+  EXPECT_EQ(par.votes, 0);
+  EXPECT_EQ(par.k, k);
+  EXPECT_FLOAT_EQ(par.estimated_qtime, 0.0);
+  EXPECT_FLOAT_EQ(par.estimated_recall, 0.0);
+}
 
 class UtilityTest : public testing::Test {
   protected:
