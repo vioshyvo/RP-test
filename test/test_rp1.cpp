@@ -147,7 +147,7 @@ class MrptTest : public testing::Test {
     MatrixXi exact(k, n_test);
     compute_exact_neighbors(index_at, exact, n);
 
-    Parameters par = index_at.parameters(target_recall);
+    Mrpt_Parameters par = index_at.parameters(target_recall);
     // std::cout << std::endl;
     // print_parameters(par);
     // std::cout << std::endl;
@@ -220,7 +220,7 @@ class MrptTest : public testing::Test {
     EXPECT_FLOAT_EQ(index.density, density);
   }
 
-  void testParameters(const Parameters &par, const Parameters &par2) {
+  void testParameters(const Mrpt_Parameters &par, const Mrpt_Parameters &par2) {
     EXPECT_EQ(par.n_trees, par2.n_trees);
     EXPECT_EQ(par.depth, par2.depth);
     EXPECT_EQ(par.votes, par2.votes);
@@ -229,7 +229,7 @@ class MrptTest : public testing::Test {
     EXPECT_FLOAT_EQ(par.estimated_recall, par2.estimated_recall);
   }
 
-  void testOptimalParameters(const std::vector<Parameters> &pars, const std::vector<Parameters> &pars2) {
+  void testOptimalParameters(const std::vector<Mrpt_Parameters> &pars, const std::vector<Mrpt_Parameters> &pars2) {
     ASSERT_EQ(pars.size(), pars2.size());
     for(auto it = pars.begin(), it2 = pars2.begin(); it != pars.end(); ++it, ++it2)
       testParameters(*it, *it2);
@@ -468,7 +468,7 @@ class MrptTest : public testing::Test {
   }
 
 
-  void print_parameters(const Parameters &op) {
+  void print_parameters(const Mrpt_Parameters &op) {
     std::cout << "n_trees:                      " << op.n_trees << "\n";
     std::cout << "depth:                        " << op.depth << "\n";
     std::cout << "votes:                        " << op.votes << "\n";
@@ -1051,7 +1051,7 @@ TEST_F(MrptTest, AutotuningDimThrows) {
 // estimated recall.
 TEST_F(MrptTest, ParameterGetterEmptyIndex) {
   Mrpt mrpt(M2);
-  testParameters(mrpt.parameters(), Parameters());
+  testParameters(mrpt.parameters(), Mrpt_Parameters());
 }
 
 // Test that when the index is not autotuned, the getter for parameters returns
@@ -1134,14 +1134,14 @@ TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
 
   mrpt.grow(test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
 
-  std::vector<Parameters> pars = mrpt.optimal_pars();
+  std::vector<Mrpt_Parameters> pars = mrpt.optimal_pars();
   double highest_estimated_recall = pars.rbegin()->estimated_recall;
   std::vector<double> target_recalls {0.1, 0.5, 0.9, 0.99};
 
   for(const auto &tr : target_recalls) {
     Mrpt mrpt_new(M2);
     mrpt.subset_trees(tr, mrpt_new);
-    Parameters par = mrpt_new.parameters();
+    Mrpt_Parameters par = mrpt_new.parameters();
     if(tr < highest_estimated_recall) {
       EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
     } else {
@@ -1171,11 +1171,11 @@ TEST_F(MrptTest, ParameterGetterPrunedIndex) {
     Mrpt mrpt(M2);
     mrpt.grow(test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
 
-    std::vector<Parameters> pars = mrpt.optimal_pars();
+    std::vector<Mrpt_Parameters> pars = mrpt.optimal_pars();
     double highest_estimated_recall = pars.rbegin()->estimated_recall;
 
     mrpt.delete_extra_trees(tr);
-    Parameters par = mrpt.parameters();
+    Mrpt_Parameters par = mrpt.parameters();
 
     if(tr < highest_estimated_recall) {
       EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
@@ -1204,7 +1204,7 @@ TEST_F(MrptTest, ParameterGetterTargetRecall) {
   for(const auto &tr : target_recalls) {
     Mrpt mrpt(M2);
     mrpt.grow(tr, test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
-    Parameters par = mrpt.parameters();
+    Mrpt_Parameters par = mrpt.parameters();
 
     EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
     EXPECT_FLOAT_EQ(get_recall(autotuning_query(mrpt), exact), par.estimated_recall);
