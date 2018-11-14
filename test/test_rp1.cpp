@@ -147,7 +147,7 @@ class MrptTest : public testing::Test {
     index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
     MatrixXi exact(k, n_test);
-    compute_exact_neighbors(index_at, exact);
+    compute_exact_neighbors(index_at, exact, n);
 
     Parameters par = index_at.parameters(target_recall);
     std::cout << std::endl;
@@ -451,9 +451,10 @@ class MrptTest : public testing::Test {
   }
 
 
-  void compute_exact_neighbors(Mrpt &index, MatrixXi &out_exact) {
+  void compute_exact_neighbors(Mrpt &index, MatrixXi &out_exact, int n) {
     int k = out_exact.rows();
     int nt = out_exact.cols();
+
     for(int i = 0; i < nt; ++i) {
       VectorXi idx(n);
       std::iota(idx.data(), idx.data() + n, 0);
@@ -502,6 +503,17 @@ class MrptTest : public testing::Test {
     return res;
   }
 
+  std::vector<std::vector<int>> autotuning_query(const Mrpt &mrpt) {
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      const Map<VectorXf> q(Q.data() + i * d, d);
+      std::vector<int> result(mrpt.parameters().k);
+      mrpt.query(q, &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
   void normal_query_tester(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
     std::vector<std::vector<int>> res1 = normal_query(mrpt1, k, v);
     std::vector<std::vector<int>> res2 = normal_query(mrpt2, k, v);
@@ -510,6 +522,7 @@ class MrptTest : public testing::Test {
   }
 
   int d, n, n2, n_test, seed_data, seed_mrpt;
+  float epsilon = 0.001; // error bound for floating point comparisons of recall
   MatrixXf X, X2, Q;
   VectorXf q;
   const Map<const MatrixXf> *M, *M2;
@@ -1057,45 +1070,77 @@ TEST_F(MrptTest, ParameterGetterAutotuning) {
 // Test that the getter for the list of optimal parameters throws a
 // logic expection when called on either an empty index or an index which
 // has not been autotuned.
-TEST_F(MrptTest, NotAutotunedOptimalParameterListThrows) {
+TEST_F(MrptTest, NotAutotunedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
 
-  EXPECT_THROW(mrpt.optimal_parameter_list(), std::logic_error);
+  EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
 
   mrpt.grow(10, 6);
-  EXPECT_THROW(mrpt.optimal_parameter_list(), std::logic_error);
+  EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
 }
 
 // Test that the getter for the list of optimal parameters throws a
 // logic expection when called on an index which is autotuned to the
 // target recall level.
-TEST_F(MrptTest, AutotunedOptimalParameterListThrows) {
+TEST_F(MrptTest, AutotunedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
   mrpt.grow(0.2, test_queries, 5);
-  EXPECT_THROW(mrpt.optimal_parameter_list(), std::logic_error);
+  EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
 }
 
 // Test that the getter for the list of optimal parameters throws a
 // logic expection when called on an index which is autotuned , but also
 // already pruned to the target recall level.
-TEST_F(MrptTest, PrunedOptimalParameterListThrows) {
+TEST_F(MrptTest, PrunedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
   mrpt.grow(test_queries, 5);
   mrpt.delete_extra_trees(0.2);
-  EXPECT_THROW(mrpt.optimal_parameter_list(), std::logic_error);
+  EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
 }
 
 // Test that the getter for the list of optimal parameters throws a
 // logic expection when called on an index which is subsetted from
 // the autotuned index, but does not throw when called on the original
 // autotuned index.
-TEST_F(MrptTest, SubsettedOptimalParameterListThrows) {
+TEST_F(MrptTest, SubsettedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
   Mrpt mrpt_subsetted(M2);
   mrpt.grow(test_queries, 5);
   mrpt.subset_trees(0.2, mrpt_subsetted);
-  EXPECT_THROW(mrpt_subsetted.optimal_parameter_list(), std::logic_error);
-  EXPECT_NO_THROW(mrpt.optimal_parameter_list());
+  EXPECT_THROW(mrpt_subsetted.optimal_pars(), std::logic_error);
+  EXPECT_NO_THROW(mrpt.optimal_pars());
+}
+
+// Test that the when an autotuned index is subsetted to the target recall
+// level, the estimated recall level is at least as high as the target recall
+// level unless the target recall level is higher than highest estimated recall
+// level. In this case, test that the estimated recall level is equal to the
+// highest estimated recall level. Additionally, verify that the true recall
+// level is equal to the estimated recall level when the validation set
+// is used as a test set.
+TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
+  int k = 5;
+  Mrpt mrpt(M2);
+  MatrixXi exact(k, n_test);
+  compute_exact_neighbors(mrpt, exact, n2);
+
+  mrpt.grow(test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
+
+  std::vector<Parameters> pars = mrpt.optimal_pars();
+  double highest_estimated_recall = pars.rbegin()->estimated_recall;
+  std::vector<double> target_recalls {0.1, 0.5, 0.9, 0.99};
+
+  for(const auto &tr : target_recalls) {
+    Mrpt mrpt_new(M2);
+    mrpt.subset_trees(tr, mrpt_new);
+    Parameters par = mrpt_new.parameters();
+    if(tr < highest_estimated_recall) {
+      EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
+    } else {
+      EXPECT_FLOAT_EQ(par.estimated_recall, highest_estimated_recall);
+    }
+    EXPECT_FLOAT_EQ(get_recall(autotuning_query(mrpt_new), exact), par.estimated_recall);
+  }
 }
 
 
