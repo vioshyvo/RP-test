@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
       at.grow(test_queries, k);
       double build_end = omp_get_wtime();
 
-      std::vector<Parameters> pars = at.optimal_parameter_list();
+      std::vector<Parameters> pars = at.optimal_pars();
       for(const auto &par : pars) {
 
         Mrpt index2(M);

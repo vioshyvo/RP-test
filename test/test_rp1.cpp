@@ -12,9 +12,7 @@
 #include "Mrpt_old.h"
 #include "Eigen/Dense"
 
-// Do not wrap the tests into a namespace, because otherwise the friend
-// declarations of Mrpt.h would not work.
-// namespace {
+using namespace Eigen;
 
 static double mean(const std::vector<double> &x) {
   int n = x.size();
@@ -150,9 +148,9 @@ class MrptTest : public testing::Test {
     compute_exact_neighbors(index_at, exact, n);
 
     Parameters par = index_at.parameters(target_recall);
-    std::cout << std::endl;
-    print_parameters(par);
-    std::cout << std::endl;
+    // std::cout << std::endl;
+    // print_parameters(par);
+    // std::cout << std::endl;
 
     std::vector<std::vector<int>> res, res2, res3;
     double recall = 0;
@@ -1280,5 +1278,3 @@ TEST_F(UtilityTest, Statistics) {
   EXPECT_FLOAT_EQ(mean(x), 19.14286);
   EXPECT_FLOAT_EQ(var(x), 1316.143);
 }
-
-// }
