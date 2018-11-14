@@ -222,6 +222,15 @@ class MrptTest : public testing::Test {
     EXPECT_FLOAT_EQ(index.density, density);
   }
 
+  void testParameters(const Parameters &par, const Parameters &par2) {
+    EXPECT_EQ(par.n_trees, par2.n_trees);
+    EXPECT_EQ(par.depth, par2.depth);
+    EXPECT_EQ(par.votes, par2.votes);
+    EXPECT_EQ(par.k, par2.k);
+    EXPECT_FLOAT_EQ(par.estimated_qtime, par2.estimated_qtime);
+    EXPECT_FLOAT_EQ(par.estimated_recall, par2.estimated_recall);
+  }
+
 
   void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
     Mrpt mrpt(M2);
@@ -233,10 +242,41 @@ class MrptTest : public testing::Test {
 
     testSplitPoints(mrpt, mrpt_reloaded);
     testLeaves(mrpt, mrpt_reloaded);
+    normalQueryTester(mrpt, mrpt_reloaded, 5, 1);
+  }
+
+  void saveTesterAutotuning(int k, int trees_max, int depth_max, int depth_min,
+      int votes_max, float density, int seed_mrpt) {
+    Mrpt mrpt(M2);
+    mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+    mrpt.save("save/mrpt_saved");
+
+    Mrpt mrpt_reloaded(M2);
+    mrpt_reloaded.load("save/mrpt_saved");
+
+    testSplitPoints(mrpt, mrpt_reloaded);
+    testLeaves(mrpt, mrpt_reloaded);
+    normalQueryTester(mrpt, mrpt_reloaded, 5, 1);
+  }
+
+  void saveTesterAutotuningTargetRecall(float target_recall, int k, int trees_max,
+      int depth_max, int depth_min, int votes_max, float density, int seed_mrpt) {
+    Mrpt mrpt(M2);
+    mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+    mrpt.save("save/mrpt_saved");
+
+    Mrpt mrpt_reloaded(M2);
+    mrpt_reloaded.load("save/mrpt_saved");
+
+    testSplitPoints(mrpt, mrpt_reloaded);
+    testLeaves(mrpt, mrpt_reloaded);
+    normalQueryTester(mrpt, mrpt_reloaded, 5, 1);
+    testParameters(mrpt.parameters(), mrpt_reloaded.parameters());
   }
 
 
-  void QueryTester(int n_trees, int depth, float density, int votes, int k,
+
+  void queryTester(int n_trees, int depth, float density, int votes, int k,
       std::vector<int> approximate_knn) {
     ASSERT_EQ(approximate_knn.size(), k);
 
@@ -398,7 +438,7 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void LeafTester(int n_trees, int depth, float density,
+  void leafTester(int n_trees, int depth, float density,
       const Map<const MatrixXf> *M) {
     Mrpt index(M);
     index.grow(n_trees, depth, density, seed_mrpt);
@@ -472,7 +512,7 @@ class MrptTest : public testing::Test {
     return res;
   }
 
-  void normal_query_tester(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
+  void normalQueryTester(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
     std::vector<std::vector<int>> res1 = normal_query(mrpt1, k, v);
     std::vector<std::vector<int>> res2 = normal_query(mrpt2, k, v);
 
@@ -497,26 +537,26 @@ TEST_F(MrptTest, Query) {
   int n_trees = 10, depth = 6, votes = 1, k = 5;
   float density = 1;
 
-  QueryTester(1, depth, density, votes, k, std::vector<int> {949, 84, 136, 133, 942});
-  QueryTester(5, depth, density, votes, k, std::vector<int> {949, 720, 84, 959, 447});
-  QueryTester(100, depth, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
+  queryTester(1, depth, density, votes, k, std::vector<int> {949, 84, 136, 133, 942});
+  queryTester(5, depth, density, votes, k, std::vector<int> {949, 720, 84, 959, 447});
+  queryTester(100, depth, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
 
-  QueryTester(n_trees, 1, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
-  QueryTester(n_trees, 3, density, votes, k, std::vector<int> {501, 682, 541, 747, 882});
-  QueryTester(n_trees, 8, density, votes, k, std::vector<int> {949, 629, 860, 954, 121});
-  QueryTester(n_trees, 10, density, votes, k, std::vector<int> {949, 713, 574, 88, 900});
+  queryTester(n_trees, 1, density, votes, k, std::vector<int> {501, 682, 566, 541, 747});
+  queryTester(n_trees, 3, density, votes, k, std::vector<int> {501, 682, 541, 747, 882});
+  queryTester(n_trees, 8, density, votes, k, std::vector<int> {949, 629, 860, 954, 121});
+  queryTester(n_trees, 10, density, votes, k, std::vector<int> {949, 713, 574, 88, 900});
 
-  QueryTester(n_trees, depth, 0.05, votes, k, std::vector<int> {566, 353, 199, 115, 84});
-  QueryTester(n_trees, depth, 1.0 / std::sqrt(d), votes, k, std::vector<int> {566, 882, 949, 802, 110});
-  QueryTester(n_trees, depth, 0.5, votes, k, std::vector<int> {682, 882, 802, 115, 720});
+  queryTester(n_trees, depth, 0.05, votes, k, std::vector<int> {566, 353, 199, 115, 84});
+  queryTester(n_trees, depth, 1.0 / std::sqrt(d), votes, k, std::vector<int> {566, 882, 949, 802, 110});
+  queryTester(n_trees, depth, 0.5, votes, k, std::vector<int> {682, 882, 802, 115, 720});
 
-  QueryTester(n_trees, depth, density, 1, k, std::vector<int> {541, 949, 720, 629, 84});
-  QueryTester(n_trees, depth, density, 3, k, std::vector<int> {-1, -1, -1, -1, -1});
-  QueryTester(30, depth, density, 5, k, std::vector<int> {-1, -1, -1, -1, -1});
+  queryTester(n_trees, depth, density, 1, k, std::vector<int> {541, 949, 720, 629, 84});
+  queryTester(n_trees, depth, density, 3, k, std::vector<int> {-1, -1, -1, -1, -1});
+  queryTester(30, depth, density, 5, k, std::vector<int> {-1, -1, -1, -1, -1});
 
-  QueryTester(n_trees, depth, density, votes, 1, std::vector<int> {541});
-  QueryTester(n_trees, depth, density, votes, 2, std::vector<int> {541, 949});
-  QueryTester(n_trees, depth, density, votes, 10,
+  queryTester(n_trees, depth, density, votes, 1, std::vector<int> {541});
+  queryTester(n_trees, depth, density, votes, 2, std::vector<int> {541, 949});
+  queryTester(n_trees, depth, density, votes, 10,
       std::vector<int> {541, 949, 720, 629, 84, 928, 959, 438, 372, 447});
 
 }
@@ -632,28 +672,28 @@ TEST_F(MrptTest, Leaves) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
 
-  LeafTester(1, depth, density, M);
-  LeafTester(5, depth, density, M);
-  LeafTester(100, depth, density, M);
-  LeafTester(1, depth, density, M2);
-  LeafTester(5, depth, density, M2);
-  LeafTester(100, depth, density, M2);
+  leafTester(1, depth, density, M);
+  leafTester(5, depth, density, M);
+  leafTester(100, depth, density, M);
+  leafTester(1, depth, density, M2);
+  leafTester(5, depth, density, M2);
+  leafTester(100, depth, density, M2);
 
-  LeafTester(n_trees, 1, density, M);
-  LeafTester(n_trees, 3, density, M);
-  LeafTester(n_trees, 8, density, M);
-  LeafTester(n_trees, 10, density, M);
-  LeafTester(n_trees, 1, density, M2);
-  LeafTester(n_trees, 3, density, M2);
-  LeafTester(n_trees, 6, density, M2);
-  LeafTester(n_trees, 7, density, M2);
+  leafTester(n_trees, 1, density, M);
+  leafTester(n_trees, 3, density, M);
+  leafTester(n_trees, 8, density, M);
+  leafTester(n_trees, 10, density, M);
+  leafTester(n_trees, 1, density, M2);
+  leafTester(n_trees, 3, density, M2);
+  leafTester(n_trees, 6, density, M2);
+  leafTester(n_trees, 7, density, M2);
 
-  LeafTester(n_trees, depth, 0.05, M);
-  LeafTester(n_trees, depth, 0.5, M);
-  LeafTester(n_trees, depth, 1, M);
-  LeafTester(n_trees, depth, 0.05, M2);
-  LeafTester(n_trees, depth, 0.5, M2);
-  LeafTester(n_trees, depth, 1, M2);
+  leafTester(n_trees, depth, 0.05, M);
+  leafTester(n_trees, depth, 0.5, M);
+  leafTester(n_trees, depth, 1, M);
+  leafTester(n_trees, depth, 0.05, M2);
+  leafTester(n_trees, depth, 0.5, M2);
+  leafTester(n_trees, depth, 1, M2);
 }
 
 
@@ -666,6 +706,29 @@ TEST_F(MrptTest, Saving) {
   saveTester(n_trees, depth, 1.0, seed_mrpt);
   saveTester(1, depth, density, seed_mrpt);
 }
+
+// Test that the loaded autotuned index is identical to the original one that
+// was saved.
+TEST_F(MrptTest, AutotuningSaving) {
+  int k = 5, trees_max = 5, depth_max = 6, depth_min = 4, votes_max = trees_max;
+  int seed_mrpt = 12345;
+
+  saveTesterAutotuning(k, trees_max, depth_max, depth_min, votes_max, 1.0 / std::sqrt(d), seed_mrpt);
+  saveTesterAutotuning(k, trees_max, depth_max, depth_min, votes_max, 1.0, seed_mrpt);
+}
+
+// Test that the loaded index which was autotuned to the target recall level
+// is identical to the original one that was saved.
+TEST_F(MrptTest, AutotuningSavingTargetRecall) {
+  int k = 5, trees_max = 5, depth_max = 6, depth_min = 4, votes_max = trees_max;
+  int seed_mrpt = 12345;
+
+  saveTesterAutotuningTargetRecall(0.1, k, trees_max, depth_max, depth_min, votes_max, 1.0 / std::sqrt(d), seed_mrpt);
+  saveTesterAutotuningTargetRecall(0.9, k, trees_max, depth_max, depth_min, votes_max, 1.0, seed_mrpt);
+  saveTesterAutotuningTargetRecall(0.1, k, trees_max, depth_max, depth_min, votes_max, 1.0 / std::sqrt(d), seed_mrpt);
+  saveTesterAutotuningTargetRecall(0.9, k, trees_max, depth_max, depth_min, votes_max, 1.0, seed_mrpt);
+}
+
 
 // Test that an index grown with autotuning gives the same trees as the index grown
 // with an old school grow-function
@@ -757,8 +820,8 @@ TEST_F(MrptTest, NormalQuery) {
   mrpt_at2.grow(test_queries, 10, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
   int v = 2;
-  normal_query_tester(mrpt, mrpt_at, k, v);
-  normal_query_tester(mrpt, mrpt_at2, k, v);
+  normalQueryTester(mrpt, mrpt_at, k, v);
+  normalQueryTester(mrpt, mrpt_at2, k, v);
 }
 
 // Test that the normal query works, and returns the same results when used on
@@ -777,7 +840,7 @@ TEST_F(MrptTest, QuerySubsetting) {
   mrpt_at.delete_extra_trees(target_recall);
 
   int v = 2;
-  normal_query_tester(mrpt_at, mrpt_at2, k, v);
+  normalQueryTester(mrpt_at, mrpt_at2, k, v);
 }
 
 // Test that the normal query throws an out-of-range exception when called with
@@ -1167,7 +1230,7 @@ class UtilityTest : public testing::Test {
 
   UtilityTest() {}
 
-  void LeafTester(int n, int depth, const std::vector<int> &indices_reference) {
+  void leafTester(int n, int depth, const std::vector<int> &indices_reference) {
     std::vector<int> indices;
     Mrpt::count_first_leaf_indices(indices, n, depth);
     EXPECT_EQ(indices, indices_reference);
@@ -1217,7 +1280,7 @@ TEST_F(UtilityTest, LeafSizes) {
   indices_reference.push_back({0,2,3,4,5,7,8,9,10,12,13,14,15,16,17,18,19});
 
   for(int depth = 0; depth < indices_reference.size(); ++depth)
-    LeafTester(19, depth, indices_reference[depth]);
+    leafTester(19, depth, indices_reference[depth]);
 
   AllLeavesTester(19, indices_reference);
 }
