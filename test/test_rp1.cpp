@@ -231,6 +231,11 @@ class MrptTest : public testing::Test {
     EXPECT_FLOAT_EQ(par.estimated_recall, par2.estimated_recall);
   }
 
+  void testOptimalParameters(const std::vector<Parameters> &pars, const std::vector<Parameters> &pars2) {
+    ASSERT_EQ(pars.size(), pars2.size());
+    for(auto it = pars.begin(), it2 = pars2.begin(); it != pars.end(); ++it, ++it2)
+      testParameters(*it, *it2);
+  }
 
   void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
     Mrpt mrpt(M2);
@@ -257,6 +262,8 @@ class MrptTest : public testing::Test {
     testSplitPoints(mrpt, mrpt_reloaded);
     testLeaves(mrpt, mrpt_reloaded);
     normalQueryTester(mrpt, mrpt_reloaded, 5, 1);
+    testParameters(mrpt.parameters(), mrpt_reloaded.parameters());
+    testOptimalParameters(mrpt.optimal_pars(), mrpt_reloaded.optimal_pars());
   }
 
   void saveTesterAutotuningTargetRecall(float target_recall, int k, int trees_max,
@@ -719,7 +726,7 @@ TEST_F(MrptTest, AutotuningSaving) {
 
 // Test that the loaded index which was autotuned to the target recall level
 // is identical to the original one that was saved.
-TEST_F(MrptTest, AutotuningSavingTargetRecall) {
+TEST_F(MrptTest, AutotuningTargetRecallSaving) {
   int k = 5, trees_max = 5, depth_max = 6, depth_min = 4, votes_max = trees_max;
   int seed_mrpt = 12345;
 
@@ -1046,8 +1053,7 @@ TEST_F(MrptTest, AutotuningDimThrows) {
 // estimated recall.
 TEST_F(MrptTest, ParameterGetterEmptyIndex) {
   Mrpt mrpt(M2);
-  Parameters par;
-  testParameters(mrpt.parameters(), par);
+  testParameters(mrpt.parameters(), Parameters());
 }
 
 // Test that when the index is not autotuned, the getter for parameters returns
