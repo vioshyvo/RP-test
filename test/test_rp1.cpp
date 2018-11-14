@@ -266,7 +266,7 @@ class MrptTest : public testing::Test {
     testOptimalParameters(mrpt.optimal_pars(), mrpt_reloaded.optimal_pars());
   }
 
-  void saveTesterAutotuningTargetRecall(float target_recall, int k, int trees_max,
+  void saveTesterAutotuningTargetRecall(double target_recall, int k, int trees_max,
       int depth_max, int depth_min, int votes_max, float density, int seed_mrpt) {
     Mrpt mrpt(M2);
     mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
@@ -527,7 +527,7 @@ class MrptTest : public testing::Test {
   }
 
   int d, n, n2, n_test, seed_data, seed_mrpt;
-  float epsilon = 0.001; // error bound for floating point comparisons of recall
+  double epsilon = 0.001; // error bound for floating point comparisons of recall
   MatrixXf X, X2, Q;
   VectorXf q;
   const Map<const MatrixXf> *M, *M2;
