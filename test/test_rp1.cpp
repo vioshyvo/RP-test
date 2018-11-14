@@ -1046,13 +1046,8 @@ TEST_F(MrptTest, AutotuningDimThrows) {
 // estimated recall.
 TEST_F(MrptTest, ParameterGetterEmptyIndex) {
   Mrpt mrpt(M2);
-  Parameters par = mrpt.parameters();
-  EXPECT_EQ(par.n_trees, 0);
-  EXPECT_EQ(par.depth, 0);
-  EXPECT_EQ(par.votes, 0);
-  EXPECT_EQ(par.k, 0);
-  EXPECT_FLOAT_EQ(par.estimated_qtime, 0.0);
-  EXPECT_FLOAT_EQ(par.estimated_recall, 0.0);
+  Parameters par;
+  testParameters(mrpt.parameters(), par);
 }
 
 // Test that when the index is not autotuned, the getter for parameters returns
@@ -1062,13 +1057,7 @@ TEST_F(MrptTest, ParameterGetter) {
   Mrpt mrpt(M2);
   int n_trees = 10, depth = 6;
   mrpt.grow(n_trees, depth);
-  Parameters par = mrpt.parameters();
-  EXPECT_EQ(par.n_trees, n_trees);
-  EXPECT_EQ(par.depth, depth);
-  EXPECT_EQ(par.votes, 0);
-  EXPECT_EQ(par.k, 0);
-  EXPECT_FLOAT_EQ(par.estimated_qtime, 0.0);
-  EXPECT_FLOAT_EQ(par.estimated_recall, 0.0);
+  testParameters(mrpt.parameters(), {n_trees, depth, 0, 0, 0.0, 0.0});
 }
 
 // Test that when the index is autotuned, but the target recall level
@@ -1079,13 +1068,7 @@ TEST_F(MrptTest, ParameterGetterAutotuning) {
   Mrpt mrpt(M2);
   int k = 5, trees_max = 8, depth_max = 7;
   mrpt.grow(test_queries, k, trees_max, depth_max);
-  Parameters par = mrpt.parameters();
-  EXPECT_EQ(par.n_trees, trees_max);
-  EXPECT_EQ(par.depth, depth_max);
-  EXPECT_EQ(par.votes, 0);
-  EXPECT_EQ(par.k, k);
-  EXPECT_FLOAT_EQ(par.estimated_qtime, 0.0);
-  EXPECT_FLOAT_EQ(par.estimated_recall, 0.0);
+  testParameters(mrpt.parameters(), {trees_max, depth_max, 0, k, 0.0, 0.0});
 }
 
 // Test that the getter for the list of optimal parameters throws a
