@@ -134,8 +134,8 @@ class MrptTest : public testing::Test {
     Mrpt index_normal(M);
     index_normal.grow(trees_max, depth_max, density, seed_mrpt);
 
-    TestSplitPoints(index_normal, index_at);
-    TestLeaves(index_normal, index_at);
+    testSplitPoints(index_normal, index_at);
+    testLeaves(index_normal, index_at);
   }
 
 
@@ -224,57 +224,15 @@ class MrptTest : public testing::Test {
 
 
   void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
+    Mrpt mrpt(M2);
+    mrpt.grow(n_trees, depth, density, seed_mrpt);
+    mrpt.save("save/mrpt_saved");
 
-    Mrpt index(M2);
-    index.grow(n_trees, depth, density, seed_mrpt);
-    index.save("save/mrpt_saved");
+    Mrpt mrpt_reloaded(M2);
+    mrpt_reloaded.load("save/mrpt_saved");
 
-    Mrpt index_reloaded(M2);
-    index_reloaded.load("save/mrpt_saved");
-
-    ASSERT_EQ(n_trees, index_reloaded.n_trees);
-    ASSERT_EQ(depth, index_reloaded.depth);
-    ASSERT_EQ(n2, index_reloaded.n_samples);
-
-    for(int tree = 0; tree < n_trees; ++tree) {
-      int n_leaf = std::pow(2, depth);
-      VectorXi leaves = VectorXi::Zero(n2);
-
-      for(int j = 0; j < n_leaf; ++j) {
-        int leaf_size = get_leaf_size(index, tree, j);
-        int leaf_size_old = get_leaf_size(index_reloaded,tree, j);
-        ASSERT_EQ(leaf_size, leaf_size_old);
-
-        std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
-        for(int i = 0; i < leaf_size; ++i) {
-          leaf[i] = get_leaf_point(index, tree, j, i);
-          leaf_old[i] = get_leaf_point(index_reloaded, tree, j, i);
-        }
-        std::sort(leaf.begin(), leaf.end());
-        std::sort(leaf_old.begin(), leaf_old.end());
-
-        for(int i = 0; i < leaf_size; ++i) {
-          ASSERT_EQ(leaf_old[i], leaf[i]);
-          leaves(leaf[i]) = 1;
-        }
-      }
-
-      int per_level = 1, idx = 0;
-
-      for(int level = 0; level < depth; ++level) {
-        for(int j = 0; j < per_level; ++j) {
-          float split = get_split_point(index, tree, idx);
-          float split_old = get_split_point(index_reloaded, tree, idx);
-          ++idx;
-          ASSERT_FLOAT_EQ(split, split_old);
-        }
-      }
-      per_level *= 2;
-
-      // Test that all data points are found at a tree
-      EXPECT_EQ(leaves.sum(), n2);
-    }
-
+    testSplitPoints(mrpt, mrpt_reloaded);
+    testLeaves(mrpt, mrpt_reloaded);
   }
 
 
@@ -303,7 +261,7 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void TestSplitPoints(Mrpt &index, Mrpt_old &index_old) {
+  void testSplitPoints(Mrpt &index, Mrpt_old &index_old) {
     int n_trees = index.n_trees;
     int n_trees_old = index_old.get_n_trees();
     ASSERT_EQ(n_trees, n_trees_old);
@@ -326,7 +284,7 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void TestSplitPoints(Mrpt &index, Mrpt &index_old) {
+  void testSplitPoints(Mrpt &index, Mrpt &index_old) {
     int n_trees = index.n_trees;
     int n_trees_old = index_old.n_trees;
     ASSERT_EQ(n_trees, n_trees_old);
@@ -357,10 +315,10 @@ class MrptTest : public testing::Test {
     Mrpt_old index_old(M, n_trees, depth, density);
     index_old.grow(seed_mrpt);
 
-    TestSplitPoints(index, index_old);
+    testSplitPoints(index, index_old);
   }
 
-  void TestLeaves(Mrpt &index, Mrpt_old &index_old) {
+  void testLeaves(Mrpt &index, Mrpt_old &index_old) {
     int n_trees = index.n_trees;
     int n_trees_old = index_old.get_n_trees();
     ASSERT_EQ(n_trees, n_trees_old);
@@ -400,7 +358,7 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void TestLeaves(Mrpt &index, Mrpt &index_old) {
+  void testLeaves(Mrpt &index, Mrpt &index_old) {
     int n_trees = index.n_trees;
     int n_trees_old = index_old.n_trees;
     ASSERT_EQ(n_trees, n_trees_old);
@@ -447,7 +405,7 @@ class MrptTest : public testing::Test {
     Mrpt_old index_old(M, n_trees, depth, density);
     index_old.grow(seed_mrpt);
 
-    TestLeaves(index, index_old);
+    testLeaves(index, index_old);
   }
 
 
