@@ -1144,6 +1144,65 @@ TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
 }
 
 
+// Test that the when an autotuned index is pruned to the target recall
+// level, the estimated recall level is at least as high as the target recall
+// level unless the target recall level is higher than highest estimated recall
+// level. In this case, test that the estimated recall level is equal to the
+// highest estimated recall level. Additionally, verify that the true recall
+// level is equal to the estimated recall level when the validation set
+// is used as a test set.
+TEST_F(MrptTest, ParameterGetterPrunedIndex) {
+  int k = 5;
+  Mrpt mrpt_exact(M2);
+
+  MatrixXi exact(k, n_test);
+  compute_exact_neighbors(mrpt_exact, exact, n2);
+
+  std::vector<double> target_recalls {0.1, 0.5, 0.9, 0.99};
+  for(const auto &tr : target_recalls) {
+    Mrpt mrpt(M2);
+    mrpt.grow(test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
+
+    std::vector<Parameters> pars = mrpt.optimal_pars();
+    double highest_estimated_recall = pars.rbegin()->estimated_recall;
+
+    mrpt.delete_extra_trees(tr);
+    Parameters par = mrpt.parameters();
+
+    if(tr < highest_estimated_recall) {
+      EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
+    } else {
+      EXPECT_FLOAT_EQ(par.estimated_recall, highest_estimated_recall);
+    }
+    EXPECT_FLOAT_EQ(get_recall(autotuning_query(mrpt), exact), par.estimated_recall);
+  }
+}
+
+// Test that the when an index is autotuned to the target recall
+// level, the estimated recall level is at least as high as the target recall
+// level. Additionally, verify that the true recall
+// level is equal to the estimated recall level when the validation set
+// is used as a test set.
+TEST_F(MrptTest, ParameterGetterTargetRecall) {
+  int k = 5;
+  Mrpt mrpt_exact(M2);
+
+  MatrixXi exact(k, n_test);
+  compute_exact_neighbors(mrpt_exact, exact, n2);
+
+  // with the parameters used in this test, the highest recall is 0.98
+  // sot that the target recall level 0.95 is met
+  std::vector<double> target_recalls {0.1, 0.5, 0.9, 0.95};
+  for(const auto &tr : target_recalls) {
+    Mrpt mrpt(M2);
+    mrpt.grow(tr, test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
+    Parameters par = mrpt.parameters();
+
+    EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
+    EXPECT_FLOAT_EQ(get_recall(autotuning_query(mrpt), exact), par.estimated_recall);
+  }
+}
+
 
 class UtilityTest : public testing::Test {
   protected:
