@@ -156,7 +156,7 @@ class MrptTest : public testing::Test {
     double recall = 0;
 
     Mrpt index_new(M);
-    index_at.subset_trees(target_recall, index_new);
+    index_at.subset(target_recall, index_new);
 
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(k, -1);
@@ -179,7 +179,7 @@ class MrptTest : public testing::Test {
     EXPECT_FLOAT_EQ(par.estimated_recall, rec1);
 
     Mrpt index2(M);
-    index_at.subset_trees(target_recall, index2);
+    index_at.subset(target_recall, index2);
 
     for(int i = 0; i < n_test; ++i) {
       const Map<VectorXf> q(Q.data() + i * d, d);
@@ -191,7 +191,7 @@ class MrptTest : public testing::Test {
     EXPECT_EQ(res, res2); // Test that 2 subsetted indices with same target recall give the same results
     EXPECT_FLOAT_EQ(rec1, get_recall(res2, exact));
 
-    index_at.delete_extra_trees(target_recall);
+    index_at.prune(target_recall);
 
     for(int i = 0; i < n_test; ++i) {
       const Map<VectorXf> q(Q.data() + i * d, d);
@@ -841,8 +841,8 @@ TEST_F(MrptTest, QuerySubsetting) {
   mrpt_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
   Mrpt mrpt_at2(M2);
-  mrpt_at.subset_trees(target_recall, mrpt_at2);
-  mrpt_at.delete_extra_trees(target_recall);
+  mrpt_at.subset(target_recall, mrpt_at2);
+  mrpt_at.prune(target_recall);
 
   int v = 2;
   normalQueryTester(mrpt_at, mrpt_at2, k, v);
@@ -1046,6 +1046,58 @@ TEST_F(MrptTest, AutotuningDimThrows) {
   delete test_queries3;
 }
 
+// Test that the autotuning function throws an out-of-range exception if
+// the target recall level is not on the interval [0,1].
+TEST_F(MrptTest, AutotuningTargetRecallThrows) {
+  int k = 5;
+  Mrpt mrpt(M2);
+
+  EXPECT_THROW(mrpt.grow(-0.01, test_queries, k), std::out_of_range);
+  EXPECT_THROW(mrpt.grow(1.01, test_queries, k), std::out_of_range);
+
+  EXPECT_NO_THROW(mrpt.grow(0, test_queries, k));
+
+  Mrpt mrpt2(M2);
+  EXPECT_NO_THROW(mrpt2.grow(1, test_queries, k));
+}
+
+// Test that the function that prunes the autotuned index throws an
+// out-of-range exception if the target recall level is not on the interval [0,1].
+TEST_F(MrptTest, PruningTargetRecallThrows) {
+  int k = 5;
+  Mrpt mrpt(M2);
+  mrpt.grow(test_queries, k);
+
+  EXPECT_THROW(mrpt.prune(-0.01), std::out_of_range);
+  EXPECT_THROW(mrpt.prune(1.01), std::out_of_range);
+
+  EXPECT_NO_THROW(mrpt.prune(0));
+
+  Mrpt mrpt2(M2);
+  EXPECT_NO_THROW(mrpt2.prune(1));
+}
+
+
+// Test that the function that subsets a new index fromt the autotuned index
+// throws an out-of-range exception if the target recall level is not
+// on the interval [0,1].
+TEST_F(MrptTest, SubsettingTargetRecallThrows) {
+  int k = 5;
+  Mrpt mrpt(M2);
+  mrpt.grow(test_queries, k);
+
+  Mrpt mrpt_new(M2);
+  EXPECT_THROW(mrpt.subset(-0.01, mrpt_new), std::out_of_range);
+  EXPECT_THROW(mrpt.subset(1.01, mrpt_new), std::out_of_range);
+
+  EXPECT_NO_THROW(mrpt.subset(0, mrpt_new));
+
+  Mrpt mrpt_new2(M2);
+  EXPECT_NO_THROW(mrpt.subset(1, mrpt_new2));
+}
+
+
+
 // Test that when the index is not yet built, the parameter getter returns
 // default values for the parameters and the estimated query time and the
 // estimated recall.
@@ -1102,7 +1154,7 @@ TEST_F(MrptTest, AutotunedOptimalParameterGetterThrows) {
 TEST_F(MrptTest, PrunedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
   mrpt.grow(test_queries, 5);
-  mrpt.delete_extra_trees(0.2);
+  mrpt.prune(0.2);
   EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
 }
 
@@ -1114,7 +1166,7 @@ TEST_F(MrptTest, SubsettedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
   Mrpt mrpt_subsetted(M2);
   mrpt.grow(test_queries, 5);
-  mrpt.subset_trees(0.2, mrpt_subsetted);
+  mrpt.subset(0.2, mrpt_subsetted);
   EXPECT_THROW(mrpt_subsetted.optimal_pars(), std::logic_error);
   EXPECT_NO_THROW(mrpt.optimal_pars());
 }
@@ -1140,7 +1192,7 @@ TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
 
   for(const auto &tr : target_recalls) {
     Mrpt mrpt_new(M2);
-    mrpt.subset_trees(tr, mrpt_new);
+    mrpt.subset(tr, mrpt_new);
     Mrpt_Parameters par = mrpt_new.parameters();
     if(tr < highest_estimated_recall) {
       EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
@@ -1174,7 +1226,7 @@ TEST_F(MrptTest, ParameterGetterPrunedIndex) {
     std::vector<Mrpt_Parameters> pars = mrpt.optimal_pars();
     double highest_estimated_recall = pars.rbegin()->estimated_recall;
 
-    mrpt.delete_extra_trees(tr);
+    mrpt.prune(tr);
     Mrpt_Parameters par = mrpt.parameters();
 
     if(tr < highest_estimated_recall) {
