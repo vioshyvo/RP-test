@@ -75,6 +75,7 @@ int main(int argc, char **argv) {
 
     const Map<const MatrixXf> M(train, dim, n_points);
     Map<MatrixXf> *test_queries = new Map<MatrixXf>(test, dim, n_test);
+    Map<MatrixXf> Q(test, dim, n_test);
 
     if(!parallel) omp_set_num_threads(1);
     int seed_mrpt = 12345;
@@ -105,10 +106,10 @@ int main(int argc, char **argv) {
 
         for (int i = 0; i < n_test; ++i) {
           std::vector<int> result(k);
-          Map<VectorXf> q(&test[i * dim], dim);
+          // Map<VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
-          mrpt_new.query(q, &result[0]);
+          mrpt_new.query(Q.col(i), &result[0]);
           double end = omp_get_wtime();
 
           times.push_back(end - start);

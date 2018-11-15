@@ -162,9 +162,8 @@ class MrptTest : public testing::Test {
 
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(k, -1);
-      const Map<VectorXf> q(Q.data() + i * d, d);
 
-      index_new.query(q, &result[0]);
+      index_new.query(Q.col(i), &result[0]);
       res.push_back(result);
 
       std::sort(result.begin(), result.end());
@@ -183,9 +182,8 @@ class MrptTest : public testing::Test {
     Mrpt index2(index_at.subset(target_recall));
 
     for(int i = 0; i < n_test; ++i) {
-      const Map<VectorXf> q(Q.data() + i * d, d);
       std::vector<int> result(k, -1);
-      index2.query(q, &result[0]);
+      index2.query(Q.col(i), &result[0]);
       res2.push_back(result);
     }
 
@@ -195,9 +193,8 @@ class MrptTest : public testing::Test {
     index_at.prune(target_recall);
 
     for(int i = 0; i < n_test; ++i) {
-      const Map<VectorXf> q(Q.data() + i * d, d);
       std::vector<int> result(k, -1);
-      index_at.query(q, &result[0]);
+      index_at.query(Q.col(i), &result[0]);
       res3.push_back(result);
     }
 
@@ -294,7 +291,7 @@ class MrptTest : public testing::Test {
     for(int i = 0; i < k; ++i) distances[i] = 0;
 
     int n_el = 0;
-    index_dense.query(test_query, k, votes, &result[0], &distances[0], &n_el);
+    index_dense.query(q, k, votes, &result[0], &distances[0], &n_el);
 
     EXPECT_EQ(result, approximate_knn);
     for(int i = 0; i < k; ++i)  {
@@ -497,9 +494,8 @@ class MrptTest : public testing::Test {
   std::vector<std::vector<int>> normal_query(const Mrpt &mrpt, int k, int v) {
     std::vector<std::vector<int>> res;
     for(int i = 0; i < n_test; ++i) {
-      const Map<VectorXf> q(Q.data() + i * d, d);
       std::vector<int> result(k);
-      mrpt.query(q, k, v, &result[0]);
+      mrpt.query(Q.col(i), k, v, &result[0]);
       res.push_back(result);
     }
     return res;
@@ -508,9 +504,8 @@ class MrptTest : public testing::Test {
   std::vector<std::vector<int>> autotuning_query(const Mrpt &mrpt) {
     std::vector<std::vector<int>> res;
     for(int i = 0; i < n_test; ++i) {
-      const Map<VectorXf> q(Q.data() + i * d, d);
       std::vector<int> result(mrpt.parameters().k);
-      mrpt.query(q, &result[0]);
+      mrpt.query(Q.col(i), &result[0]);
       res.push_back(result);
     }
     return res;
@@ -584,8 +579,8 @@ TEST_F(MrptTest, RandomSeed) {
   int k = 10, votes = 1;
   std::vector<int> r(k), r2(k);
 
-  index_dense.query(test_query, k, votes, &r[0]);
-  index_dense2.query(test_query, k, votes, &r2[0]);
+  index_dense.query(q, k, votes, &r[0]);
+  index_dense2.query(q, k, votes, &r2[0]);
 
   bool same_neighbors = true;
   for(int i = 0; i < k; ++i) {
@@ -611,7 +606,7 @@ TEST_F(MrptTest, ExactKnn) {
   VectorXi idx(n);
   std::iota(idx.data(), idx.data() + n, 0);
 
-  index_dense.exact_knn(test_query, k, idx, n, &result[0], &distances[0]);
+  index_dense.exact_knn(q, k, idx, n, &result[0], &distances[0]);
 
   EXPECT_EQ(result[0], 501);
   EXPECT_EQ(result[1], 682);
@@ -781,12 +776,12 @@ TEST_F(MrptTest, EmptyIndexThrows) {
   std::vector<float> distances(k);
   int n_elected;
 
-  EXPECT_THROW(mrpt.query(test_query, k, v, &res[0]), std::logic_error);
-  EXPECT_THROW(mrpt.query(test_query, k, v, &res[0], &distances[0]), std::logic_error);
-  EXPECT_THROW(mrpt.query(test_query, k, v, &res[0], &distances[0], &n_elected), std::logic_error);
+  EXPECT_THROW(mrpt.query(q, k, v, &res[0]), std::logic_error);
+  EXPECT_THROW(mrpt.query(q, k, v, &res[0], &distances[0]), std::logic_error);
+  EXPECT_THROW(mrpt.query(q, k, v, &res[0], &distances[0], &n_elected), std::logic_error);
 
   mrpt.grow(1, 5);
-  EXPECT_NO_THROW(mrpt.query(test_query, k, v, &res[0]));
+  EXPECT_NO_THROW(mrpt.query(q, k, v, &res[0]));
 }
 
 // Test that the normal query function works also on the index which is
@@ -835,17 +830,17 @@ TEST_F(MrptTest, QueryThrows) {
   std::vector<int> res(n2);
   mrpt.grow(n_trees, 7, 1.0 / std::sqrt(d), seed_mrpt);
 
-  EXPECT_THROW(mrpt.query(test_query, -1, v, &res[0]), std::out_of_range);
-  EXPECT_THROW(mrpt.query(test_query, 0, v, &res[0]), std::out_of_range);
-  EXPECT_THROW(mrpt.query(test_query, n2 + 1, v, &res[0]), std::out_of_range);
-  EXPECT_NO_THROW(mrpt.query(test_query, 1, v, &res[0]));
-  EXPECT_NO_THROW(mrpt.query(test_query, n2, v, &res[0]));
+  EXPECT_THROW(mrpt.query(q, -1, v, &res[0]), std::out_of_range);
+  EXPECT_THROW(mrpt.query(q, 0, v, &res[0]), std::out_of_range);
+  EXPECT_THROW(mrpt.query(q, n2 + 1, v, &res[0]), std::out_of_range);
+  EXPECT_NO_THROW(mrpt.query(q, 1, v, &res[0]));
+  EXPECT_NO_THROW(mrpt.query(q, n2, v, &res[0]));
 
-  EXPECT_THROW(mrpt.query(test_query, k, -1, &res[0]), std::out_of_range);
-  EXPECT_THROW(mrpt.query(test_query, k, 0, &res[0]), std::out_of_range);
-  EXPECT_THROW(mrpt.query(test_query, k, n_trees + 1, &res[0]), std::out_of_range);
-  EXPECT_NO_THROW(mrpt.query(test_query, k, 1, &res[0]));
-  EXPECT_NO_THROW(mrpt.query(test_query, k, n_trees, &res[0]));
+  EXPECT_THROW(mrpt.query(q, k, -1, &res[0]), std::out_of_range);
+  EXPECT_THROW(mrpt.query(q, k, 0, &res[0]), std::out_of_range);
+  EXPECT_THROW(mrpt.query(q, k, n_trees + 1, &res[0]), std::out_of_range);
+  EXPECT_NO_THROW(mrpt.query(q, k, 1, &res[0]));
+  EXPECT_NO_THROW(mrpt.query(q, k, n_trees, &res[0]));
 }
 
 // Test that the query meant for autotuned index throws an exception when
@@ -858,8 +853,8 @@ TEST_F(MrptTest, RecallQueryThrows) {
   std::vector<int> res(k);
   std::vector<float> dist(k);
 
-  EXPECT_THROW(mrpt.query(test_query, &res[0]), std::logic_error);
-  EXPECT_THROW(mrpt.query(test_query, &res[0], &dist[0]), std::logic_error);
+  EXPECT_THROW(mrpt.query(q, &res[0]), std::logic_error);
+  EXPECT_THROW(mrpt.query(q, &res[0], &dist[0]), std::logic_error);
 }
 
 // Test that normal tree growing returns throws a correct expection when
