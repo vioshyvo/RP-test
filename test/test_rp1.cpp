@@ -155,8 +155,7 @@ class MrptTest : public testing::Test {
     std::vector<std::vector<int>> res, res2, res3;
     double recall = 0;
 
-    Mrpt index_new(M);
-    index_at.subset(target_recall, index_new);
+    Mrpt index_new(index_at.subset(target_recall));
 
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(k, -1);
@@ -178,8 +177,7 @@ class MrptTest : public testing::Test {
     EXPECT_FLOAT_EQ(recall, rec1);
     EXPECT_FLOAT_EQ(par.estimated_recall, rec1);
 
-    Mrpt index2(M);
-    index_at.subset(target_recall, index2);
+    Mrpt index2(index_at.subset(target_recall));
 
     for(int i = 0; i < n_test; ++i) {
       const Map<VectorXf> q(Q.data() + i * d, d);
@@ -840,8 +838,7 @@ TEST_F(MrptTest, QuerySubsetting) {
   Mrpt mrpt_at(M2);
   mrpt_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
-  Mrpt mrpt_at2(M2);
-  mrpt_at.subset(target_recall, mrpt_at2);
+  Mrpt mrpt_at2(mrpt_at.subset(target_recall));
   mrpt_at.prune(target_recall);
 
   int v = 2;
@@ -1086,14 +1083,13 @@ TEST_F(MrptTest, SubsettingTargetRecallThrows) {
   Mrpt mrpt(M2);
   mrpt.grow(test_queries, k);
 
-  Mrpt mrpt_new(M2);
-  EXPECT_THROW(mrpt.subset(-0.01, mrpt_new), std::out_of_range);
-  EXPECT_THROW(mrpt.subset(1.01, mrpt_new), std::out_of_range);
+  EXPECT_THROW(mrpt.subset(-0.01), std::out_of_range);
+  EXPECT_THROW(mrpt.subset(1.01), std::out_of_range);
 
-  EXPECT_NO_THROW(mrpt.subset(0, mrpt_new));
+  EXPECT_NO_THROW(Mrpt mrpt_new(mrpt.subset(0)));
 
   Mrpt mrpt_new2(M2);
-  EXPECT_NO_THROW(mrpt.subset(1, mrpt_new2));
+  EXPECT_NO_THROW(Mrpt mrpt_new(mrpt.subset(1)));
 }
 
 
@@ -1164,9 +1160,9 @@ TEST_F(MrptTest, PrunedOptimalParameterGetterThrows) {
 // autotuned index.
 TEST_F(MrptTest, SubsettedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
-  Mrpt mrpt_subsetted(M2);
   mrpt.grow(test_queries, 5);
-  mrpt.subset(0.2, mrpt_subsetted);
+
+  Mrpt mrpt_subsetted(mrpt.subset(0.2));
   EXPECT_THROW(mrpt_subsetted.optimal_pars(), std::logic_error);
   EXPECT_NO_THROW(mrpt.optimal_pars());
 }
@@ -1191,8 +1187,7 @@ TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
   std::vector<double> target_recalls {0.1, 0.5, 0.9, 0.99};
 
   for(const auto &tr : target_recalls) {
-    Mrpt mrpt_new(M2);
-    mrpt.subset(tr, mrpt_new);
+    Mrpt mrpt_new(mrpt.subset(tr));
     Mrpt_Parameters par = mrpt_new.parameters();
     if(tr < highest_estimated_recall) {
       EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
