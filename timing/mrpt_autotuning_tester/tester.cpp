@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     }
 
 
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
+    const Map<const MatrixXf> M(train, dim, n_points);
     Map<MatrixXf> *test_queries = new Map<MatrixXf>(test, dim, n_test);
 
     if(!parallel) omp_set_num_threads(1);
@@ -86,18 +86,17 @@ int main(int argc, char **argv) {
       int k = ks[j];
 
       double build_start = omp_get_wtime();
-      Mrpt at(M);
-      // at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-      at.grow(test_queries, k);
+      Mrpt mrpt(M);
+      // mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+      mrpt.grow(test_queries, k);
       double build_end = omp_get_wtime();
 
-      std::vector<Mrpt_Parameters> pars = at.optimal_pars();
+      std::vector<Mrpt_Parameters> pars = mrpt.optimal_pars();
       for(const auto &par : pars) {
 
-        Mrpt index2(M);
-        at.subset_trees(par.estimated_recall, index2);
+        Mrpt mrpt_new(mrpt.subset(par.estimated_recall));
 
-        if(index2.empty()) {
+        if(mrpt_new.empty()) {
           continue;
         }
 
@@ -109,7 +108,7 @@ int main(int argc, char **argv) {
           Map<VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
-          index2.query(q, &result[0]);
+          mrpt_new.query(q, &result[0]);
           double end = omp_get_wtime();
 
           times.push_back(end - start);
@@ -132,7 +131,6 @@ int main(int argc, char **argv) {
 
     delete[] test;
     if(!mmap) delete[] train;
-    delete M;
     delete test_queries;
 
     return 0;

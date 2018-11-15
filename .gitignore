@@ -13,3 +13,4 @@ timing/mrpt_autotuning_tester/tester
 timing/results
 test/save
 test/mrpt_saved
+*.gcc*
