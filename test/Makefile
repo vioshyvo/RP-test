@@ -34,7 +34,7 @@ CXXFLAGS += -g -Wall -Wextra -pthread -fopenmp -Wno-unused-parameter -Wno-sign-c
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = test_rp1
+TESTS = test test_implementation
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -76,10 +76,18 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-test_rp1.o : $(USER_DIR)/test_rp1.cpp $(MRPT_DIR)/cpp/Mrpt.h \
+test.o : $(USER_DIR)/test.cpp $(MRPT_DIR)/cpp/Mrpt.h \
     $(MRPT_DIR)/cpp/lib/Eigen/Dense $(MRPT_DIR)/cpp/lib/Eigen/SparseCore \
 	  ../Mrpt_old/cpp/Mrpt_old.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) -I$(MRPT_DIR)/cpp -I../mrpt_old/cpp $(CXXFLAGS) -c $(USER_DIR)/test_rp1.cpp
+	$(CXX) $(CPPFLAGS) -I$(MRPT_DIR)/cpp -I../mrpt_old/cpp $(CXXFLAGS) -c $(USER_DIR)/test.cpp
 
-test_rp1 : test_rp1.o gtest_main.a
+test : test.o gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
+
+test_implementation.o : $(USER_DIR)/test_implementation.cpp $(MRPT_DIR)/cpp/Mrpt.h \
+    $(MRPT_DIR)/cpp/lib/Eigen/Dense $(MRPT_DIR)/cpp/lib/Eigen/SparseCore \
+	  ../Mrpt_old/cpp/Mrpt_old.h $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) -I$(MRPT_DIR)/cpp -I../mrpt_old/cpp $(CXXFLAGS) -c $(USER_DIR)/test_implementation.cpp
+
+test_implementation : test_implementation.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
