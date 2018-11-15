@@ -48,7 +48,7 @@ class MrptTest : public testing::Test {
   protected:
 
   MrptTest() : d(100), n(1024), n2(155), n_test(100), seed_data(56789), seed_mrpt(12345),
-    M(nullptr, 0, 0), M2(nullptr, 0, 0) {
+    M(nullptr, 0, 0), M2(nullptr, 0, 0), test_queries(nullptr, 0, 0) {
           std::mt19937 mt(seed_data);
           std::normal_distribution<double> dist(5.0,2.0);
 
@@ -74,14 +74,12 @@ class MrptTest : public testing::Test {
           M_pointer = new Map<const MatrixXf>(X.data(), d, n);
           new (&M2) Map<const MatrixXf>(X2.data(), d, n2);
           M2_pointer = new Map<const MatrixXf>(X2.data(), d, n2);
-          test_queries = new Map<MatrixXf>(Q.data(), d, n_test);
-          new (&test_query) Map<VectorXf>(q.data(), d);
+          new (&test_queries) Map<const MatrixXf>(Q.data(), d, n_test);
   }
 
   ~MrptTest() {
     delete M_pointer;
     delete M2_pointer;
-    delete test_queries;
   }
 
   /**
@@ -523,9 +521,8 @@ class MrptTest : public testing::Test {
   MatrixXf X, X2, Q;
   VectorXf q;
   Map<const MatrixXf> M, M2;
+  Map<const MatrixXf> test_queries;
   const Map<const MatrixXf> *M_pointer, *M2_pointer;
-  Map<MatrixXf> *test_queries;
-  Map<VectorXf> test_query = Map<VectorXf>(nullptr, 0);
 };
 
 
@@ -1006,18 +1003,15 @@ TEST_F(MrptTest, AutotuningDensityThrows) {
 TEST_F(MrptTest, AutotuningDimThrows) {
   int n_test2 = 100, d2 = 50, k = 5;
   MatrixXf q2 = MatrixXf::Random(d2, n_test2);
-  Map<MatrixXf> *test_queries2 = new Map<MatrixXf>(q2.data(), d2, n_test2);
+  Map<const MatrixXf> test_queries2(q2.data(), d2, n_test2);
   Mrpt mrpt(M2);
 
   EXPECT_THROW(mrpt.grow(test_queries2, k), std::invalid_argument);
   EXPECT_TRUE(mrpt.empty());
 
-  Map<MatrixXf> *test_queries3 = new Map<MatrixXf>(q.data(), d, 1);
+  Map<const MatrixXf> test_queries3(q.data(), d, 1);
   EXPECT_NO_THROW(mrpt.grow(test_queries3, k));
   EXPECT_FALSE(mrpt.empty());
-
-  delete test_queries2;
-  delete test_queries3;
 }
 
 // Test that the autotuning function throws an out-of-range exception if

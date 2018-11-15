@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 
 
     const Map<const MatrixXf> M(train, dim, n_points);
-    Map<MatrixXf> *test_queries = new Map<MatrixXf>(test, dim, n_test);
+    const Map<const MatrixXf> test_queries(test, dim, n_test);
     Map<MatrixXf> Q(test, dim, n_test);
 
     if(!parallel) omp_set_num_threads(1);
@@ -132,7 +132,6 @@ int main(int argc, char **argv) {
 
     delete[] test;
     if(!mmap) delete[] train;
-    delete test_queries;
 
     return 0;
 }
