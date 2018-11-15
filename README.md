@@ -1,6 +1,6 @@
 # Tests for MRPT
 
-This repo contains tests for [MRPT algorithm](https://github.com/teemupitkanen/mrpt).
+This repo contains tests and [timing code](timing/README.md) for [MRPT algorithm](https://github.com/teemupitkanen/mrpt).
 
 To start testing, first clone [googletest](https://github.com/google/googletest.git) project if you do not already have it:
 ```
@@ -25,4 +25,4 @@ If you want to run only a subset of the tests, you can use the flag `--gtest_fil
 ```
 ./test --gtest_filter=UtilityTest.*
 ```
-File `test.cpp` contains the most useful tests. File `test_implementation.cpp` contains tests that depend how the trees, especially the generation of random vectors is implemented. If the tree structure is changed, these test break.
+File `test.cpp` contains the most useful tests. File `test_implementation.cpp` contains tests that depend on the implementation of the trees, especially on the generation of random vectors. If the tree structure is changed, the tests in this file will break.
