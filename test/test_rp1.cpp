@@ -127,14 +127,14 @@ class MrptTest : public testing::Test {
 
     omp_set_num_threads(1);
 
-    Mrpt index_at(M);
-    index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+    Mrpt mrpt(M);
+    mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
     Mrpt index_normal(M);
     index_normal.grow(trees_max, depth_max, density, seed_mrpt);
 
-    testSplitPoints(index_normal, index_at);
-    testLeaves(index_normal, index_at);
+    testSplitPoints(index_normal, mrpt);
+    testLeaves(index_normal, mrpt);
   }
 
 
@@ -142,62 +142,23 @@ class MrptTest : public testing::Test {
     omp_set_num_threads(1);
     int depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
 
-    Mrpt index_at(M);
-    index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+    Mrpt mrpt(M);
+    mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
     MatrixXi exact(k, n_test);
-    computeExactNeighbors(index_at, exact, n);
+    computeExactNeighbors(mrpt, exact, n);
 
-    Mrpt_Parameters par = index_at.parameters(target_recall);
-    // std::cout << std::endl;
-    // printParameters(par);
-    // std::cout << std::endl;
+    Mrpt mrpt1(mrpt.subset(target_recall));
+    Mrpt mrpt2(mrpt.subset(target_recall));
+    mrpt.prune(target_recall);
 
-    std::vector<std::vector<int>> res, res2, res3;
-    double recall = 0;
+    std::vector<std::vector<int>> res1 = autotuningQuery(mrpt1);
+    std::vector<std::vector<int>> res2 = autotuningQuery(mrpt2);
+    std::vector<std::vector<int>> res3 = autotuningQuery(mrpt);
 
-    Mrpt index_new(index_at.subset(target_recall));
-
-    for(int i = 0; i < n_test; ++i) {
-      std::vector<int> result(k, -1);
-
-      index_new.query(Q.col(i), &result[0]);
-      res.push_back(result);
-
-      std::sort(result.begin(), result.end());
-      std::set<int> intersect;
-      std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
-                       std::inserter(intersect, intersect.begin()));
-      recall += intersect.size();
-    }
-
-    recall /= (k * n_test);
-
-    double rec1 = getRecall(res, exact);
-    EXPECT_FLOAT_EQ(recall, rec1);
-    EXPECT_FLOAT_EQ(par.estimated_recall, rec1);
-
-    Mrpt index2(index_at.subset(target_recall));
-
-    for(int i = 0; i < n_test; ++i) {
-      std::vector<int> result(k, -1);
-      index2.query(Q.col(i), &result[0]);
-      res2.push_back(result);
-    }
-
-    EXPECT_EQ(res, res2); // Test that 2 subsetted indices with same target recall give the same results
-    EXPECT_FLOAT_EQ(rec1, getRecall(res2, exact));
-
-    index_at.prune(target_recall);
-
-    for(int i = 0; i < n_test; ++i) {
-      std::vector<int> result(k, -1);
-      index_at.query(Q.col(i), &result[0]);
-      res3.push_back(result);
-    }
-
-    EXPECT_EQ(res, res3); // Test that the original index with extra trees deleted gives the same results
-    EXPECT_FLOAT_EQ(rec1, getRecall(res3, exact));
+    EXPECT_EQ(res1, res2);
+    EXPECT_EQ(res1, res3);
+    EXPECT_FLOAT_EQ(mrpt1.parameters().estimated_recall, getRecall(res1, exact));
   }
 
 
