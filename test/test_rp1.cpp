@@ -92,7 +92,7 @@ class MrptTest : public testing::Test {
   * 3 = first branch of second level etc.
   * @return split point of index:th branch of tree:th tree
   */
-  float get_split_point(const Mrpt &mrpt, int tree, int index) {
+  float getSplitPoint(const Mrpt &mrpt, int tree, int index) {
     return mrpt.split_points(index, tree);
   }
 
@@ -104,7 +104,7 @@ class MrptTest : public testing::Test {
   * @param index - index of a data point in a leaf
   * @return index of index:th data point in leaf:th leaf of tree:th tree
   */
-  int get_leaf_point(const Mrpt &mrpt, int tree, int leaf, int index) {
+  int getLeafPoint(const Mrpt &mrpt, int tree, int leaf, int index) {
     const std::vector<int> &leaf_first_indices = mrpt.leaf_first_indices_all[mrpt.depth];
     int leaf_begin = leaf_first_indices[leaf];
     return mrpt.tree_leaves[tree][leaf_begin + index];
@@ -116,7 +116,7 @@ class MrptTest : public testing::Test {
   * @param leaf - index of leaf in (0, ... , 2^depth)
   * @return - number of data points in leaf:th leaf of tree:th tree
   */
-  int get_leaf_size(const Mrpt &mrpt, int tree, int leaf) const {
+  int getLeafSize(const Mrpt &mrpt, int tree, int leaf) const {
     const std::vector<int> &leaf_first_indices = mrpt.leaf_first_indices_all[mrpt.depth];
     return leaf_first_indices[leaf + 1] - leaf_first_indices[leaf];
   }
@@ -146,11 +146,11 @@ class MrptTest : public testing::Test {
     index_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
     MatrixXi exact(k, n_test);
-    compute_exact_neighbors(index_at, exact, n);
+    computeExactNeighbors(index_at, exact, n);
 
     Mrpt_Parameters par = index_at.parameters(target_recall);
     // std::cout << std::endl;
-    // print_parameters(par);
+    // printParameters(par);
     // std::cout << std::endl;
 
     std::vector<std::vector<int>> res, res2, res3;
@@ -173,7 +173,7 @@ class MrptTest : public testing::Test {
 
     recall /= (k * n_test);
 
-    double rec1 = get_recall(res, exact);
+    double rec1 = getRecall(res, exact);
     EXPECT_FLOAT_EQ(recall, rec1);
     EXPECT_FLOAT_EQ(par.estimated_recall, rec1);
 
@@ -186,7 +186,7 @@ class MrptTest : public testing::Test {
     }
 
     EXPECT_EQ(res, res2); // Test that 2 subsetted indices with same target recall give the same results
-    EXPECT_FLOAT_EQ(rec1, get_recall(res2, exact));
+    EXPECT_FLOAT_EQ(rec1, getRecall(res2, exact));
 
     index_at.prune(target_recall);
 
@@ -197,7 +197,7 @@ class MrptTest : public testing::Test {
     }
 
     EXPECT_EQ(res, res3); // Test that the original index with extra trees deleted gives the same results
-    EXPECT_FLOAT_EQ(rec1, get_recall(res3, exact));
+    EXPECT_FLOAT_EQ(rec1, getRecall(res3, exact));
   }
 
 
@@ -315,7 +315,7 @@ class MrptTest : public testing::Test {
 
       for(int level = 0; level < depth; ++level) {
         for(int j = 0; j < per_level; ++j) {
-          float split = get_split_point(index, tree, idx);
+          float split = getSplitPoint(index, tree, idx);
           float split_old = index_old.get_split_point(tree, idx);
           ++idx;
           ASSERT_FLOAT_EQ(split, split_old);
@@ -338,8 +338,8 @@ class MrptTest : public testing::Test {
 
       for(int level = 0; level < depth; ++level) {
         for(int j = 0; j < per_level; ++j) {
-          float split = get_split_point(index, tree, idx);
-          float split_old = get_split_point(index_old, tree, idx);
+          float split = getSplitPoint(index, tree, idx);
+          float split_old = getSplitPoint(index_old, tree, idx);
           ++idx;
           ASSERT_FLOAT_EQ(split, split_old);
         }
@@ -375,13 +375,13 @@ class MrptTest : public testing::Test {
       VectorXi leaves = VectorXi::Zero(n_points);
 
       for(int j = 0; j < n_leaf; ++j) {
-        int leaf_size = get_leaf_size(index, tree, j);
+        int leaf_size = getLeafSize(index, tree, j);
         int leaf_size_old = index_old.get_leaf_size(tree, j);
         ASSERT_EQ(leaf_size, leaf_size_old);
 
         std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
         for(int i = 0; i < leaf_size; ++i) {
-          leaf[i] = get_leaf_point(index, tree, j, i);
+          leaf[i] = getLeafPoint(index, tree, j, i);
           leaf_old[i] = index_old.get_leaf_point(tree, j, i);
         }
         std::sort(leaf.begin(), leaf.end());
@@ -415,14 +415,14 @@ class MrptTest : public testing::Test {
       VectorXi leaves = VectorXi::Zero(n_points);
 
       for(int j = 0; j < n_leaf; ++j) {
-        int leaf_size = get_leaf_size(index, tree, j);
-        int leaf_size_old = get_leaf_size(index_old, tree, j);
+        int leaf_size = getLeafSize(index, tree, j);
+        int leaf_size_old = getLeafSize(index_old, tree, j);
         ASSERT_EQ(leaf_size, leaf_size_old);
 
         std::vector<int> leaf(leaf_size), leaf_old(leaf_size);
         for(int i = 0; i < leaf_size; ++i) {
-          leaf[i] = get_leaf_point(index, tree, j, i);
-          leaf_old[i] = get_leaf_point(index_old, tree, j, i);
+          leaf[i] = getLeafPoint(index, tree, j, i);
+          leaf_old[i] = getLeafPoint(index_old, tree, j, i);
         }
         std::sort(leaf.begin(), leaf.end());
         std::sort(leaf_old.begin(), leaf_old.end());
@@ -448,7 +448,7 @@ class MrptTest : public testing::Test {
   }
 
 
-  void compute_exact_neighbors(Mrpt &index, MatrixXi &out_exact, int n) {
+  void computeExactNeighbors(Mrpt &index, MatrixXi &out_exact, int n) {
     int k = out_exact.rows();
     int nt = out_exact.cols();
 
@@ -462,7 +462,7 @@ class MrptTest : public testing::Test {
   }
 
 
-  void print_parameters(const Mrpt_Parameters &op) {
+  void printParameters(const Mrpt_Parameters &op) {
     std::cout << "n_trees:                      " << op.n_trees << "\n";
     std::cout << "depth:                        " << op.depth << "\n";
     std::cout << "votes:                        " << op.votes << "\n";
@@ -471,7 +471,7 @@ class MrptTest : public testing::Test {
     std::cout << "estimated recall:             " << op.estimated_recall << "\n";
   }
 
-  double get_recall(std::vector<std::vector<int>> results, MatrixXi exact) {
+  double getRecall(std::vector<std::vector<int>> results, MatrixXi exact) {
     int n_test = results.size();
     int k = results[0].size();
     double recall = 0;
@@ -489,7 +489,7 @@ class MrptTest : public testing::Test {
     return recall / (k * n_test);
   }
 
-  std::vector<std::vector<int>> normal_query(const Mrpt &mrpt, int k, int v) {
+  std::vector<std::vector<int>> normalQuery(const Mrpt &mrpt, int k, int v) {
     std::vector<std::vector<int>> res;
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(k);
@@ -499,7 +499,7 @@ class MrptTest : public testing::Test {
     return res;
   }
 
-  std::vector<std::vector<int>> autotuning_query(const Mrpt &mrpt) {
+  std::vector<std::vector<int>> autotuningQuery(const Mrpt &mrpt) {
     std::vector<std::vector<int>> res;
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(mrpt.parameters().k);
@@ -510,8 +510,8 @@ class MrptTest : public testing::Test {
   }
 
   void normalQueryTester(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
-    std::vector<std::vector<int>> res1 = normal_query(mrpt1, k, v);
-    std::vector<std::vector<int>> res2 = normal_query(mrpt2, k, v);
+    std::vector<std::vector<int>> res1 = normalQuery(mrpt1, k, v);
+    std::vector<std::vector<int>> res2 = normalQuery(mrpt2, k, v);
 
     EXPECT_EQ(res1, res2);
   }
@@ -1149,7 +1149,7 @@ TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
   int k = 5;
   Mrpt mrpt(M2);
   MatrixXi exact(k, n_test);
-  compute_exact_neighbors(mrpt, exact, n2);
+  computeExactNeighbors(mrpt, exact, n2);
 
   mrpt.grow(test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
 
@@ -1165,7 +1165,7 @@ TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
     } else {
       EXPECT_FLOAT_EQ(par.estimated_recall, highest_estimated_recall);
     }
-    EXPECT_FLOAT_EQ(get_recall(autotuning_query(mrpt_new), exact), par.estimated_recall);
+    EXPECT_FLOAT_EQ(getRecall(autotuningQuery(mrpt_new), exact), par.estimated_recall);
   }
 }
 
@@ -1182,7 +1182,7 @@ TEST_F(MrptTest, ParameterGetterPrunedIndex) {
   Mrpt mrpt_exact(M2);
 
   MatrixXi exact(k, n_test);
-  compute_exact_neighbors(mrpt_exact, exact, n2);
+  computeExactNeighbors(mrpt_exact, exact, n2);
 
   std::vector<double> target_recalls {0.1, 0.5, 0.9, 0.99};
   for(const auto &tr : target_recalls) {
@@ -1200,7 +1200,7 @@ TEST_F(MrptTest, ParameterGetterPrunedIndex) {
     } else {
       EXPECT_FLOAT_EQ(par.estimated_recall, highest_estimated_recall);
     }
-    EXPECT_FLOAT_EQ(get_recall(autotuning_query(mrpt), exact), par.estimated_recall);
+    EXPECT_FLOAT_EQ(getRecall(autotuningQuery(mrpt), exact), par.estimated_recall);
   }
 }
 
@@ -1214,7 +1214,7 @@ TEST_F(MrptTest, ParameterGetterTargetRecall) {
   Mrpt mrpt_exact(M2);
 
   MatrixXi exact(k, n_test);
-  compute_exact_neighbors(mrpt_exact, exact, n2);
+  computeExactNeighbors(mrpt_exact, exact, n2);
 
   // with the parameters used in this test, the highest recall is 0.98
   // sot that the target recall level 0.95 is met
@@ -1225,7 +1225,7 @@ TEST_F(MrptTest, ParameterGetterTargetRecall) {
     Mrpt_Parameters par = mrpt.parameters();
 
     EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
-    EXPECT_FLOAT_EQ(get_recall(autotuning_query(mrpt), exact), par.estimated_recall);
+    EXPECT_FLOAT_EQ(getRecall(autotuningQuery(mrpt), exact), par.estimated_recall);
   }
 }
 
@@ -1241,7 +1241,7 @@ class UtilityTest : public testing::Test {
     EXPECT_EQ(indices, indices_reference);
   }
 
-  void AllLeavesTester(int n, const std::vector<std::vector<int>> &indices_reference) {
+  void allLeavesTester(int n, const std::vector<std::vector<int>> &indices_reference) {
     std::vector<std::vector<int>> indices;
     Mrpt::count_first_leaf_indices_all(indices, n, indices_reference.size() - 1);
     EXPECT_EQ(indices, indices_reference);
@@ -1287,7 +1287,7 @@ TEST_F(UtilityTest, LeafSizes) {
   for(int depth = 0; depth < indices_reference.size(); ++depth)
     leafTester(19, depth, indices_reference[depth]);
 
-  AllLeavesTester(19, indices_reference);
+  allLeavesTester(19, indices_reference);
 }
 
 // Test that the mean and variance are computed correctly for the toy data.
