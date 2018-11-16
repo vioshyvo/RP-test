@@ -1048,9 +1048,9 @@ TEST_F(MrptTest, ParameterGetterTargetRecall) {
   }
 }
 
-// Test that the constructor which takes an MatrixXf works and the index gives
-// the same query results as the on built with a constructor taking a Map
-// as an input.
+// Test that the constructor which takes the data as an Eigen::MatrixXf works and
+// the index gives the same query results as the on built with a constructor
+// taking the data as an Eigen::Map.
 TEST_F(MrptTest, MatrixXfConstructor) {
   int n_trees = 10, depth = 6;
   float density = 1.0 / std::sqrt(d);
@@ -1064,9 +1064,9 @@ TEST_F(MrptTest, MatrixXfConstructor) {
   normalQueryEquals(mrpt, mrpt_matrix, 5, 1);
 }
 
-// Test that the constructor which takes an MatrixXf works and the autotuned
-// index gives the same query results as the autotuned index built with a
-// constructor taking a Map as an input.
+// Test that the constructor which takes the data as an Eigen::MatrixXf works
+// and that the autotuned index gives the same query results as the autotuned
+// index built with a constructor taking the data as an Eigen::Map.
 TEST_F(MrptTest, AutotuningMatrixXfConstructor) {
   int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
   float density = 1.0 / std::sqrt(1.0), target_recall = 0.6;
@@ -1080,13 +1080,36 @@ TEST_F(MrptTest, AutotuningMatrixXfConstructor) {
   autotuningQueryEquals(mrpt, mrpt_matrix);
 }
 
-
+// Test that the constructor which takes the data as a float pointer works and
+// the index gives the same query results as the on built with a constructor
+// taking the data as an Eigen::Map.
 TEST_F(MrptTest, FloatPointerConstructor) {
+  int n_trees = 10, depth = 6;
+  float density = 1.0 / std::sqrt(d);
 
+  Mrpt mrpt(M2);
+  mrpt.grow(n_trees, depth, density, seed_mrpt);
+
+  Mrpt mrpt_pointer(X2.data(), X2.rows(), X2.cols());
+  mrpt_pointer.grow(n_trees, depth, density, seed_mrpt);
+
+  normalQueryEquals(mrpt, mrpt_pointer, 5, 1);
 }
 
+// Test that the constructor which takes the data as a float pointer works
+// and that the autotuned index gives the same query results as the autotuned
+// index built with a constructor taking the data as an Eigen::Map.
 TEST_F(MrptTest, AutotuningFloatPointerConstructor) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(1.0), target_recall = 0.6;
 
+  Mrpt mrpt(M2);
+  mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt_pointer(X2.data(), X2.rows(), X2.cols());
+  mrpt_pointer.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  autotuningQueryEquals(mrpt, mrpt_pointer);
 }
 
 

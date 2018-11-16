@@ -2,7 +2,8 @@ googletest/
 *.o
 *.dSYM
 *.a
-test/test_rp1
+test/test
+test/test_implementation
 *.DS_Store
 timing/data
 timing/train-images-idx3-ubyte
