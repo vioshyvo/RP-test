@@ -367,6 +367,18 @@ class MrptTest : public testing::Test {
     return res;
   }
 
+  std::vector<std::vector<int>> autotuningQuery(const Mrpt &mrpt, double target_recall) {
+    Mrpt mrpt2 = mrpt.subset(target_recall);
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(mrpt.parameters().k);
+      mrpt2.query(Q.col(i), &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
+
   void normalQueryEquals(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
     std::vector<std::vector<int>> res1 = normalQuery(mrpt1, k, v);
     std::vector<std::vector<int>> res2 = normalQuery(mrpt2, k, v);
@@ -377,6 +389,13 @@ class MrptTest : public testing::Test {
   void autotuningQueryEquals(const Mrpt &mrpt1, const Mrpt &mrpt2) {
     std::vector<std::vector<int>> res1 = autotuningQuery(mrpt1);
     std::vector<std::vector<int>> res2 = autotuningQuery(mrpt2);
+
+    EXPECT_EQ(res1, res2);
+  }
+
+  void autotuningQueryEquals(const Mrpt &mrpt1, const Mrpt &mrpt2, double target_recall) {
+    std::vector<std::vector<int>> res1 = autotuningQuery(mrpt1, target_recall);
+    std::vector<std::vector<int>> res2 = autotuningQuery(mrpt2, target_recall);
 
     EXPECT_EQ(res1, res2);
   }
@@ -1049,7 +1068,7 @@ TEST_F(MrptTest, ParameterGetterTargetRecall) {
 }
 
 // Test that the constructor which takes the data as an Eigen::MatrixXf works and
-// the index gives the same query results as the on built with a constructor
+// the index gives the same query results as an index built with a constructor
 // taking the data as an Eigen::Map.
 TEST_F(MrptTest, MatrixXfConstructor) {
   int n_trees = 10, depth = 6;
@@ -1069,7 +1088,8 @@ TEST_F(MrptTest, MatrixXfConstructor) {
 // index built with a constructor taking the data as an Eigen::Map.
 TEST_F(MrptTest, AutotuningMatrixXfConstructor) {
   int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
-  float density = 1.0 / std::sqrt(1.0), target_recall = 0.6;
+  float density = 1.0 / std::sqrt(1.0);
+  double target_recall = 0.6;
 
   Mrpt mrpt(M2);
   mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
@@ -1085,7 +1105,7 @@ TEST_F(MrptTest, AutotuningMatrixXfConstructor) {
 // taking the data as an Eigen::Map.
 TEST_F(MrptTest, FloatPointerConstructor) {
   int n_trees = 10, depth = 6;
-  float density = 1.0 / std::sqrt(d);
+  float density = 1.0 / std::sqrt(1.0);
 
   Mrpt mrpt(M2);
   mrpt.grow(n_trees, depth, density, seed_mrpt);
@@ -1101,7 +1121,8 @@ TEST_F(MrptTest, FloatPointerConstructor) {
 // index built with a constructor taking the data as an Eigen::Map.
 TEST_F(MrptTest, AutotuningFloatPointerConstructor) {
   int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
-  float density = 1.0 / std::sqrt(1.0), target_recall = 0.6;
+  float density = 1.0 / std::sqrt(1.0);
+  double target_recall = 0.6;
 
   Mrpt mrpt(M2);
   mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
@@ -1111,6 +1132,93 @@ TEST_F(MrptTest, AutotuningFloatPointerConstructor) {
 
   autotuningQueryEquals(mrpt, mrpt_pointer);
 }
+
+// Test that the autotuning function which takes the validation set as an
+// Eigen::MatrixXf gives the same query results as the autotuning
+// function taking the validation set as an Eigen::Map.
+TEST_F(MrptTest, AutotuningMatrixXfGrowing) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(1.0);
+  double target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt_matrix(M2);
+  mrpt_matrix.grow(Q, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  autotuningQueryEquals(mrpt, mrpt_matrix, target_recall);
+}
+
+// Test that the autotuning function which takes the validation set as a
+// float pointer gives the same query results as the autotuning
+// function taking the validation set as an Eigen::Map.
+TEST_F(MrptTest, AutotuningFloatPointerGrowing) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(1.0);
+  double target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt_pointer(M2);
+  mrpt_pointer.grow(Q.data(), n2, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  autotuningQueryEquals(mrpt, mrpt_pointer, target_recall);
+}
+
+// Test that the autotuning function with preset target recall which takes the
+// validation set as an Eigen::MatrixXf gives the same query results as the
+// autotuning function taking the validation set as an Eigen::Map.
+TEST_F(MrptTest, AutotuningTargetRecallMatrixXfGrowing) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(1.0);
+  double target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt_matrix(M2);
+  mrpt_matrix.grow(target_recall, Q, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  autotuningQueryEquals(mrpt, mrpt_matrix);
+}
+
+// Test that the autotuning function with preset target recall which takes the
+// validation set as a float pointer gives the same query results as the
+// autotuning function taking the validation set as an Eigen::Map.
+TEST_F(MrptTest, AutotuningTargetRecallFloatPointerGrowing) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(1.0);
+  double target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt_pointer(M2);
+  mrpt_pointer.grow(target_recall, Q.data(), n2, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  autotuningQueryEquals(mrpt, mrpt_pointer);
+}
+
+
+// Test that the version of query function which takes the query point as
+// Eigen::VectorXf gives the same results as the query function which takes
+// the query point as Eigen::Map<VectorXf>
+TEST_F(MrptTest, VectorXfQuery) {
+  // int n_trees = 10, depth = 6;
+  // float density = 1.0 / std::sqrt(d);
+  //
+  // Mrpt mrpt(M2);
+  // mrpt.grow(n_trees, depth, density, seed_mrpt);
+  //
+  // Mrpt mrpt_matrix(X2);
+  // mrpt_matrix.grow(n_trees, depth, density, seed_mrpt);
+  //
+  // normalQueryEquals(mrpt, mrpt_matrix, 5, 1);
+}
+
+
 
 
 class UtilityTest : public testing::Test {
