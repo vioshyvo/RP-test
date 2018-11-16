@@ -461,6 +461,34 @@ class MrptTest : public testing::Test {
     EXPECT_EQ(res1, res2);
   }
 
+  void exactKnnTester(const MatrixXf &X, int k) {
+    Mrpt mrpt(X);
+    std::vector<int> result(k);
+    std::vector<float> distances(k);
+
+    VectorXi idx(n);
+    std::iota(idx.data(), idx.data() + n, 0);
+
+    mrpt.exact_knn(Map<const VectorXf>(q.data(), d), k, idx, n, &result[0], &distances[0]);
+
+    for(int i = 0; i < k; ++i) {
+      float distance_true = (X.col(result[i]) - q).norm();
+      EXPECT_FLOAT_EQ(distances[i], distance_true);
+    }
+
+    VectorXf dd(n);
+    for(int i = 0; i < n; ++i)
+      dd(i) = (X.col(i) - q).norm();
+
+    std::partial_sort(idx.data(), idx.data() + k, idx.data() + n,
+      [&dd](int i, int j) { return dd(i) < dd(j); });
+
+    for(int i = 0; i < k; ++i) {
+      EXPECT_EQ(result[i], idx[i]);
+      EXPECT_FLOAT_EQ(distances[i], dd(idx(i)));
+    }
+  }
+
   int d, n, n2, n_test, seed_data, seed_mrpt;
   double epsilon = 0.001; // error bound for floating point comparisons of recall
   MatrixXf X, X2, Q;
@@ -534,43 +562,7 @@ TEST_F(MrptTest, RandomSeed) {
 
 // Test that the exact k-nn search returns true nearest neighbors
 TEST_F(MrptTest, ExactKnn) {
-
-  Mrpt mrpt(M);
-
-  int k = 5;
-  std::vector<int> result(k);
-  std::vector<float> distances(k);
-
-  VectorXi idx(n);
-  std::iota(idx.data(), idx.data() + n, 0);
-
-  mrpt.exact_knn(Map<const VectorXf>(q.data(), d), k, idx, n, &result[0], &distances[0]);
-
-  EXPECT_EQ(result[0], 501);
-  EXPECT_EQ(result[1], 682);
-  EXPECT_EQ(result[2], 566);
-  EXPECT_EQ(result[3], 541);
-  EXPECT_EQ(result[4], 747);
-
-  for(int i = 0; i < k; ++i) {
-    float distance_true = (X.col(result[i]) - q).norm();
-    EXPECT_FLOAT_EQ(distances[i], distance_true);
-  }
-
-  VectorXf dd(n);
-  for(int i = 0; i < n; ++i)
-    dd(i) = (X.col(i) - q).norm();
-
-  std::partial_sort(idx.data(), idx.data() + k, idx.data() + n,
-    [&dd](int i, int j) { return dd(i) < dd(j); });
-
-  // test that the k nearest neighbors returned by exact-knn are true
-  // k nearest neighbors
-  for(int i = 0; i < k; ++i) {
-    EXPECT_EQ(result[i], idx[i]);
-    EXPECT_FLOAT_EQ(distances[i], dd(idx(i)));
-  }
-
+  exactKnnTester(X, 5);
 }
 
 // Test that the loaded index is identical to the original one that was saved.
