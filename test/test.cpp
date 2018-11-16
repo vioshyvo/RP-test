@@ -57,6 +57,8 @@ class MrptTest : public testing::Test {
             for(int j = 0; j < n_test; ++j)
               Q(i,j) = dist(mt);
 
+          true_knn = getTrueKnn(q, X2, true_distances);
+
           new (&M) Map<const MatrixXf>(X.data(), d, n);
           new (&M2) Map<const MatrixXf>(X2.data(), d, n2);
           new (&test_queries) Map<const MatrixXf>(Q.data(), d, n_test);
@@ -461,32 +463,36 @@ class MrptTest : public testing::Test {
     EXPECT_EQ(res1, res2);
   }
 
-  void exactKnnTester(const MatrixXf &X, int k) {
-    Mrpt mrpt(X);
-    std::vector<int> result(k);
+  void exactKnnTester(int k) {
+    Mrpt mrpt(X2);
     std::vector<float> distances(k);
+    std::vector<int> result(k);
+    VectorXi idx(n2);
+    std::iota(idx.data(), idx.data() + n2, 0);
 
-    VectorXi idx(n);
-    std::iota(idx.data(), idx.data() + n, 0);
-
-    mrpt.exact_knn(Map<const VectorXf>(q.data(), d), k, idx, n, &result[0], &distances[0]);
-
-    for(int i = 0; i < k; ++i) {
-      float distance_true = (X.col(result[i]) - q).norm();
-      EXPECT_FLOAT_EQ(distances[i], distance_true);
-    }
-
-    VectorXf dd(n);
-    for(int i = 0; i < n; ++i)
-      dd(i) = (X.col(i) - q).norm();
-
-    std::partial_sort(idx.data(), idx.data() + k, idx.data() + n,
-      [&dd](int i, int j) { return dd(i) < dd(j); });
+    mrpt.exact_knn(Map<const VectorXf>(q.data(), d), k, idx, n2, &result[0], &distances[0]);
 
     for(int i = 0; i < k; ++i) {
-      EXPECT_EQ(result[i], idx[i]);
-      EXPECT_FLOAT_EQ(distances[i], dd(idx(i)));
+      ASSERT_EQ(result[i], true_knn[i]);
+      ASSERT_FLOAT_EQ(distances[i], true_distances[i]);
     }
+  }
+
+  std::vector<int> getTrueKnn(const VectorXf &query, const MatrixXf &data,
+      std::vector<float> &true_distances) {
+    int n_points = data.cols();
+    std::vector<int> true_knn(n_points);
+    std::iota(true_knn.begin(), true_knn.end(), 0);
+
+    true_distances = std::vector<float>(n_points);
+    for(int i = 0; i < n_points; ++i)
+      true_distances[i] = (data.col(i) - query).norm();
+
+    std::sort(true_knn.begin(), true_knn.end(),
+      [&true_distances](int i, int j) { return true_distances[i] < true_distances[j]; });
+
+    std::sort(true_distances.begin(), true_distances.end());
+    return true_knn;
   }
 
   int d, n, n2, n_test, seed_data, seed_mrpt;
@@ -495,6 +501,8 @@ class MrptTest : public testing::Test {
   VectorXf q;
   Map<const MatrixXf> M, M2;
   Map<const MatrixXf> test_queries;
+  std::vector<float> true_distances;
+  std::vector<int> true_knn;
 };
 
 
@@ -562,7 +570,9 @@ TEST_F(MrptTest, RandomSeed) {
 
 // Test that the exact k-nn search returns true nearest neighbors
 TEST_F(MrptTest, ExactKnn) {
-  exactKnnTester(X, 5);
+  exactKnnTester(1);
+  exactKnnTester(5);
+  exactKnnTester(n2);
 }
 
 // Test that the loaded index is identical to the original one that was saved.
