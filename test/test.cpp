@@ -182,7 +182,7 @@ class MrptTest : public testing::Test {
 
     splitPointsEqual(mrpt, mrpt_reloaded);
     leavesEqual(mrpt, mrpt_reloaded);
-    normalQueryTester(mrpt, mrpt_reloaded, 5, 1);
+    normalQueryEquals(mrpt, mrpt_reloaded, 5, 1);
   }
 
   void saveTesterAutotuning(int k, int trees_max, int depth_max, int depth_min,
@@ -196,7 +196,7 @@ class MrptTest : public testing::Test {
 
     splitPointsEqual(mrpt, mrpt_reloaded);
     leavesEqual(mrpt, mrpt_reloaded);
-    normalQueryTester(mrpt, mrpt_reloaded, 5, 1);
+    normalQueryEquals(mrpt, mrpt_reloaded, 5, 1);
     testParameters(mrpt.parameters(), mrpt_reloaded.parameters());
     testOptimalParameters(mrpt.optimal_pars(), mrpt_reloaded.optimal_pars());
   }
@@ -212,7 +212,7 @@ class MrptTest : public testing::Test {
 
     splitPointsEqual(mrpt, mrpt_reloaded);
     leavesEqual(mrpt, mrpt_reloaded);
-    normalQueryTester(mrpt, mrpt_reloaded, 5, 1);
+    normalQueryEquals(mrpt, mrpt_reloaded, 5, 1);
     testParameters(mrpt.parameters(), mrpt_reloaded.parameters());
   }
 
@@ -367,9 +367,16 @@ class MrptTest : public testing::Test {
     return res;
   }
 
-  void normalQueryTester(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
+  void normalQueryEquals(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
     std::vector<std::vector<int>> res1 = normalQuery(mrpt1, k, v);
     std::vector<std::vector<int>> res2 = normalQuery(mrpt2, k, v);
+
+    EXPECT_EQ(res1, res2);
+  }
+
+  void autotuningQueryEquals(const Mrpt &mrpt1, const Mrpt &mrpt2) {
+    std::vector<std::vector<int>> res1 = autotuningQuery(mrpt1);
+    std::vector<std::vector<int>> res2 = autotuningQuery(mrpt2);
 
     EXPECT_EQ(res1, res2);
   }
@@ -609,8 +616,8 @@ TEST_F(MrptTest, NormalQuery) {
   mrpt_at2.grow(test_queries, 10, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
   int v = 2;
-  normalQueryTester(mrpt, mrpt_at, k, v);
-  normalQueryTester(mrpt, mrpt_at2, k, v);
+  normalQueryEquals(mrpt, mrpt_at, k, v);
+  normalQueryEquals(mrpt, mrpt_at2, k, v);
 }
 
 // Test that the normal query works, and returns the same results when used on
@@ -628,7 +635,7 @@ TEST_F(MrptTest, QuerySubsetting) {
   mrpt_at.prune(target_recall);
 
   int v = 2;
-  normalQueryTester(mrpt_at, mrpt_at2, k, v);
+  normalQueryEquals(mrpt_at, mrpt_at2, k, v);
 }
 
 // Test that the normal query throws an out-of-range exception when called with
@@ -1039,6 +1046,47 @@ TEST_F(MrptTest, ParameterGetterTargetRecall) {
     EXPECT_TRUE(par.estimated_recall - tr > -epsilon);
     EXPECT_FLOAT_EQ(getRecall(autotuningQuery(mrpt), exact2), par.estimated_recall);
   }
+}
+
+// Test that the constructor which takes an MatrixXf works and the index gives
+// the same query results as the on built with a constructor taking a Map
+// as an input.
+TEST_F(MrptTest, MatrixXfConstructor) {
+  int n_trees = 10, depth = 6;
+  float density = 1.0 / std::sqrt(d);
+
+  Mrpt mrpt(M2);
+  mrpt.grow(n_trees, depth, density, seed_mrpt);
+
+  Mrpt mrpt_matrix(X2);
+  mrpt_matrix.grow(n_trees, depth, density, seed_mrpt);
+
+  normalQueryEquals(mrpt, mrpt_matrix, 5, 1);
+}
+
+// Test that the constructor which takes an MatrixXf works and the autotuned
+// index gives the same query results as the autotuned index built with a
+// constructor taking a Map as an input.
+TEST_F(MrptTest, AutotuningMatrixXfConstructor) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(1.0), target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  Mrpt mrpt_matrix(X2);
+  mrpt_matrix.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  autotuningQueryEquals(mrpt, mrpt_matrix);
+}
+
+
+TEST_F(MrptTest, FloatPointerConstructor) {
+
+}
+
+TEST_F(MrptTest, AutotuningFloatPointerConstructor) {
+
 }
 
 
