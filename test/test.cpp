@@ -314,7 +314,7 @@ class MrptTest : public testing::Test {
       VectorXi idx(n);
       std::iota(idx.data(), idx.data() + n, 0);
 
-      mrpt.exact_knn(Map<VectorXf>(Q.data() + i * d, d), k, idx, n, out_exact.data() + i * k);
+      mrpt.exact_knn(Map<const VectorXf>(Q.data() + i * d, d), k, idx, n, out_exact.data() + i * k);
       std::sort(out_exact.data() + i * k, out_exact.data() + i * k + k);
     }
   }
@@ -351,7 +351,27 @@ class MrptTest : public testing::Test {
     std::vector<std::vector<int>> res;
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(k);
+      mrpt.query(Map<const VectorXf>(Q.data() + i * d, d), k, v, &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
+  std::vector<std::vector<int>> normalQueryVector(const Mrpt &mrpt, int k, int v) {
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(k);
       mrpt.query(Q.col(i), k, v, &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
+  std::vector<std::vector<int>> normalQueryFloatPointer(const Mrpt &mrpt, int k, int v) {
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(k);
+      mrpt.query(Q.data() + i * d, k, v, &result[0]);
       res.push_back(result);
     }
     return res;
@@ -361,7 +381,27 @@ class MrptTest : public testing::Test {
     std::vector<std::vector<int>> res;
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(mrpt.parameters().k);
+      mrpt.query(Map<const VectorXf>(Q.data() + i * d, d), &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
+  std::vector<std::vector<int>> autotuningQueryVector(const Mrpt &mrpt) {
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(mrpt.parameters().k);
       mrpt.query(Q.col(i), &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
+  std::vector<std::vector<int>> autotuningQueryFloatPointer(const Mrpt &mrpt) {
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(mrpt.parameters().k);
+      mrpt.query(Q.data() + i * d, &result[0]);
       res.push_back(result);
     }
     return res;
@@ -372,12 +412,33 @@ class MrptTest : public testing::Test {
     std::vector<std::vector<int>> res;
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(mrpt.parameters().k);
+      mrpt2.query(Map<const VectorXf>(Q.data() + i * d, d), &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
+  std::vector<std::vector<int>> autotuningQueryVector(const Mrpt &mrpt, double target_recall) {
+    Mrpt mrpt2 = mrpt.subset(target_recall);
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(mrpt.parameters().k);
       mrpt2.query(Q.col(i), &result[0]);
       res.push_back(result);
     }
     return res;
   }
 
+  std::vector<std::vector<int>> autotuningQueryFloatPointer(const Mrpt &mrpt, double target_recall) {
+    Mrpt mrpt2 = mrpt.subset(target_recall);
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(mrpt.parameters().k);
+      mrpt2.query(Q.data() + i * d, &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
 
   void normalQueryEquals(const Mrpt &mrpt1, const Mrpt &mrpt2, int k, int v) {
     std::vector<std::vector<int>> res1 = normalQuery(mrpt1, k, v);
@@ -483,7 +544,7 @@ TEST_F(MrptTest, ExactKnn) {
   VectorXi idx(n);
   std::iota(idx.data(), idx.data() + n, 0);
 
-  mrpt.exact_knn(q, k, idx, n, &result[0], &distances[0]);
+  mrpt.exact_knn(Map<const VectorXf>(q.data(), d), k, idx, n, &result[0], &distances[0]);
 
   EXPECT_EQ(result[0], 501);
   EXPECT_EQ(result[1], 682);
@@ -1206,18 +1267,103 @@ TEST_F(MrptTest, AutotuningTargetRecallFloatPointerGrowing) {
 // Eigen::VectorXf gives the same results as the query function which takes
 // the query point as Eigen::Map<VectorXf>
 TEST_F(MrptTest, VectorXfQuery) {
-  // int n_trees = 10, depth = 6;
-  // float density = 1.0 / std::sqrt(d);
-  //
-  // Mrpt mrpt(M2);
-  // mrpt.grow(n_trees, depth, density, seed_mrpt);
-  //
-  // Mrpt mrpt_matrix(X2);
-  // mrpt_matrix.grow(n_trees, depth, density, seed_mrpt);
-  //
-  // normalQueryEquals(mrpt, mrpt_matrix, 5, 1);
+  int n_trees = 10, depth = 6, k = 5, v = 1;
+  float density = 1.0 / std::sqrt(d);
+
+  Mrpt mrpt(M2);
+  mrpt.grow(n_trees, depth, density, seed_mrpt);
+
+  std::vector<std::vector<int>> res1(normalQuery(mrpt, k, v));
+  std::vector<std::vector<int>> res2(normalQueryVector(mrpt, k, v));
+
+  EXPECT_EQ(res1, res2);
 }
 
+// Test that the version of the autotuning query function which takes the query
+// point as Eigen::VectorXf gives the same results as the query function which
+// takes the query point as Eigen::Map<VectorXf>
+TEST_F(MrptTest, AutotuningVectorXfQuery) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(d);
+  double target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  std::vector<std::vector<int>> res1(autotuningQuery(mrpt, target_recall));
+  std::vector<std::vector<int>> res2(autotuningQueryVector(mrpt, target_recall));
+
+  EXPECT_EQ(res1, res2);
+}
+
+// Test that the version of the autotuning (with target recall prespecified)
+// query function which takes the query point as Eigen::VectorXf gives the same
+// results as the query function which takes the query point as
+// Eigen::Map<VectorXf>
+TEST_F(MrptTest, AutotuningTargetRecallVectorXfQuery) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(d);
+  double target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  std::vector<std::vector<int>> res1(autotuningQuery(mrpt));
+  std::vector<std::vector<int>> res2(autotuningQueryVector(mrpt));
+
+  EXPECT_EQ(res1, res2);
+}
+
+// Test that the version of query function which takes the query point as
+// float pointer gives the same results as the query function which takes
+// the query point as Eigen Map
+TEST_F(MrptTest, FloatPointerQuery) {
+  int n_trees = 10, depth = 6, k = 5, v = 1;
+  float density = 1.0 / std::sqrt(d);
+
+  Mrpt mrpt(M2);
+  mrpt.grow(n_trees, depth, density, seed_mrpt);
+
+  std::vector<std::vector<int>> res1(normalQuery(mrpt, k, v));
+  std::vector<std::vector<int>> res2(normalQueryFloatPointer(mrpt, k, v));
+
+  EXPECT_EQ(res1, res2);
+}
+
+// Test that the version of the autotuning query function which takes the query
+// point as a float pointer gives the same results as the query function which
+// takes the query point as Eigen Map.
+TEST_F(MrptTest, AutotuningFloatPointerQuery) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(d);
+  double target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  std::vector<std::vector<int>> res1(autotuningQuery(mrpt, target_recall));
+  std::vector<std::vector<int>> res2(autotuningQueryFloatPointer(mrpt, target_recall));
+
+  EXPECT_EQ(res1, res2);
+}
+
+// Test that the version of the autotuning (with target recall prespecified)
+// query function which takes the query point as a float pointer gives the same
+// results as the query function which takes the query point as
+// Eigen Map.
+TEST_F(MrptTest, AutotuningTargetRecallFloatPointerQuery) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = 10, k = 5;
+  float density = 1.0 / std::sqrt(d);
+  double target_recall = 0.6;
+
+  Mrpt mrpt(M2);
+  mrpt.grow(target_recall, test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+  std::vector<std::vector<int>> res1(autotuningQuery(mrpt));
+  std::vector<std::vector<int>> res2(autotuningQueryFloatPointer(mrpt));
+
+  EXPECT_EQ(res1, res2);
+}
 
 
 
