@@ -493,6 +493,24 @@ class MrptTest : public testing::Test {
     exactKnnEquals(result, distances);
   }
 
+  void wholeDataVectorExactKnnTester(int k) {
+    Mrpt mrpt(X2);
+    std::vector<float> distances(k);
+    std::vector<int> result(k);
+
+    mrpt.exact_knn(q, k, &result[0], &distances[0]);
+    exactKnnEquals(result, distances);
+  }
+
+  void wholeDataFloatPointerExactKnnTester(int k) {
+    Mrpt mrpt(X2);
+    std::vector<float> distances(k);
+    std::vector<int> result(k);
+
+    mrpt.exact_knn(q.data(), k, &result[0], &distances[0]);
+    exactKnnEquals(result, distances);
+  }
+
   std::vector<int> getTrueKnn(const VectorXf &query, const MatrixXf &data,
       std::vector<float> &true_distances) {
     int n_points = data.cols();
@@ -1382,14 +1400,29 @@ TEST_F(MrptTest, AutotuningTargetRecallFloatPointerQuery) {
   EXPECT_EQ(res1, res2);
 }
 
-// Test that the exact k-nn search for the whole data set returns true nearest
-// neighbors and true distances
+// Test that the exact k-nn search from the whole data set returns the true
+// nearest neighbors and the true distances.
 TEST_F(MrptTest, WholeDataExactKnn) {
   wholeDataExactKnnTester(1);
   wholeDataExactKnnTester(5);
   wholeDataExactKnnTester(n2);
 }
 
+// Test that the version exact k-nn search which takes query point as VectorXf
+// returns the true nearest neighbors and the true distances
+TEST_F(MrptTest, WholeDataVectorExactKnn) {
+  wholeDataVectorExactKnnTester(1);
+  wholeDataVectorExactKnnTester(5);
+  wholeDataVectorExactKnnTester(n2);
+}
+
+// Test that the version exact k-nn search which takes query point as a float
+// pointer returns the true nearest neighbors and the true distances
+TEST_F(MrptTest, WholeDataFloatPointerExactKnn) {
+  wholeDataFloatPointerExactKnnTester(1);
+  wholeDataFloatPointerExactKnnTester(5);
+  wholeDataFloatPointerExactKnnTester(n2);
+}
 
 
 
