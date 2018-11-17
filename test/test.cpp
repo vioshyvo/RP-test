@@ -123,12 +123,10 @@ class MrptTest : public testing::Test {
   void autotuningTester(double target_recall, float density, int trees_max) {
     omp_set_num_threads(1);
     int depth_max = 7, depth_min = 5, votes_max = trees_max - 1, k = 5;
+    MatrixXi exact = computeExactNeighbors(Q, X);
 
-    Mrpt mrpt(M);
+    Mrpt mrpt(X);
     mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-
-    MatrixXi exact(k, n_test);
-    computeExactNeighbors(mrpt, exact, n);
 
     Mrpt mrpt1(mrpt.subset(target_recall));
     Mrpt mrpt2(mrpt.subset(target_recall));
@@ -308,17 +306,19 @@ class MrptTest : public testing::Test {
     }
   }
 
-  void computeExactNeighbors(Mrpt &mrpt, MatrixXi &out_exact, int n) {
-    int k = out_exact.rows();
-    int nt = out_exact.cols();
+  MatrixXi computeExactNeighbors(const MatrixXf &query, const MatrixXf &data) {
+    int n_points = data.cols();
+    int n_test = query.cols();
+    MatrixXi res(n_points, n_test);
+    Mrpt mrpt(data);
 
-    for(int i = 0; i < nt; ++i) {
-      VectorXi idx(n);
-      std::iota(idx.data(), idx.data() + n, 0);
+    for(int i = 0; i < n_test; ++i) {
+      VectorXi idx(n_points);
+      std::iota(idx.data(), idx.data() + n_points, 0);
 
-      mrpt.exact_knn(Map<const VectorXf>(Q.data() + i * d, d), k, idx, n, out_exact.data() + i * k);
-      std::sort(out_exact.data() + i * k, out_exact.data() + i * k + k);
+      mrpt.exact_knn(Map<const VectorXf>(query.data() + i * d, d), n_points, idx, n_points, res.data() + i * n_points);
     }
+    return res;
   }
 
 
@@ -337,11 +337,12 @@ class MrptTest : public testing::Test {
     double recall = 0;
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> &result = results[i];
+      VectorXi knn = exact.col(i);
 
       std::sort(result.begin(), result.end());
-      std::sort(exact.data() + i * k, exact.data() + i * k + k);
+      std::sort(knn.data(), knn.data() + k);
       std::set<int> intersect;
-      std::set_intersection(exact.data() + i * k, exact.data() + i * k + k, result.begin(), result.end(),
+      std::set_intersection(knn.data(), knn.data() + k, result.begin(), result.end(),
                        std::inserter(intersect, intersect.begin()));
 
       recall += intersect.size();
@@ -1107,10 +1108,9 @@ TEST_F(MrptTest, SubsettedOptimalParameterGetterThrows) {
 // is used as a test set.
 TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
   int k = 5;
-  Mrpt mrpt(M2);
-  MatrixXi exact2(k, n_test);
-  computeExactNeighbors(mrpt, exact2, n2);
+  MatrixXi exact2 = computeExactNeighbors(Q, X2);
 
+  Mrpt mrpt(M2);
   mrpt.grow(test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
 
   std::vector<Mrpt_Parameters> pars = mrpt.optimal_pars();
@@ -1139,10 +1139,7 @@ TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
 // is used as a test set.
 TEST_F(MrptTest, ParameterGetterPrunedIndex) {
   int k = 5;
-  Mrpt mrpt_exact(M2);
-
-  MatrixXi exact2(k, n_test);
-  computeExactNeighbors(mrpt_exact, exact2, n2);
+  MatrixXi exact2 = computeExactNeighbors(Q, X2);
 
   std::vector<double> target_recalls {0.1, 0.5, 0.9, 0.99};
   for(const auto &tr : target_recalls) {
@@ -1171,10 +1168,7 @@ TEST_F(MrptTest, ParameterGetterPrunedIndex) {
 // is used as a test set.
 TEST_F(MrptTest, ParameterGetterTargetRecall) {
   int k = 5;
-  Mrpt mrpt_exact(M2);
-
-  MatrixXi exact2(k, n_test);
-  computeExactNeighbors(mrpt_exact, exact2, n2);
+  MatrixXi exact2 = computeExactNeighbors(Q, X2);
 
   // with the parameters used in this test, the highest recall is 0.98
   // sot that the target recall level 0.95 is met
