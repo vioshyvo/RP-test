@@ -487,8 +487,8 @@ class MrptTest : public testing::Test {
 
   void exactKnnTester(int k) {
     Mrpt mrpt(X2);
-    std::vector<float> distances(k);
-    std::vector<int> result(k);
+    std::vector<float> distances(k > 0 ? k : 0);
+    std::vector<int> result(k > 0 ? k : 0);
 
     mrpt.exact_knn(Map<const VectorXf>(q.data(), d), k, &result[0], &distances[0]);
     exactKnnEquals(result, distances);
@@ -496,8 +496,8 @@ class MrptTest : public testing::Test {
 
   void vectorExactKnnTester(int k) {
     Mrpt mrpt(X2);
-    std::vector<float> distances(k);
-    std::vector<int> result(k);
+    std::vector<float> distances(k > 0 ? k : 0);
+    std::vector<int> result(k > 0 ? k : 0);
 
     mrpt.exact_knn(q, k, &result[0], &distances[0]);
     exactKnnEquals(result, distances);
@@ -505,32 +505,32 @@ class MrptTest : public testing::Test {
 
   void floatPointerExactKnnTester(int k) {
     Mrpt mrpt(X2);
-    std::vector<float> distances(k);
-    std::vector<int> result(k);
+    std::vector<float> distances(k > 0 ? k : 0);
+    std::vector<int> result(k > 0 ? k : 0);
 
     mrpt.exact_knn(q.data(), k, &result[0], &distances[0]);
     exactKnnEquals(result, distances);
   }
 
   void staticExactKnnTester(int k) {
-    std::vector<float> distances(k);
-    std::vector<int> result(k);
+    std::vector<float> distances(k > 0 ? k : 0);
+    std::vector<int> result(k > 0 ? k : 0);
 
     Mrpt::exact_knn(Map<const VectorXf>(q.data(), d), M2, k, &result[0], &distances[0]);
     exactKnnEquals(result, distances);
   }
 
   void staticVectorExactKnnTester(int k) {
-    std::vector<float> distances(k);
-    std::vector<int> result(k);
+    std::vector<float> distances(k > 0 ? k : 0);
+    std::vector<int> result(k > 0 ? k : 0);
 
     Mrpt::exact_knn(q, X2, k, &result[0], &distances[0]);
     exactKnnEquals(result, distances);
   }
 
   void staticFloatPointerExactKnnTester(int k) {
-    std::vector<float> distances(k);
-    std::vector<int> result(k);
+    std::vector<float> distances(k > 0 ? k : 0);
+    std::vector<int> result(k > 0 ? k : 0);
 
     Mrpt::exact_knn(q.data(), M2.data(), M2.rows(), M2.cols(), k, &result[0], &distances[0]);
     exactKnnEquals(result, distances);
@@ -1450,6 +1450,34 @@ TEST_F(MrptTest, StaticFloatPointerExactKnn) {
   staticFloatPointerExactKnnTester(1);
   staticFloatPointerExactKnnTester(5);
   staticFloatPointerExactKnnTester(n2);
+}
+
+// Test that exact knn functions throw an out of range expection if k is
+// greater than sample size of data or non-positive.
+TEST_F(MrptTest, ExactKnnThrows) {
+  EXPECT_THROW(exactKnnTester(-1), std::out_of_range);
+  EXPECT_THROW(exactKnnTester(0), std::out_of_range);
+  EXPECT_THROW(exactKnnTester(n2 + 1), std::out_of_range);
+
+  EXPECT_THROW(vectorExactKnnTester(-1), std::out_of_range);
+  EXPECT_THROW(vectorExactKnnTester(0), std::out_of_range);
+  EXPECT_THROW(vectorExactKnnTester(n2 + 1), std::out_of_range);
+
+  EXPECT_THROW(floatPointerExactKnnTester(-1), std::out_of_range);
+  EXPECT_THROW(floatPointerExactKnnTester(0), std::out_of_range);
+  EXPECT_THROW(floatPointerExactKnnTester(n2 + 1), std::out_of_range);
+
+  EXPECT_THROW(staticExactKnnTester(-1), std::out_of_range);
+  EXPECT_THROW(staticExactKnnTester(0), std::out_of_range);
+  EXPECT_THROW(staticExactKnnTester(n2 + 1), std::out_of_range);
+
+  EXPECT_THROW(staticVectorExactKnnTester(-1), std::out_of_range);
+  EXPECT_THROW(staticVectorExactKnnTester(0), std::out_of_range);
+  EXPECT_THROW(staticVectorExactKnnTester(n2 + 1), std::out_of_range);
+
+  EXPECT_THROW(staticFloatPointerExactKnnTester(-1), std::out_of_range);
+  EXPECT_THROW(staticFloatPointerExactKnnTester(0), std::out_of_range);
+  EXPECT_THROW(staticFloatPointerExactKnnTester(n2 + 1), std::out_of_range);
 }
 
 
