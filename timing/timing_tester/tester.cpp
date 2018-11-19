@@ -26,6 +26,23 @@
 
 using namespace Eigen;
 
+class MrptTest {
+public:
+  static double get_projection_time(const Mrpt &mrpt, int n_trees, int depth, int v) {
+    return mrpt.get_projection_time(n_trees, depth, v);
+  }
+
+  static double get_voting_time(const Mrpt &mrpt, int n_trees, int depth, int v) {
+    return mrpt.get_voting_time(n_trees, depth, v);
+  }
+
+  static  double get_exact_time(const Mrpt &mrpt, int n_trees, int depth, int v) {
+    return mrpt.get_exact_time(n_trees, depth, v);
+  }
+
+
+};
+
 int main(int argc, char **argv) {
     size_t n = atoi(argv[1]);
     size_t n_test = atoi(argv[2]);
@@ -73,8 +90,8 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
-    Map<MatrixXf> *test_queries = new Map<MatrixXf>(test, dim, n_test);
+    const Map<const MatrixXf> M(train, dim, n_points);
+    const Map<const MatrixXf> test_queries(test, dim, n_test);
 
     if(!parallel) omp_set_num_threads(1);
     std::cerr << "parallel: " << parallel << "\n\n\n";
@@ -86,18 +103,15 @@ int main(int argc, char **argv) {
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];
       double build_start = omp_get_wtime();
-      Mrpt at(M);
-      at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+      Mrpt mrpt(M);
+      mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
       double build_end = omp_get_wtime();
 
-      std::vector<Parameters> pars = at.optimal_parameter_list();
+      std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
       for(const auto &par : pars) {
+        Mrpt mrpt_new = mrpt.subset(par.estimated_recall);
 
-        Mrpt index2(M);
-        at.subset_trees(par.estimated_recall, index2);
-
-
-        if(index2.is_empty()) {
+        if(mrpt_new.empty()) {
           continue;
         }
 
@@ -110,10 +124,10 @@ int main(int argc, char **argv) {
           std::vector<int> result(k);
           std::vector<float> distances(k);
           int n_elected = 0;
-          Map<VectorXf> q(&test[i * dim], dim);
+          const Map<const VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
-          index2.query(q, &result[0], projection_time, voting_time, exact_time, &distances[0], &n_elected);
+          mrpt_new.query(q, &result[0], projection_time, voting_time, exact_time, &distances[0], &n_elected);
           double end = omp_get_wtime();
 
           times.push_back(end - start);
@@ -127,15 +141,15 @@ int main(int argc, char **argv) {
         double median_projection_time = median(projection_times);
         double median_voting_time = median(voting_times);
         double median_exact_time = median(exact_times);
-        double est_projection_time = at.get_projection_time(par.n_trees, par.depth, par.votes);
-        double est_voting_time = at.get_voting_time(par.n_trees, par.depth, par.votes);
-        double est_exact_time = at.get_exact_time(par.n_trees, par.depth, par.votes);
+        double est_projection_time = MrptTest::get_projection_time(mrpt, par.n_trees, par.depth, par.votes);
+        double est_voting_time = MrptTest::get_voting_time(mrpt, par.n_trees, par.depth, par.votes);
+        double est_exact_time = MrptTest::get_exact_time(mrpt, par.n_trees, par.depth, par.votes);
         double mean_n_elected = elected / static_cast<double>(n_test);
 
         if(verbose)
-          std::cout << "k: " << k << ", # of trees: " << index2.get_n_trees() << ", depth: " << index2.get_depth() << ", density: " << density << ", votes: " << index2.get_votes() << "\n";
+          std::cout << "k: " << k << ", # of trees: " << par.n_trees << ", depth: " << par.depth << ", density: " << density << ", votes: " << par.votes << "\n";
         else
-          std::cout << k << " " << index2.get_n_trees() << " " << index2.get_depth() << " " << density << " " << index2.get_votes() << " ";
+          std::cout << k << " " << par.n_trees << " " << par.depth << " " << density << " " << par.votes << " ";
 
         results(k, times, idx, ("results/mnist/truth_" + std::to_string(k)).c_str(), verbose);
         std::cout << build_end - build_start <<  " ";
@@ -159,8 +173,6 @@ int main(int argc, char **argv) {
 
     delete[] test;
     if(!mmap) delete[] train;
-    delete M;
-    delete test_queries;
 
     return 0;
 }

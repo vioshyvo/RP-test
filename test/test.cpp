@@ -198,7 +198,7 @@ class MrptTest : public testing::Test {
     leavesEqual(mrpt, mrpt_reloaded);
     normalQueryEquals(mrpt, mrpt_reloaded, 5, 1);
     testParameters(mrpt.parameters(), mrpt_reloaded.parameters());
-    testOptimalParameters(mrpt.optimal_pars(), mrpt_reloaded.optimal_pars());
+    testOptimalParameters(mrpt.optimal_parameters(), mrpt_reloaded.optimal_parameters());
   }
 
   void saveTesterAutotuningTargetRecall(double target_recall, int k, int trees_max,
@@ -1066,10 +1066,10 @@ TEST_F(MrptTest, ParameterGetterAutotuning) {
 TEST_F(MrptTest, NotAutotunedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
 
-  EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
+  EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
 
   mrpt.grow(10, 6);
-  EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
+  EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
 }
 
 // Test that the getter for the list of optimal parameters throws a
@@ -1078,7 +1078,7 @@ TEST_F(MrptTest, NotAutotunedOptimalParameterGetterThrows) {
 TEST_F(MrptTest, AutotunedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
   mrpt.grow(0.2, test_queries, 5);
-  EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
+  EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
 }
 
 // Test that the getter for the list of optimal parameters throws a
@@ -1088,7 +1088,7 @@ TEST_F(MrptTest, PrunedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
   mrpt.grow(test_queries, 5);
   mrpt.prune(0.2);
-  EXPECT_THROW(mrpt.optimal_pars(), std::logic_error);
+  EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
 }
 
 // Test that the getter for the list of optimal parameters throws a
@@ -1100,8 +1100,8 @@ TEST_F(MrptTest, SubsettedOptimalParameterGetterThrows) {
   mrpt.grow(test_queries, 5);
 
   Mrpt mrpt_subsetted(mrpt.subset(0.2));
-  EXPECT_THROW(mrpt_subsetted.optimal_pars(), std::logic_error);
-  EXPECT_NO_THROW(mrpt.optimal_pars());
+  EXPECT_THROW(mrpt_subsetted.optimal_parameters(), std::logic_error);
+  EXPECT_NO_THROW(mrpt.optimal_parameters());
 }
 
 // Test that the when an autotuned index is subsetted to the target recall
@@ -1118,7 +1118,7 @@ TEST_F(MrptTest, ParameterGetterSubsettedIndex) {
   Mrpt mrpt(M2);
   mrpt.grow(test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
 
-  std::vector<Mrpt_Parameters> pars = mrpt.optimal_pars();
+  std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
   double highest_estimated_recall = pars.rbegin()->estimated_recall;
   std::vector<double> target_recalls {0.1, 0.5, 0.9, 0.99};
 
@@ -1151,7 +1151,7 @@ TEST_F(MrptTest, ParameterGetterPrunedIndex) {
     Mrpt mrpt(M2);
     mrpt.grow(test_queries, k, 20, 7, 3, 10, 1.0 / std::sqrt(d), seed_mrpt);
 
-    std::vector<Mrpt_Parameters> pars = mrpt.optimal_pars();
+    std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
     double highest_estimated_recall = pars.rbegin()->estimated_recall;
 
     mrpt.prune(tr);

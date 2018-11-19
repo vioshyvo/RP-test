@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
       mrpt.grow(test_queries, k);
       double build_end = omp_get_wtime();
 
-      std::vector<Mrpt_Parameters> pars = mrpt.optimal_pars();
+      std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
       for(const auto &par : pars) {
 
         Mrpt mrpt_new(mrpt.subset(par.estimated_recall));
