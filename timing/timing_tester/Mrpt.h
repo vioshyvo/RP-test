@@ -167,10 +167,19 @@ class Mrpt {
       k = k_;
       int n_test = Q.cols();
 
+      double start = omp_get_wtime();
       grow(trees_max, depth_max, density, seed_mrpt);
+      double end = omp_get_wtime();
+      std::cerr << "k: " << k << std::endl;
+      std::cerr << "tree growing: " << end - start << " ";
+
+      start = omp_get_wtime();
       Eigen::MatrixXi exact(k, n_test);
       compute_exact(Q, exact);
+      end = omp_get_wtime();
+      std::cerr << "exact search: " << end - start << " ";
 
+      start = omp_get_wtime();
       std::vector<Eigen::MatrixXd> recalls(depth_max - depth_min + 1);
       cs_sizes = std::vector<Eigen::MatrixXd>(depth_max - depth_min + 1);
 
@@ -196,10 +205,24 @@ class Mrpt {
         recalls[d - depth_min] /= (k * n_test);
         cs_sizes[d - depth_min] /= n_test;
       }
+      end = omp_get_wtime();
+      std::cerr << "vote counting: " << end - start << " ";
 
+      start = omp_get_wtime();
       fit_times(Q);
+      end = omp_get_wtime();
+      std::cerr << "time fitting: " << end - start << " ";
+
+      start = omp_get_wtime();
       std::set<Mrpt_Parameters,decltype(is_faster)*> pars = list_parameters(recalls);
+      end = omp_get_wtime();
+      std::cerr << "parameter finding: " << end - start << " ";
+
+      start = omp_get_wtime();
       opt_pars = pareto_frontier(pars);
+      end = omp_get_wtime();
+      std::cerr << "pareto frontier: " << end - start << " ";
+      std::cerr << std::endl << std::endl;
 
       index_type = autotuned_unpruned;
       par.k = k_;
@@ -1139,9 +1162,21 @@ class Mrpt {
 
     void fit_times(const Eigen::Map<const Eigen::MatrixXf> &Q) {
       std::vector<int> exact_x;
+
+      double start = omp_get_wtime();
       beta_projection = fit_projection_times(Q, exact_x);
+      double end = omp_get_wtime();
+      std::cerr << "projection timing: " << end - start << " ";
+
+      start = omp_get_wtime();
       beta_voting = fit_voting_times(Q);
+      end = omp_get_wtime();
+      std::cerr << "voting timing: " << end - start << " ";
+
+      start = omp_get_wtime();
       beta_exact = fit_exact_times(Q);
+      end = omp_get_wtime();
+      std::cerr << "exact timing: " << end - start << " ";
     }
 
     static std::pair<double,double> fit_theil_sen(const std::vector<double> &x,
