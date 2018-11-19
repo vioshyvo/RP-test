@@ -106,7 +106,6 @@ int main(int argc, char **argv) {
 
         for (int i = 0; i < n_test; ++i) {
           std::vector<int> result(k);
-          // Map<VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
           mrpt_new.query(Q.col(i), &result[0]);

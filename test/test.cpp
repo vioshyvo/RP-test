@@ -553,6 +553,11 @@ class MrptTest : public testing::Test {
     return true_knn;
   }
 
+  void generate_x(std::vector<int> &x, int max_generated, int n_tested, int max_val) {
+    Mrpt::generate_x(x, max_generated, n_tested, max_val);
+  }
+
+
   int d, n, n2, n_test, seed_data, seed_mrpt;
   double epsilon = 0.001; // error bound for floating point comparisons of recall
   MatrixXf X, X2, Q;
@@ -1480,7 +1485,111 @@ TEST_F(MrptTest, ExactKnnThrows) {
   EXPECT_THROW(staticFloatPointerExactKnnTester(n2 + 1), std::out_of_range);
 }
 
+// Test that the function that generates search set sizes gives the same
+// results as the reference implementation.
+TEST_F(MrptTest, GenerateXCoordinatesExact) {
+  int n_samples = 60000;
+  std::vector<int> s_tested2 {1,2,5,10,20,35,50,75,100,150,200,300,400,500};
+  generate_x(s_tested2, n_samples / 20, 20, n_samples);
 
+  std::vector<int> s_tested {1,2,5,10,20,35,50,75,100,150,200,300,400,500};
+  int s_max = n_samples / 20;
+  int n_s_tested = 20;
+  int increment = s_max / n_s_tested;
+  for(int i = 1; i <= n_s_tested; ++i)
+    if(std::find(s_tested.begin(), s_tested.end(), i * increment) == s_tested.end()) {
+      s_tested.push_back(i * increment);
+    }
+
+  // remove candidate set sizes that are larger than the size of the data set
+  std::sort(s_tested.begin(), s_tested.end());
+  auto s = s_tested.begin();
+  for(; s != s_tested.end() && *s <= n_samples; ++s);
+  s_tested.erase(s, s_tested.end());
+
+  std::sort(s_tested.begin(), s_tested.end());
+  std::sort(s_tested2.begin(), s_tested2.end());
+
+  ASSERT_EQ(s_tested, s_tested2);
+}
+
+// Test that the function that generates tree numbers for measuring
+// the projection times gives the same results as the reference implementation.
+TEST_F(MrptTest, GenerateXCoordinatesProjection) {
+  int n_trees = 1000;
+  std::vector<int> tested_trees2 {1,2,3,4,5,7,10,15,20,25,30,40,50};
+  generate_x(tested_trees2, n_trees, 10, n_trees);
+
+  std::vector<int> tested_trees {1,2,3,4,5,7,10,15,20,25,30,40,50};
+
+  int n_tested_trees = 10;
+  n_tested_trees = n_trees > n_tested_trees ? n_tested_trees : n_trees;
+  int incr = n_trees / n_tested_trees;
+  for(int i = 1; i <= n_tested_trees; ++i)
+    if(std::find(tested_trees.begin(), tested_trees.end(), i * incr) == tested_trees.end() && i * incr <= n_trees) {
+      tested_trees.push_back(i * incr);
+    }
+
+  int nt = n_trees;
+  auto end = std::remove_if(tested_trees.begin(), tested_trees.end(), [nt](int t) { return t > nt; });
+  tested_trees.erase(end, tested_trees.end());
+
+  std::sort(tested_trees.begin(), tested_trees.end());
+  std::sort(tested_trees2.begin(), tested_trees2.end());
+  ASSERT_EQ(tested_trees, tested_trees2);
+}
+
+// Test that the function that generates tree numbers for measuring
+// the voting times gives the same results as the reference implementation.
+TEST_F(MrptTest, GenerateXCoordinatesTreesVoting) {
+  int n_trees = 523;
+  std::vector<int> tested_trees2 {1,2,3,4,5,7,10,15,20,25,30,40,50};
+  generate_x(tested_trees2, n_trees, 10, n_trees);
+
+  std::vector<int> tested_trees {1,2,3,4,5,7,10,15,20,25,30,40,50};
+  int n_tested_trees = 10;
+  n_tested_trees = n_trees > n_tested_trees ? n_tested_trees : n_trees;
+  int incr = n_trees / n_tested_trees;
+  for(int i = 1; i <= n_tested_trees; ++i)
+  if(std::find(tested_trees.begin(), tested_trees.end(), i * incr) == tested_trees.end()) {
+    tested_trees.push_back(i * incr);
+  }
+
+  int nt = n_trees;
+  auto end = std::remove_if(tested_trees.begin(), tested_trees.end(), [nt](int t) { return t > nt; });
+  tested_trees.erase(end, tested_trees.end());
+
+  std::sort(tested_trees.begin(), tested_trees.end());
+  std::sort(tested_trees2.begin(), tested_trees2.end());
+  ASSERT_EQ(tested_trees, tested_trees2);
+}
+
+// Test that the function that generates vote thresholds for measuring
+// the voting times gives the same results as the reference implementation.
+TEST_F(MrptTest, GenerateXCoordinatesVoteThresholdsVoting) {
+  int votes_max = 523;
+  std::vector<int> vote_thresholds_x2 {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+  generate_x(vote_thresholds_x2, votes_max, 10, votes_max);
+
+  std::vector<int> vote_thresholds_x {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+  int n_votes = 10; // for how many different vote thresholds voting is tested
+  n_votes = votes_max > n_votes ? n_votes : votes_max;
+  int inc = votes_max / n_votes;
+  for(int i = 1; i <= n_votes; ++i)
+    if(std::find(vote_thresholds_x.begin(), vote_thresholds_x.end(), i * inc) == vote_thresholds_x.end()) {
+      vote_thresholds_x.push_back(i * inc);
+    }
+
+  // remove tested vote thresholds that are larger than the preset maximum vote threshold
+  std::sort(vote_thresholds_x.begin(), vote_thresholds_x.end());
+  auto vt = vote_thresholds_x.begin();
+  for(; vt != vote_thresholds_x.end() && *vt <= votes_max; ++vt);
+  vote_thresholds_x.erase(vt, vote_thresholds_x.end());
+
+  std::sort(vote_thresholds_x.begin(), vote_thresholds_x.end());
+  std::sort(vote_thresholds_x2.begin(), vote_thresholds_x2.end());
+  ASSERT_EQ(vote_thresholds_x, vote_thresholds_x2);
+}
 
 
 class UtilityTest : public testing::Test {
