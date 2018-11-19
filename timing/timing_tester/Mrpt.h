@@ -49,7 +49,15 @@ class Mrpt {
         n_samples(n_samples_),
         dim(dim_) {}
 
+    Mrpt() : X(nullptr, 0, 0), n_samples(0), dim(0) {}
+
     ~Mrpt() {}
+
+    void data(const Eigen::Map<const Eigen::MatrixXf> &X_) {
+      new (&X) Eigen::Map<const Eigen::MatrixXf>(X_.data(), X_.rows(), X_.cols());
+      n_samples = X_.cols();
+      dim = X_.rows();
+    }
 
     /**
     * The function whose call starts the actual index construction. Initializes
@@ -1342,7 +1350,7 @@ class Mrpt {
            + get_exact_time(tree, depth, v);
     }
 
-    const Eigen::Map<const Eigen::MatrixXf> X; // the data matrix
+    Eigen::Map<const Eigen::MatrixXf> X; // the data matrix
     Eigen::MatrixXf split_points; // all split points in all trees
     std::vector<std::vector<int>> tree_leaves; // contains all leaves of all trees
     Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> dense_random_matrix; // random vectors needed for all the RP-trees
@@ -1350,8 +1358,8 @@ class Mrpt {
     std::vector<std::vector<int>> leaf_first_indices_all; // first indices for each level
     std::vector<int> leaf_first_indices; // first indices of each leaf of tree in tree_leaves
 
-    const int n_samples; // sample size of data
-    const int dim; // dimension of data
+    int n_samples; // sample size of data
+    int dim; // dimension of data
     Mrpt_Parameters par;
     int n_trees = 0; // number of RP-trees
     int depth = 0; // depth of an RP-tree with median split

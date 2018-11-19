@@ -12,6 +12,8 @@ timing/mrpt_tester/tester
 timing/mrpt_old_tester/tester
 timing/mrpt_autotuning_tester/tester
 timing/results
+timing/bench/hayai
+timing/bench/test
 test/save
 test/mrpt_saved
 *.gcc*
