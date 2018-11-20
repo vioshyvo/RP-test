@@ -37,11 +37,16 @@ public:
       omp_set_num_threads(1);
       double target_recall = 0.8;
       mrpt.data(M);
-      mrpt.grow(target_recall, test_queries, k);
-      Mrpt_Parameters par = mrpt.parameters();
 
-      printParameters(par);
-      std::cout << std::endl;
+      //////////////////////// Autotuning ///////////////////////
+      // mrpt.grow(target_recall, test_queries, k);
+      // Mrpt_Parameters par = mrpt.parameters();
+      // printParameters(par);
+      // std::cout << std::endl;
+
+      //////////////////////// Normal index //////////////////////
+      int n_trees = 59, depth = 9; // + votes = 4 for 80% recall
+      mrpt.grow(n_trees, depth);
 
     }
 
@@ -58,7 +63,14 @@ public:
       for(int i = 0; i < n_test; ++i) {
         mrpt.query(Map<const VectorXf>(test + i * dim, dim), &res[0], pt, vt, et);
       }
-      double end = omp_get_wtime();
+    }
+
+    void normal_runner() {
+      double pt = 0.0, vt = 0.0, et = 0.0;
+      std::vector<int> res(k);
+      for(int i = 0; i < n_test; ++i) {
+        mrpt.query(Map<const VectorXf>(test + i * dim, dim), k, votes, &res[0], pt, vt, et);
+      }
     }
 
     Map<const MatrixXf> M;
@@ -68,17 +80,20 @@ public:
     Mrpt mrpt;
 
     int n_test = 100, n_points = 59900, dim = 784;
-    int k = 5;
+    int k = 5, votes = 4;
 };
 
 // BENCHMARK_F(MrptTest, ExactKnn, 5, 10) {
 //   test_runner();
 // }
 
-BENCHMARK_F(MrptTest, ApproximateKnn90, 5, 10) {
-  approximate_runner();
-}
+// BENCHMARK_F(MrptTest, ApproximateKnn, 5, 10) {
+//   approximate_runner();
+// }
 
+BENCHMARK_F(MrptTest, NormalQuery, 5, 10) {
+  normal_runner();
+}
 
 int main(int argc, char **argv) {
     hayai::ConsoleOutputter consoleOutputter;

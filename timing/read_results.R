@@ -1,6 +1,6 @@
 source("~/git/rp_test/timing/tools/read_res.R")
 
-res <- read_times("mrpt_times_new26")
+res <- read_times("mrpt_times_new28")
 t <- tail(res, 20)
 
 ###################################################
