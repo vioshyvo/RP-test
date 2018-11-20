@@ -1061,7 +1061,7 @@ TEST_F(MrptTest, ParameterGetterAutotuning) {
   Mrpt mrpt(M2);
   int k = 5, trees_max = 8, depth_max = 7;
   mrpt.grow(test_queries, k, trees_max, depth_max);
-  testParameters(mrpt.parameters(), {trees_max, depth_max, 0, k, 0.0, 0.0});
+  testParameters(mrpt.parameters(), {trees_max, depth_max, k, 0, 0.0, 0.0});
 }
 
 // Test that the getter for the list of optimal parameters throws a
