@@ -755,7 +755,7 @@ class Mrpt {
     * @param out_distances - output buffer for distances of the k approximate nearest neighbors (optional parameter)
     * @return
     */
-    void exact_knn(const Eigen::Map<const Eigen::VectorXf> &q, int k, const Eigen::VectorXi &indices,
+    void exact_knn(const Eigen::Map<const Eigen::VectorXf> &q, int k, Eigen::VectorXi &indices,
       int n_elected, int *out, float *out_distances = nullptr) const {
 
         if(!n_elected) {

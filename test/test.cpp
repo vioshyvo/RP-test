@@ -557,6 +557,10 @@ class MrptTest : public testing::Test {
     Mrpt::generate_x(x, max_generated, n_tested, max_val);
   }
 
+  void prune(Mrpt &mrpt, double target_recall) {
+    mrpt.prune(target_recall);
+  }
+
 
   int d, n, n2, n_test, seed_data, seed_mrpt;
   double epsilon = 0.001; // error bound for floating point comparisons of recall
@@ -779,7 +783,7 @@ TEST_F(MrptTest, QuerySubsetting) {
   mrpt_at.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
   Mrpt mrpt_at2(mrpt_at.subset(target_recall));
-  mrpt_at.prune(target_recall);
+  prune(mrpt_at, target_recall);
 
   int v = 2;
   normalQueryEquals(mrpt_at, mrpt_at2, k, v);
@@ -1002,13 +1006,13 @@ TEST_F(MrptTest, PruningTargetRecallThrows) {
   Mrpt mrpt(M2);
   mrpt.grow(test_queries, k);
 
-  EXPECT_THROW(mrpt.prune(-0.01), std::out_of_range);
-  EXPECT_THROW(mrpt.prune(1.01), std::out_of_range);
+  EXPECT_THROW(prune(mrpt, -0.01), std::out_of_range);
+  EXPECT_THROW(prune(mrpt, 1.01), std::out_of_range);
 
-  EXPECT_NO_THROW(mrpt.prune(0));
+  EXPECT_NO_THROW(prune(mrpt, 0));
 
   Mrpt mrpt2(M2);
-  EXPECT_NO_THROW(mrpt2.prune(1));
+  EXPECT_NO_THROW(prune(mrpt2, 1));
 }
 
 
@@ -1087,7 +1091,7 @@ TEST_F(MrptTest, AutotunedOptimalParameterGetterThrows) {
 TEST_F(MrptTest, PrunedOptimalParameterGetterThrows) {
   Mrpt mrpt(M2);
   mrpt.grow(test_queries, 5);
-  mrpt.prune(0.2);
+  prune(mrpt, 0.2);
   EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
 }
 
@@ -1154,7 +1158,7 @@ TEST_F(MrptTest, ParameterGetterPrunedIndex) {
     std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
     double highest_estimated_recall = pars.rbegin()->estimated_recall;
 
-    mrpt.prune(tr);
+    prune(mrpt, tr);
     Mrpt_Parameters par = mrpt.parameters();
 
     if(tr < highest_estimated_recall) {

@@ -38,6 +38,9 @@ public:
       double target_recall = 0.8;
       mrpt.data(M);
 
+      idx = VectorXi(n_points);
+      std::iota(idx.data(), idx.data() + n_points, 0);
+
       //////////////////////// Autotuning ///////////////////////
       // mrpt.grow(target_recall, test_queries, k);
       // Mrpt_Parameters par = mrpt.parameters();
@@ -45,8 +48,9 @@ public:
       // std::cout << std::endl;
 
       //////////////////////// Normal index //////////////////////
-      int n_trees = 59, depth = 9; // + votes = 4 for 80% recall
-      mrpt.grow(n_trees, depth);
+      // int n_trees = 59, depth = 9; // + votes = 4 for 80% recall
+      // mrpt.grow(n_trees, depth);
+
 
     }
 
@@ -54,6 +58,13 @@ public:
       std::vector<int> res(k);
       for(int i = 0; i < n_test; ++i) {
         Mrpt::exact_knn(Map<const VectorXf>(test + i * dim, dim), M, k, &res[0]);
+      }
+    }
+
+    void test_runner2() {
+      std::vector<int> res(k);
+      for(int i = 0; i < n_test; ++i) {
+        mrpt.exact_knn(Map<const VectorXf>(test + i * dim, dim), k, idx, n_points, &res[0]);
       }
     }
 
@@ -78,22 +89,28 @@ public:
     Map<const VectorXf> q;
     float *train = nullptr, *test = nullptr;
     Mrpt mrpt;
+    VectorXi idx;
+
 
     int n_test = 100, n_points = 59900, dim = 784;
     int k = 5, votes = 4;
 };
 
-// BENCHMARK_F(MrptTest, ExactKnn, 5, 10) {
-//   test_runner();
-// }
+BENCHMARK_F(MrptTest, ExactKnn, 5, 10) {
+  test_runner();
+}
+
+BENCHMARK_F(MrptTest, ExactKnnIota, 5, 10) {
+  test_runner2();
+}
 
 // BENCHMARK_F(MrptTest, ApproximateKnn, 5, 10) {
 //   approximate_runner();
 // }
 
-BENCHMARK_F(MrptTest, NormalQuery, 5, 10) {
-  normal_runner();
-}
+// BENCHMARK_F(MrptTest, NormalQuery, 5, 100) {
+//   normal_runner();
+// }
 
 int main(int argc, char **argv) {
     hayai::ConsoleOutputter consoleOutputter;

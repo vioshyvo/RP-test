@@ -11,6 +11,8 @@ timing/exact/tester
 timing/mrpt_tester/tester
 timing/mrpt_old_tester/tester
 timing/mrpt_autotuning_tester/tester
+timing/timing_tester/tester
+**/tester
 timing/results
 timing/bench/hayai
 timing/bench/test
