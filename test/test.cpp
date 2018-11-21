@@ -11,7 +11,7 @@
 #include "Mrpt.h"
 #include "Eigen/Dense"
 
-using namespace Eigen;
+using namespace Eigen; 
 
 static double mean(const std::vector<double> &x) {
   int n = x.size();
