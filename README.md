@@ -1,8 +1,7 @@
 # Tests for MRPT
-<center>
+
 ![Fifty shades of green](voting-candidates2.png)
 
-</center>
 
 
 This repo contains tests and [timing code](timing/README.md) for [MRPT algorithm](https://github.com/teemupitkanen/mrpt).
