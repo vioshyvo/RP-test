@@ -11,7 +11,7 @@
 #include "Mrpt.h"
 #include "Eigen/Dense"
 
-using namespace Eigen; 
+using namespace Eigen;
 
 static double mean(const std::vector<double> &x) {
   int n = x.size();
@@ -855,8 +855,12 @@ TEST_F(MrptTest, GrowThrows) {
 
   EXPECT_NO_THROW(mrpt2.grow(n_trees, depth, 0.001));
   EXPECT_FALSE(mrpt2.empty());
-  EXPECT_NO_THROW(mrpt2.grow(n_trees, depth, 1.0));
-  EXPECT_NO_THROW(mrpt2.grow(n_trees, depth));
+
+  Mrpt mrpt3(M2);
+  EXPECT_NO_THROW(mrpt3.grow(n_trees, depth, 1.0));
+
+  Mrpt mrpt4(M2);
+  EXPECT_NO_THROW(mrpt4.grow(n_trees, depth));
 }
 
 // Test that the autotuning throws an out-of-range exception, when called
@@ -1593,6 +1597,55 @@ TEST_F(MrptTest, GenerateXCoordinatesVoteThresholdsVoting) {
   std::sort(vote_thresholds_x.begin(), vote_thresholds_x.end());
   std::sort(vote_thresholds_x2.begin(), vote_thresholds_x2.end());
   ASSERT_EQ(vote_thresholds_x, vote_thresholds_x2);
+}
+
+// Test that index cannot be grown second time on the same Mrpt object when
+// the first version has been grown with autotuning.
+TEST_F(MrptTest, AutotunedGrowingSecondTimeThrows) {
+  int k = 10, n_trees = 8, depth = 6;
+  double target_recall = 0.8;
+  Mrpt mrpt(M2);
+  mrpt.grow(target_recall, Q, k);
+
+  EXPECT_THROW(mrpt.grow(Q, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q.data(), n_test, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(target_recall, Q, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(target_recall, Q.data(), n_test, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q, n_trees, depth), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q.data(), n_trees, depth), std::logic_error);
+}
+
+
+// Test that index cannot be grown second time on the same Mrpt object when
+// the first version has been grown with autotuning (without pruning).
+TEST_F(MrptTest, AutotunedUnprunedGrowingSecondTimeThrows) {
+  int k = 10, n_trees = 8, depth = 6;
+  double target_recall = 0.8;
+  Mrpt mrpt(M2);
+  mrpt.grow(Q, k);
+
+  EXPECT_THROW(mrpt.grow(Q, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q.data(), n_test, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(target_recall, Q, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(target_recall, Q.data(), n_test, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q, n_trees, depth), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q.data(), n_trees, depth), std::logic_error);
+}
+
+// Test that index cannot be grown second time on the same Mrpt object
+// when the first version has been grown with normal index building.
+TEST_F(MrptTest, NormalGrowingSecondTimeThrows) {
+  int k = 10, n_trees = 8, depth = 6;
+  double target_recall = 0.8;
+  Mrpt mrpt(M2);
+  mrpt.grow(n_trees, depth);
+
+  EXPECT_THROW(mrpt.grow(Q, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q.data(), n_test, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(target_recall, Q, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(target_recall, Q.data(), n_test, k), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q, n_trees, depth), std::logic_error);
+  EXPECT_THROW(mrpt.grow(Q.data(), n_trees, depth), std::logic_error);
 }
 
 
