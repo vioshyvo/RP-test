@@ -134,20 +134,20 @@ class MrptTest : public testing::Test {
     leavesEqual(index_normal, mrpt);
   }
 
-  // void trainingSetAutotuningGrowTester(float density, int trees_max, int depth_max,
-  //       int depth_min, int votes_max, int k) {
-  //
-  //   omp_set_num_threads(1);
-  //
-  //   Mrpt mrpt(M);
-  //   mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-  //
-  //   Mrpt index_normal(M);
-  //   index_normal.grow(trees_max, depth_max, density, seed_mrpt);
-  //
-  //   splitPointsEqual(index_normal, mrpt);
-  //   leavesEqual(index_normal, mrpt);
-  // }
+  void trainingSetAutotuningGrowTester(float density, int trees_max, int depth_max,
+        int depth_min, int votes_max, int k, int n_test = 100) {
+
+    omp_set_num_threads(1);
+
+    Mrpt mrpt(M);
+    mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt, n_test);
+
+    Mrpt index_normal(M);
+    index_normal.grow(trees_max, depth_max, density, seed_mrpt);
+
+    splitPointsEqual(index_normal, mrpt);
+    leavesEqual(index_normal, mrpt);
+  }
 
 
   void autotuningTester(double target_recall, float density, int trees_max) {
@@ -784,31 +784,35 @@ TEST_F(MrptTest, FloatPointerAutotuningGrowing) {
 // Test that an index grown with autotuning gives the same trees as the index grown
 // with an old school grow-function, when using a version of autotuning which
 // requires no test queries to build the index.
-// TEST_F(MrptTest, TrainingSetAutotuningGrowing) {
-//   int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = std::max(1, trees_max - 1), k = 5;
-//   float density = 1.0 / std::sqrt(d);
-//
-//   trainingSetAutotuningGrowTester(1.0 / std::sqrt(d), trees_max, depth_max, depth_min, votes_max, k);
-//   trainingSetAutotuningGrowTester(1.0, trees_max, depth_max, depth_min, votes_max, k);
-//
-//   trainingSetAutotuningGrowTester(density, 2, depth_max, depth_min, 2, k);
-//   trainingSetAutotuningGrowTester(density, 5, depth_max, depth_min, 5, k);
-//   trainingSetAutotuningGrowTester(density, 100, depth_max, depth_min, 100, k);
-//
-//   trainingSetAutotuningGrowTester(density, trees_max, 7, 5, votes_max, k);
-//   trainingSetAutotuningGrowTester(density, trees_max, 3, 2, votes_max, k);
-//   trainingSetAutotuningGrowTester(density, trees_max, 3, 1, votes_max, k);
-//   trainingSetAutotuningGrowTester(density, trees_max, 1, 1, votes_max, k);
-//
-//   trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, 1, k);
-//   trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, 5, k);
-//   trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, 10, k);
-//
-//   trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, 1);
-//   trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, 100);
-//   trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, n2);
-//
-// }
+TEST_F(MrptTest, TrainingSetAutotuningGrowing) {
+  int trees_max = 10, depth_max = 6, depth_min = 4, votes_max = std::max(1, trees_max - 1), k = 5;
+  float density = 1.0 / std::sqrt(d);
+
+  trainingSetAutotuningGrowTester(1.0 / std::sqrt(d), trees_max, depth_max, depth_min, votes_max, k);
+  trainingSetAutotuningGrowTester(1.0, trees_max, depth_max, depth_min, votes_max, k);
+
+  trainingSetAutotuningGrowTester(density, 2, depth_max, depth_min, 2, k);
+  trainingSetAutotuningGrowTester(density, 5, depth_max, depth_min, 5, k);
+  trainingSetAutotuningGrowTester(density, 100, depth_max, depth_min, 100, k);
+
+  trainingSetAutotuningGrowTester(density, trees_max, 7, 5, votes_max, k);
+  trainingSetAutotuningGrowTester(density, trees_max, 3, 2, votes_max, k);
+  trainingSetAutotuningGrowTester(density, trees_max, 3, 1, votes_max, k);
+  trainingSetAutotuningGrowTester(density, trees_max, 1, 1, votes_max, k);
+
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, 1, k);
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, 5, k);
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, 10, k);
+
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, 1);
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, 100);
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, n2);
+
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, 1, 10);
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, 100, 100);
+  trainingSetAutotuningGrowTester(density, trees_max, depth_max, depth_min, votes_max, n2, 1000);
+}
+
 
 // Test that the indices sampled into the test set are unique.
 TEST_F(MrptTest, SamplingTestSet) {

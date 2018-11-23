@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
       double build_start = omp_get_wtime();
       Mrpt mrpt(M);
       // mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
-      mrpt.grow(test_queries, k);
+      // mrpt.grow(test_queries, k);
+      mrpt.grow_train(k);
       double build_end = omp_get_wtime();
 
       std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
