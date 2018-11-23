@@ -61,16 +61,12 @@ int main(int argc, char **argv) {
       return -1;
   }
 
-  const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
-
-
 
     //////////////////////////////////////////////////////////////////////////////////////////////
     // compute the exact k-nn
 
     // build dummy index
-    Mrpt index(M);
-    index.grow(0, 0, sparsity);
+    Mrpt index(train, dim, n_points);
 
     VectorXi idx(n_points);
     std::iota(idx.data(), idx.data() + n_points, 0);
@@ -79,7 +75,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < ntest; ++i) {
         std::vector<int> result(k);
         double start = omp_get_wtime();
-        index.exact_knn(Map<VectorXf>(&test[i * dim], dim), k, idx, n_points, &result[0]);
+        index.exact_knn(Map<VectorXf>(&test[i * dim], dim), k, &result[0]);
         double end = omp_get_wtime();
         printf("%g\n", end - start);
         for (int i = 0; i < k; ++i) printf("%d ", result[i]);
