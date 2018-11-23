@@ -593,11 +593,20 @@ class MrptTest : public testing::Test {
 
 
   void samplingTester(const Mrpt &mrpt, int n_test, int seed = 0) {
-    std::vector<int> v(mrpt.sample_test_set(n_test, seed));
+    std::vector<int> v(mrpt.sample_indices(n_test, seed));
     std::sort(v.begin(), v.end());
     int unique_count = std::unique(v.begin(), v.end()) - v.begin();
 
     EXPECT_EQ(unique_count, n_test);
+  }
+
+  void subsetTester(int n_test, int seed = 0) {
+    Mrpt mrpt(X2);
+    std::vector<int> indices(mrpt.sample_indices(n_test, seed));
+    Eigen::MatrixXf Q(mrpt.subset(indices));
+    for(int i = 0; i < n_test; ++i)
+      for(int j = 0; j < d; ++j)
+        ASSERT_FLOAT_EQ(X2(j, indices[i]), Q(j, i));
   }
 
 
@@ -809,6 +818,12 @@ TEST_F(MrptTest, SamplingTestSet) {
   samplingTester(mrpt, n2);
 }
 
+// Test that subsetting points from the data matrix works.
+TEST_F(MrptTest, SubettingData) {
+  subsetTester(1);
+  subsetTester(100);
+  subsetTester(n2);
+}
 
 // Test that:
 // a) When subsetting the index from the original autotuning index and
