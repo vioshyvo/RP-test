@@ -1011,8 +1011,7 @@ TEST_F(MrptTest, RecallQueryThrows) {
   EXPECT_THROW(mrpt.query(q, &res[0], &dist[0]), std::logic_error);
 }
 
-// Test that normal tree growing returns throws a correct expection when
-// the parameters are out of bounds
+// Test that normal tree growing throws an expection when parameters are out of bounds
 TEST_F(MrptTest, GrowThrows) {
   int n_trees = 10, depth = 7;
   float density = 1.0 / std::sqrt(d);
@@ -1045,9 +1044,11 @@ TEST_F(MrptTest, GrowThrows) {
 
   Mrpt mrpt3(M2);
   EXPECT_NO_THROW(mrpt3.grow(n_trees, depth, 1.0));
+  EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt4(M2);
   EXPECT_NO_THROW(mrpt4.grow(n_trees, depth));
+  EXPECT_FALSE(mrpt4.empty());
 }
 
 // Test that the autotuning throws an out-of-range exception, when called
@@ -1062,12 +1063,27 @@ TEST_F(MrptTest, AutotuningKThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, n2 + 1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
+  EXPECT_THROW(mrpt.grow_train(-1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(n2 + 1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
   EXPECT_NO_THROW(mrpt.grow(test_queries, 1));
   EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt3(M2);
+  EXPECT_NO_THROW(mrpt3.grow_train(1));
+  EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
   EXPECT_NO_THROW(mrpt2.grow(test_queries, n2));
   EXPECT_FALSE(mrpt2.empty());
+
+  Mrpt mrpt4(M2);
+  EXPECT_NO_THROW(mrpt4.grow_train(n2));
+  EXPECT_FALSE(mrpt4.empty());
 }
 
 // Test that the autotuning throws an out-of-range expection when depth_max is
@@ -1083,12 +1099,27 @@ TEST_F(MrptTest, AutotuningDepthmaxThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, 8), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, -2), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, 0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, 8), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
   EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, -1));
   EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt3(M2);
+  EXPECT_NO_THROW(mrpt3.grow_train(k, trees_max, -1));
+  EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
   EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, std::log2(n2)));
   EXPECT_FALSE(mrpt2.empty());
+
+  Mrpt mrpt4(M2);
+  EXPECT_NO_THROW(mrpt4.grow_train(k, trees_max, std::log2(n2)));
+  EXPECT_FALSE(mrpt4.empty());
 }
 
 // Test that the autotuning throws an out-of-range exception when depth_min is
@@ -1104,8 +1135,19 @@ TEST_F(MrptTest, AutotuningDepthminThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, 7), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, -2), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, 0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, 7), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
   EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, -1));
   EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt3(M2);
+  EXPECT_NO_THROW(mrpt3.grow_train(k, trees_max, depth_max, -1));
+  EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
   EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, depth_max, depth_max));
@@ -1125,12 +1167,27 @@ TEST_F(MrptTest, AutotuningVotesmaxThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, trees_max + 1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, -2), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, 0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, trees_max + 1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
   EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, -1));
   EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt3(M2);
+  EXPECT_NO_THROW(mrpt3.grow_train(k, trees_max, depth_max, depth_min, -1));
+  EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
   EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, depth_max, depth_min, trees_max));
   EXPECT_FALSE(mrpt2.empty());
+
+  Mrpt mrpt4(M2);
+  EXPECT_NO_THROW(mrpt4.grow_train(k, trees_max, depth_max, depth_min, trees_max));
+  EXPECT_FALSE(mrpt4.empty());
 }
 
 // Test that the autotuning throws an out-of-range exception if density is
@@ -1146,16 +1203,35 @@ TEST_F(MrptTest, AutotuningDensityThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, 1.1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, -0.001), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, -1.001), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, 1.1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
   EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, -1.0));
   EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt4(M2);
+  EXPECT_NO_THROW(mrpt4.grow_train(k, trees_max, depth_max, depth_min, votes_max, -1.0));
+  EXPECT_FALSE(mrpt4.empty());
 
   Mrpt mrpt2(M2);
   EXPECT_NO_THROW(mrpt2.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, 1.0));
   EXPECT_FALSE(mrpt2.empty());
 
+  Mrpt mrpt5(M2);
+  EXPECT_NO_THROW(mrpt5.grow_train(k, trees_max, depth_max, depth_min, votes_max, 1.0));
+  EXPECT_FALSE(mrpt5.empty());
+
   Mrpt mrpt3(M2);
   EXPECT_NO_THROW(mrpt3.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, 0.001));
   EXPECT_FALSE(mrpt3.empty());
+
+  Mrpt mrpt6(M2);
+  EXPECT_NO_THROW(mrpt6.grow_train(k, trees_max, depth_max, depth_min, votes_max, 0.001));
+  EXPECT_FALSE(mrpt6.empty());
 }
 
 
@@ -1182,12 +1258,29 @@ TEST_F(MrptTest, AutotuningTargetRecallThrows) {
   Mrpt mrpt(M2);
 
   EXPECT_THROW(mrpt.grow(-0.01, test_queries, k), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
   EXPECT_THROW(mrpt.grow(1.01, test_queries, k), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
+  EXPECT_THROW(mrpt.grow_train(-0.01, k), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(1.01, k), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
 
   EXPECT_NO_THROW(mrpt.grow(0, test_queries, k));
+  EXPECT_FALSE(mrpt.empty());
+
+  Mrpt mrpt3(M2);
+  EXPECT_NO_THROW(mrpt3.grow_train(0.0, k));
+  EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
-  EXPECT_NO_THROW(mrpt2.grow(1, test_queries, k));
+  EXPECT_NO_THROW(mrpt2.grow(1.0, test_queries, k));
+  EXPECT_FALSE(mrpt2.empty());
+
+  Mrpt mrpt4(M2);
+  EXPECT_NO_THROW(mrpt4.grow_train(1, k));
+  EXPECT_FALSE(mrpt4.empty());
 }
 
 // Test that the function that prunes the autotuned index throws an
@@ -1203,8 +1296,27 @@ TEST_F(MrptTest, PruningTargetRecallThrows) {
   EXPECT_NO_THROW(prune(mrpt, 0));
 
   Mrpt mrpt2(M2);
+  mrpt2.grow(test_queries, k);
   EXPECT_NO_THROW(prune(mrpt2, 1));
 }
+
+// Test that the function that prunes the autotuned (built without test queries)
+// index throws an exception if the target recall level is not on the interval [0,1].
+TEST_F(MrptTest, PruningTargetRecallTrainingSetThrows) {
+  int k = 5;
+  Mrpt mrpt(M2);
+  mrpt.grow_train(k);
+
+  EXPECT_THROW(prune(mrpt, -0.01), std::out_of_range);
+  EXPECT_THROW(prune(mrpt, 1.01), std::out_of_range);
+
+  EXPECT_NO_THROW(prune(mrpt, 0));
+
+  Mrpt mrpt2(M2);
+  mrpt2.grow_train(k);
+  EXPECT_NO_THROW(prune(mrpt2, 1));
+}
+
 
 
 // Test that the function that subsets a new index fromt the autotuned index
@@ -1221,10 +1333,42 @@ TEST_F(MrptTest, SubsettingTargetRecallThrows) {
   EXPECT_NO_THROW(Mrpt mrpt_new(mrpt.subset(0)));
 
   Mrpt mrpt_new2(M2);
-  EXPECT_NO_THROW(Mrpt mrpt_new(mrpt.subset(1)));
+  EXPECT_NO_THROW(Mrpt mrpt_new2(mrpt.subset(1)));
 }
 
+// Test that the function that subsets a new index fromt the autotuned index
+// throws an out-of-range exception if the target recall level is not
+// on the interval [0,1].
+TEST_F(MrptTest, SubsettingTargetRecallTrainingSetThrows) {
+  int k = 5;
+  Mrpt mrpt(M2);
+  mrpt.grow_train(k);
 
+  EXPECT_THROW(mrpt.subset(-0.01), std::out_of_range);
+  EXPECT_THROW(mrpt.subset(1.01), std::out_of_range);
+
+  EXPECT_NO_THROW(Mrpt mrpt_new(mrpt.subset(0)));
+
+  Mrpt mrpt_new2(M2);
+  EXPECT_NO_THROW(Mrpt mrpt_new2(mrpt.subset(1)));
+}
+
+// Test that the autotuning grow function throws an exception if a test set
+// size is non-positive (but larger than data set size is OK; in this case
+// test set size is set to data set size).
+TEST_F(MrptTest, AutotuningTrainingSetTestSetSizeThrows) {
+  int trees_max = 8, depth_max = 6, depth_min = 4, votes_max = trees_max - 1, k = 5, seed = 12345;
+  float density = 1.0 / std::sqrt(d);
+
+  Mrpt mrpt(M2);
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed, -1), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed, 0), std::out_of_range);
+  EXPECT_TRUE(mrpt.empty());
+
+  EXPECT_NO_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed, n2 + 1));
+  EXPECT_FALSE(mrpt.empty());
+}
 
 // Test that when the index is not yet built, the parameter getter returns
 // default values for the parameters and the estimated query time and the
@@ -1277,6 +1421,16 @@ TEST_F(MrptTest, AutotunedOptimalParameterGetterThrows) {
 }
 
 // Test that the getter for the list of optimal parameters throws a
+// logic expection when called on an index which is autotuned to the
+// target recall level.
+TEST_F(MrptTest, AutotunedOptimalParameterTrainingSetGetterThrows) {
+  Mrpt mrpt(M2);
+  mrpt.grow_train(0.2, 5);
+  EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
+}
+
+
+// Test that the getter for the list of optimal parameters throws a
 // logic expection when called on an index which is autotuned , but also
 // already pruned to the target recall level.
 TEST_F(MrptTest, PrunedOptimalParameterGetterThrows) {
@@ -1285,6 +1439,17 @@ TEST_F(MrptTest, PrunedOptimalParameterGetterThrows) {
   prune(mrpt, 0.2);
   EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
 }
+
+// Test that the getter for the list of optimal parameters throws a
+// logic expection when called on an index which is autotuned , but also
+// already pruned to the target recall level.
+TEST_F(MrptTest, PrunedOptimalParameterGetterTrainingSetThrows) {
+  Mrpt mrpt(M2);
+  mrpt.grow_train(5);
+  prune(mrpt, 0.2);
+  EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
+}
+
 
 // Test that the getter for the list of optimal parameters throws a
 // logic expection when called on an index which is subsetted from
