@@ -172,6 +172,37 @@ class MrptTest : public testing::Test {
   }
 
 
+  void trainingSetAutotuningTester(double target_recall, float density, int trees_max) {
+    omp_set_num_threads(1);
+    int depth_max = 6, depth_min = 4, votes_max = trees_max - 1, k = 5;
+    int n_test = 100;
+
+    Mrpt mrpt(X2);
+    MatrixXf Q_self(mrpt.subset(mrpt.sample_indices(n_test, seed_mrpt)));
+    MatrixXi exact = computeExactNeighbors(Q_self, X2);
+
+    mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
+    Mrpt mrpt1(mrpt.subset(target_recall));
+    mrpt1.k = k + 1;
+    mrpt1.par.k = k + 1;
+    Mrpt mrpt2(mrpt.subset(target_recall));
+    mrpt2.k = k + 1;
+    mrpt2.par.k = k + 1;
+    mrpt.prune(target_recall);
+    mrpt.k = k + 1;
+    mrpt.par.k = k + 1;
+
+    std::vector<std::vector<int>> res1 = autotuningQuery(mrpt1, Q_self);
+    std::vector<std::vector<int>> res2 = autotuningQuery(mrpt2, Q_self);
+    std::vector<std::vector<int>> res3 = autotuningQuery(mrpt, Q_self);
+
+    EXPECT_EQ(res1, res2);
+    EXPECT_EQ(res1, res3);
+    EXPECT_FLOAT_EQ(((mrpt1.parameters().estimated_recall * k) + 1) / (k + 1), getRecall(res1, exact));
+  }
+
+
   void defaultArgumentTester(int k) {
     omp_set_num_threads(1);
 
@@ -411,6 +442,16 @@ class MrptTest : public testing::Test {
   }
 
   std::vector<std::vector<int>> autotuningQuery(const Mrpt &mrpt) {
+    std::vector<std::vector<int>> res;
+    for(int i = 0; i < n_test; ++i) {
+      std::vector<int> result(mrpt.parameters().k);
+      mrpt.query(Map<const VectorXf>(Q.data() + i * d, d), &result[0]);
+      res.push_back(result);
+    }
+    return res;
+  }
+
+  std::vector<std::vector<int>> autotuningQuery(const Mrpt &mrpt, const MatrixXf &Q) {
     std::vector<std::vector<int>> res;
     for(int i = 0; i < n_test; ++i) {
       std::vector<int> result(mrpt.parameters().k);
@@ -849,6 +890,28 @@ TEST_F(MrptTest, Autotuning) {
   autotuningTester(0.2, 1.0, tmax);
   autotuningTester(0.2, 1.0 / std::sqrt(d), 7);
 }
+
+// Test that:
+// a) When subsetting the index from the original autotuning index and
+// and using the validation set of autotuning as a test set, the
+// recall level is exactly the estimated recall level.
+// b) When subsetting a second index from the same autotuning index with
+// the same target recall, the recall level stays the same.
+// c) When deleting the trees of the original index with the same recall level
+// as the subsetted index, the recall level stays the same
+TEST_F(MrptTest, TrainingSetAutotuning) {
+  int trees_max = 10;
+  trainingSetAutotuningTester(0.2, 1.0 / std::sqrt(d), trees_max);
+  trainingSetAutotuningTester(0.4, 1.0, trees_max);
+
+  trainingSetAutotuningTester(0.2, 1.0, trees_max);
+  trainingSetAutotuningTester(0.4, 1.0 / std::sqrt(d), trees_max);
+
+  int tmax = 7;
+  trainingSetAutotuningTester(0.2, 1.0, tmax);
+  trainingSetAutotuningTester(0.2, 1.0 / std::sqrt(d), 7);
+}
+
 
 // Test that the calling autotuning with default values for the parameters
 // gives the index with the expected parameters
