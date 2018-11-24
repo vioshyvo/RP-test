@@ -24,6 +24,16 @@
 #include "common.h"
 
 
+void printParameters(const Mrpt_Parameters &op) {
+  std::cerr << "n_trees:                      " << op.n_trees << "\n";
+  std::cerr << "depth:                        " << op.depth << "\n";
+  std::cerr << "votes:                        " << op.votes << "\n";
+  std::cerr << "k:                            " << op.k << "\n";
+  std::cerr << "estimated query time:         " << op.estimated_qtime * 1000.0 << " ms.\n";
+  std::cerr << "estimated recall:             " << op.estimated_recall << "\n";
+}
+
+
 using namespace Eigen;
 
 int main(int argc, char **argv) {
@@ -93,10 +103,15 @@ int main(int argc, char **argv) {
       mrpt.grow_train(k);
       double build_end = omp_get_wtime();
 
-      std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
-      for(const auto &par : pars) {
+      // std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
+      //for(const auto &par : pars) {
 
-        Mrpt mrpt_new(mrpt.subset(par.estimated_recall));
+      std::vector<double> target_recalls {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.825, 0.85, 0.875, 0.9, 0.91, 0.92,
+                                          0.93, 0.94, 0.95, 0.955, 0.96, 0.965, 0.97, 0.975, 0.98, 0.985, 0.99, 0.9925, 0.995, 0.9975};
+      for(const auto &tr : target_recalls) {
+        // Mrpt mrpt_new(mrpt.subset(par.estimated_recall));
+        Mrpt mrpt_new(mrpt.subset(tr));
+        Mrpt_Parameters par(mrpt_new.parameters());
 
         if(mrpt_new.empty()) {
           continue;
@@ -124,8 +139,9 @@ int main(int argc, char **argv) {
         results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
         std::cout << build_end - build_start << std::endl;
 
+        // printParameters(par);
+        // std::cerr << std::endl;
       }
-
     }
 
 
