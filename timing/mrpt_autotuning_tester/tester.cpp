@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
       Mrpt mrpt(M);
       // mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
       // mrpt.grow(test_queries, k);
-      mrpt.grow_train(k);
+      mrpt.grow_autotune(k);
       double build_end = omp_get_wtime();
 
       // std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();

@@ -140,7 +140,7 @@ class MrptTest : public testing::Test {
     omp_set_num_threads(1);
 
     Mrpt mrpt(M);
-    mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt, n_test);
+    mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt, n_test);
 
     Mrpt index_normal(M);
     index_normal.grow(trees_max, depth_max, density, seed_mrpt);
@@ -181,7 +181,7 @@ class MrptTest : public testing::Test {
     MatrixXf Q_self(mrpt.subset(mrpt.sample_indices(n_test, seed_mrpt)));
     MatrixXi exact = computeExactNeighbors(Q_self, X2);
 
-    mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+    mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
 
     Mrpt mrpt1(mrpt.subset(target_recall));
     mrpt1.k = k + 1;
@@ -1063,18 +1063,18 @@ TEST_F(MrptTest, AutotuningKThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, n2 + 1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
-  EXPECT_THROW(mrpt.grow_train(-1), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(-1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(0), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(0), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(n2 + 1), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(n2 + 1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
   EXPECT_NO_THROW(mrpt.grow(test_queries, 1));
   EXPECT_FALSE(mrpt.empty());
 
   Mrpt mrpt3(M2);
-  EXPECT_NO_THROW(mrpt3.grow_train(1));
+  EXPECT_NO_THROW(mrpt3.grow_autotune(1));
   EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
@@ -1082,7 +1082,7 @@ TEST_F(MrptTest, AutotuningKThrows) {
   EXPECT_FALSE(mrpt2.empty());
 
   Mrpt mrpt4(M2);
-  EXPECT_NO_THROW(mrpt4.grow_train(n2));
+  EXPECT_NO_THROW(mrpt4.grow_autotune(n2));
   EXPECT_FALSE(mrpt4.empty());
 }
 
@@ -1099,18 +1099,18 @@ TEST_F(MrptTest, AutotuningDepthmaxThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, 8), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, -2), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, -2), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, 0), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, 0), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, 8), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, 8), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
   EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, -1));
   EXPECT_FALSE(mrpt.empty());
 
   Mrpt mrpt3(M2);
-  EXPECT_NO_THROW(mrpt3.grow_train(k, trees_max, -1));
+  EXPECT_NO_THROW(mrpt3.grow_autotune(k, trees_max, -1));
   EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
@@ -1118,7 +1118,7 @@ TEST_F(MrptTest, AutotuningDepthmaxThrows) {
   EXPECT_FALSE(mrpt2.empty());
 
   Mrpt mrpt4(M2);
-  EXPECT_NO_THROW(mrpt4.grow_train(k, trees_max, std::log2(n2)));
+  EXPECT_NO_THROW(mrpt4.grow_autotune(k, trees_max, std::log2(n2)));
   EXPECT_FALSE(mrpt4.empty());
 }
 
@@ -1135,18 +1135,18 @@ TEST_F(MrptTest, AutotuningDepthminThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, 7), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, -2), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, -2), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, 0), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, 0), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, 7), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, 7), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
   EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, -1));
   EXPECT_FALSE(mrpt.empty());
 
   Mrpt mrpt3(M2);
-  EXPECT_NO_THROW(mrpt3.grow_train(k, trees_max, depth_max, -1));
+  EXPECT_NO_THROW(mrpt3.grow_autotune(k, trees_max, depth_max, -1));
   EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
@@ -1167,18 +1167,18 @@ TEST_F(MrptTest, AutotuningVotesmaxThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, trees_max + 1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, -2), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, -2), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, 0), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, 0), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, trees_max + 1), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, trees_max + 1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
   EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, -1));
   EXPECT_FALSE(mrpt.empty());
 
   Mrpt mrpt3(M2);
-  EXPECT_NO_THROW(mrpt3.grow_train(k, trees_max, depth_max, depth_min, -1));
+  EXPECT_NO_THROW(mrpt3.grow_autotune(k, trees_max, depth_max, depth_min, -1));
   EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
@@ -1186,7 +1186,7 @@ TEST_F(MrptTest, AutotuningVotesmaxThrows) {
   EXPECT_FALSE(mrpt2.empty());
 
   Mrpt mrpt4(M2);
-  EXPECT_NO_THROW(mrpt4.grow_train(k, trees_max, depth_max, depth_min, trees_max));
+  EXPECT_NO_THROW(mrpt4.grow_autotune(k, trees_max, depth_max, depth_min, trees_max));
   EXPECT_FALSE(mrpt4.empty());
 }
 
@@ -1203,18 +1203,18 @@ TEST_F(MrptTest, AutotuningDensityThrows) {
   EXPECT_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, 1.1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, -0.001), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, -0.001), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, -1.001), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, -1.001), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, 1.1), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, 1.1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
   EXPECT_NO_THROW(mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, -1.0));
   EXPECT_FALSE(mrpt.empty());
 
   Mrpt mrpt4(M2);
-  EXPECT_NO_THROW(mrpt4.grow_train(k, trees_max, depth_max, depth_min, votes_max, -1.0));
+  EXPECT_NO_THROW(mrpt4.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, -1.0));
   EXPECT_FALSE(mrpt4.empty());
 
   Mrpt mrpt2(M2);
@@ -1222,7 +1222,7 @@ TEST_F(MrptTest, AutotuningDensityThrows) {
   EXPECT_FALSE(mrpt2.empty());
 
   Mrpt mrpt5(M2);
-  EXPECT_NO_THROW(mrpt5.grow_train(k, trees_max, depth_max, depth_min, votes_max, 1.0));
+  EXPECT_NO_THROW(mrpt5.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, 1.0));
   EXPECT_FALSE(mrpt5.empty());
 
   Mrpt mrpt3(M2);
@@ -1230,7 +1230,7 @@ TEST_F(MrptTest, AutotuningDensityThrows) {
   EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt6(M2);
-  EXPECT_NO_THROW(mrpt6.grow_train(k, trees_max, depth_max, depth_min, votes_max, 0.001));
+  EXPECT_NO_THROW(mrpt6.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, 0.001));
   EXPECT_FALSE(mrpt6.empty());
 }
 
@@ -1262,16 +1262,16 @@ TEST_F(MrptTest, AutotuningTargetRecallThrows) {
   EXPECT_THROW(mrpt.grow(1.01, test_queries, k), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
-  EXPECT_THROW(mrpt.grow_train(-0.01, k), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(-0.01, k), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(1.01, k), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(1.01, k), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
   EXPECT_NO_THROW(mrpt.grow(0, test_queries, k));
   EXPECT_FALSE(mrpt.empty());
 
   Mrpt mrpt3(M2);
-  EXPECT_NO_THROW(mrpt3.grow_train(0.0, k));
+  EXPECT_NO_THROW(mrpt3.grow_autotune(0.0, k));
   EXPECT_FALSE(mrpt3.empty());
 
   Mrpt mrpt2(M2);
@@ -1279,7 +1279,7 @@ TEST_F(MrptTest, AutotuningTargetRecallThrows) {
   EXPECT_FALSE(mrpt2.empty());
 
   Mrpt mrpt4(M2);
-  EXPECT_NO_THROW(mrpt4.grow_train(1, k));
+  EXPECT_NO_THROW(mrpt4.grow_autotune(1, k));
   EXPECT_FALSE(mrpt4.empty());
 }
 
@@ -1305,7 +1305,7 @@ TEST_F(MrptTest, PruningTargetRecallThrows) {
 TEST_F(MrptTest, PruningTargetRecallTrainingSetThrows) {
   int k = 5;
   Mrpt mrpt(M2);
-  mrpt.grow_train(k);
+  mrpt.grow_autotune(k);
 
   EXPECT_THROW(prune(mrpt, -0.01), std::out_of_range);
   EXPECT_THROW(prune(mrpt, 1.01), std::out_of_range);
@@ -1313,7 +1313,7 @@ TEST_F(MrptTest, PruningTargetRecallTrainingSetThrows) {
   EXPECT_NO_THROW(prune(mrpt, 0));
 
   Mrpt mrpt2(M2);
-  mrpt2.grow_train(k);
+  mrpt2.grow_autotune(k);
   EXPECT_NO_THROW(prune(mrpt2, 1));
 }
 
@@ -1342,7 +1342,7 @@ TEST_F(MrptTest, SubsettingTargetRecallThrows) {
 TEST_F(MrptTest, SubsettingTargetRecallTrainingSetThrows) {
   int k = 5;
   Mrpt mrpt(M2);
-  mrpt.grow_train(k);
+  mrpt.grow_autotune(k);
 
   EXPECT_THROW(mrpt.subset(-0.01), std::out_of_range);
   EXPECT_THROW(mrpt.subset(1.01), std::out_of_range);
@@ -1361,12 +1361,12 @@ TEST_F(MrptTest, AutotuningTrainingSetTestSetSizeThrows) {
   float density = 1.0 / std::sqrt(d);
 
   Mrpt mrpt(M2);
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed, -1), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed, -1), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
-  EXPECT_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed, 0), std::out_of_range);
+  EXPECT_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed, 0), std::out_of_range);
   EXPECT_TRUE(mrpt.empty());
 
-  EXPECT_NO_THROW(mrpt.grow_train(k, trees_max, depth_max, depth_min, votes_max, density, seed, n2 + 1));
+  EXPECT_NO_THROW(mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed, n2 + 1));
   EXPECT_FALSE(mrpt.empty());
 }
 
@@ -1425,7 +1425,7 @@ TEST_F(MrptTest, AutotunedOptimalParameterGetterThrows) {
 // target recall level.
 TEST_F(MrptTest, AutotunedOptimalParameterTrainingSetGetterThrows) {
   Mrpt mrpt(M2);
-  mrpt.grow_train(0.2, 5);
+  mrpt.grow_autotune(0.2, 5);
   EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
 }
 
@@ -1445,7 +1445,7 @@ TEST_F(MrptTest, PrunedOptimalParameterGetterThrows) {
 // already pruned to the target recall level.
 TEST_F(MrptTest, PrunedOptimalParameterGetterTrainingSetThrows) {
   Mrpt mrpt(M2);
-  mrpt.grow_train(5);
+  mrpt.grow_autotune(5);
   prune(mrpt, 0.2);
   EXPECT_THROW(mrpt.optimal_parameters(), std::logic_error);
 }
