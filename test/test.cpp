@@ -650,6 +650,19 @@ class MrptTest : public testing::Test {
         ASSERT_FLOAT_EQ(X2(j, indices[i]), Q(j, i));
   }
 
+  int n_samples(const Mrpt &mrpt) {
+    return mrpt.n_samples;
+  }
+
+  int dim(const Mrpt &mrpt) {
+    return mrpt.dim;
+  }
+
+  void expect_equal(const Mrpt &mrpt1, const Mrpt &mrpt2) {
+    EXPECT_EQ(n_samples(mrpt1), n_samples(mrpt2));
+    EXPECT_EQ(dim(mrpt1), dim(mrpt2));
+    EXPECT_EQ(mrpt1.X.data(), mrpt2.X.data());
+  }
 
   int d, n, n2, n_test, seed_data, seed_mrpt;
   double epsilon = 0.001; // error bound for floating point comparisons of recall
@@ -1998,6 +2011,20 @@ TEST_F(MrptTest, NormalGrowingSecondTimeThrows) {
   EXPECT_THROW(mrpt.grow(target_recall, Q.data(), n_test, k), std::logic_error);
   EXPECT_THROW(mrpt.grow(Q, n_trees, depth), std::logic_error);
   EXPECT_THROW(mrpt.grow(Q.data(), n_trees, depth), std::logic_error);
+}
+
+// Test that copy constructor and copy assignment of Mrpt object work.
+TEST_F(MrptTest, CopyControl) {
+  Mrpt mrpt(X2);
+  Mrpt mrpt2(mrpt);
+  Mrpt mrpt3 = mrpt2;
+
+  Mrpt mrpt4(X);
+  mrpt4 = mrpt;
+
+  expect_equal(mrpt, mrpt2);
+  expect_equal(mrpt, mrpt3);
+  expect_equal(mrpt, mrpt4);
 }
 
 
