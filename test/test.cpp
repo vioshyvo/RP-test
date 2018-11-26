@@ -218,7 +218,7 @@ class MrptTest : public testing::Test {
     EXPECT_FLOAT_EQ(mrpt.density, density);
   }
 
-  void testParameters(const Mrpt_Parameters &par, const Mrpt_Parameters &par2) {
+  void expect_equal(const Mrpt_Parameters &par, const Mrpt_Parameters &par2) {
     EXPECT_EQ(par.n_trees, par2.n_trees);
     EXPECT_EQ(par.depth, par2.depth);
     EXPECT_EQ(par.votes, par2.votes);
@@ -230,7 +230,7 @@ class MrptTest : public testing::Test {
   void testOptimalParameters(const std::vector<Mrpt_Parameters> &pars, const std::vector<Mrpt_Parameters> &pars2) {
     ASSERT_EQ(pars.size(), pars2.size());
     for(auto it = pars.begin(), it2 = pars2.begin(); it != pars.end(); ++it, ++it2)
-      testParameters(*it, *it2);
+      expect_equal(*it, *it2);
   }
 
   void saveTester(int n_trees, int depth, float density, int seed_mrpt) {
@@ -258,7 +258,7 @@ class MrptTest : public testing::Test {
     splitPointsEqual(mrpt, mrpt_reloaded);
     leavesEqual(mrpt, mrpt_reloaded);
     normalQueryEquals(mrpt, mrpt_reloaded, 5, 1);
-    testParameters(mrpt.parameters(), mrpt_reloaded.parameters());
+    expect_equal(mrpt.parameters(), mrpt_reloaded.parameters());
     testOptimalParameters(mrpt.optimal_parameters(), mrpt_reloaded.optimal_parameters());
   }
 
@@ -274,7 +274,7 @@ class MrptTest : public testing::Test {
     splitPointsEqual(mrpt, mrpt_reloaded);
     leavesEqual(mrpt, mrpt_reloaded);
     normalQueryEquals(mrpt, mrpt_reloaded, 5, 1);
-    testParameters(mrpt.parameters(), mrpt_reloaded.parameters());
+    expect_equal(mrpt.parameters(), mrpt_reloaded.parameters());
   }
 
 
@@ -662,6 +662,47 @@ class MrptTest : public testing::Test {
     EXPECT_EQ(n_samples(mrpt1), n_samples(mrpt2));
     EXPECT_EQ(dim(mrpt1), dim(mrpt2));
     EXPECT_EQ(mrpt1.X.data(), mrpt2.X.data());
+
+    ASSERT_EQ(mrpt1.split_points.size(), mrpt2.split_points.size());
+    for(int i = 0; i < mrpt1.split_points.size(); ++i)
+      ASSERT_FLOAT_EQ(mrpt1.split_points(i), mrpt2.split_points(i));
+
+    ASSERT_EQ(mrpt1.tree_leaves.size(), mrpt2.tree_leaves.size());
+    for(int i = 0; i < mrpt1.tree_leaves.size(); ++i)
+      ASSERT_EQ(mrpt1.tree_leaves[i], mrpt2.tree_leaves[i]);
+
+    ASSERT_FLOAT_EQ(mrpt1.density, mrpt2.density);
+    if(mrpt1.density < 1.0) {
+      ASSERT_FLOAT_EQ(mrpt1.sparse_random_matrix.cols(), mrpt2.sparse_random_matrix.cols());
+      ASSERT_FLOAT_EQ(mrpt1.sparse_random_matrix.rows(), mrpt2.sparse_random_matrix.rows());
+      for(int i = 0; i < mrpt1.sparse_random_matrix.outerSize(); ++i)
+        for(Eigen::SparseMatrix<float, Eigen::RowMajor>::InnerIterator it(mrpt1.sparse_random_matrix, i), it2(mrpt2.sparse_random_matrix, i); it && it2; ++it, ++it2)
+          ASSERT_FLOAT_EQ(it.value(), it2.value());
+    } else {
+      ASSERT_FLOAT_EQ(mrpt1.dense_random_matrix.cols(), mrpt2.dense_random_matrix.cols());
+      ASSERT_FLOAT_EQ(mrpt1.dense_random_matrix.rows(), mrpt2.dense_random_matrix.rows());
+      for(int i = 0; i < mrpt1.dense_random_matrix.rows(); ++i)
+        for(int j = 0; j < mrpt1.dense_random_matrix.rows(); ++j)
+          ASSERT_FLOAT_EQ(mrpt1.dense_random_matrix(i, j), mrpt2.dense_random_matrix(i, j));
+    }
+
+    ASSERT_EQ(mrpt1.leaf_first_indices_all.size(), mrpt2.leaf_first_indices_all.size());
+    for(int i = 0; i < mrpt1.leaf_first_indices_all.size(); ++i)
+      ASSERT_EQ(mrpt1.leaf_first_indices_all[i], mrpt2.leaf_first_indices_all[i]);
+
+    ASSERT_EQ(mrpt1.leaf_first_indices, mrpt2.leaf_first_indices);
+    expect_equal(mrpt1.par, mrpt2.par);
+
+    EXPECT_EQ(mrpt1.n_trees, mrpt2.n_trees);
+    EXPECT_EQ(mrpt1.depth, mrpt2.depth);
+    EXPECT_EQ(mrpt1.n_pool, mrpt2.n_pool);
+    EXPECT_EQ(mrpt1.n_array, mrpt2.n_array);
+    EXPECT_EQ(mrpt1.votes, mrpt2.votes);
+    EXPECT_EQ(mrpt1.k, mrpt2.k);
+    EXPECT_EQ(mrpt1.index_type, mrpt2.index_type);
+
+    EXPECT_EQ(mrpt1.depth_min, mrpt2.depth_min);
+    EXPECT_EQ(mrpt1.votes_max, mrpt2.votes_max);
   }
 
   int d, n, n2, n_test, seed_data, seed_mrpt;
@@ -1388,7 +1429,7 @@ TEST_F(MrptTest, AutotuningTrainingSetTestSetSizeThrows) {
 // estimated recall.
 TEST_F(MrptTest, ParameterGetterEmptyIndex) {
   Mrpt mrpt(M2);
-  testParameters(mrpt.parameters(), Mrpt_Parameters());
+  expect_equal(mrpt.parameters(), Mrpt_Parameters());
 }
 
 // Test that when the index is not autotuned, the getter for parameters returns
@@ -1398,7 +1439,7 @@ TEST_F(MrptTest, ParameterGetter) {
   Mrpt mrpt(M2);
   int n_trees = 10, depth = 6;
   mrpt.grow(n_trees, depth);
-  testParameters(mrpt.parameters(), {n_trees, depth, 0, 0, 0.0, 0.0});
+  expect_equal(mrpt.parameters(), {n_trees, depth, 0, 0, 0.0, 0.0});
 }
 
 // Test that when the index is autotuned, but the target recall level
@@ -1409,7 +1450,7 @@ TEST_F(MrptTest, ParameterGetterAutotuning) {
   Mrpt mrpt(M2);
   int k = 5, trees_max = 8, depth_max = 7;
   mrpt.grow(test_queries, k, trees_max, depth_max);
-  testParameters(mrpt.parameters(), {trees_max, depth_max, k, 0, 0.0, 0.0});
+  expect_equal(mrpt.parameters(), {trees_max, depth_max, k, 0, 0.0, 0.0});
 }
 
 // Test that the getter for the list of optimal parameters throws a
@@ -2013,8 +2054,9 @@ TEST_F(MrptTest, NormalGrowingSecondTimeThrows) {
   EXPECT_THROW(mrpt.grow(Q.data(), n_trees, depth), std::logic_error);
 }
 
-// Test that copy constructor and copy assignment of Mrpt object work.
-TEST_F(MrptTest, CopyControl) {
+// Test that copy constructor and copy assignment of Mrpt object workf for
+// empty indices.
+TEST_F(MrptTest, EmptyIndexCopyControl) {
   Mrpt mrpt(X2);
   Mrpt mrpt2(mrpt);
   Mrpt mrpt3 = mrpt2;
@@ -2025,6 +2067,32 @@ TEST_F(MrptTest, CopyControl) {
   expect_equal(mrpt, mrpt2);
   expect_equal(mrpt, mrpt3);
   expect_equal(mrpt, mrpt4);
+}
+
+// Test that copy constructor works for Mrpt object with normal index.
+TEST_F(MrptTest, NormalIndexCopyConstructor) {
+  int n_trees = 10, depth = 5, k = 1, v = 1;
+  Mrpt mrpt(X2);
+  mrpt.grow(n_trees, depth);
+
+  Mrpt mrpt2(mrpt);
+
+  normalQueryEquals(mrpt, mrpt2, k, v);
+  expect_equal(mrpt, mrpt2);
+}
+
+
+// Test that copy assignment operator works for Mrpt object with normal index.
+TEST_F(MrptTest, NormalIndexCopyAssignment) {
+  int n_trees = 10, depth = 5, k = 5, v = 2;
+  Mrpt mrpt(X2);
+  mrpt.grow(n_trees, depth);
+
+  Mrpt mrpt2(X);
+  mrpt2 = mrpt;
+
+  normalQueryEquals(mrpt, mrpt2, k, v);
+  expect_equal(mrpt, mrpt2);
 }
 
 
