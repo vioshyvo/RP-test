@@ -2078,6 +2078,36 @@ TEST_F(MrptTest, NormalIndexCopyConstructor) {
   Mrpt mrpt2(mrpt);
 
   normalQueryEquals(mrpt, mrpt2, k, v);
+  expect_equal(mrpt.parameters(), mrpt2.parameters());
+  expect_equal(mrpt, mrpt2);
+}
+
+// Test that copy constructor works for Mrpt object with autotuned index.
+TEST_F(MrptTest, AutotuningCopyConstuctor) {
+  int k = 5;
+  double target_recall = 0.4;
+  Mrpt mrpt(X2);
+  mrpt.grow_autotune(k);
+
+  Mrpt mrpt2(mrpt);
+
+  autotuningQueryEquals(mrpt, mrpt2, target_recall);
+  expect_equal(mrpt.parameters(), mrpt2.parameters());
+  expect_equal(mrpt, mrpt2);
+}
+
+// Test that copy constructor works for Mrpt object with index that is
+// autotuned to a preset recall level.
+TEST_F(MrptTest, AutotuningTargetRecallCopyConstuctor) {
+  int k = 5;
+  double target_recall = 0.4;
+  Mrpt mrpt(X2);
+  mrpt.grow_autotune(target_recall, k);
+
+  Mrpt mrpt2(mrpt);
+
+  autotuningQueryEquals(mrpt, mrpt2);
+  expect_equal(mrpt.parameters(), mrpt2.parameters());
   expect_equal(mrpt, mrpt2);
 }
 
@@ -2092,7 +2122,41 @@ TEST_F(MrptTest, NormalIndexCopyAssignment) {
   mrpt2 = mrpt;
 
   normalQueryEquals(mrpt, mrpt2, k, v);
+  expect_equal(mrpt.parameters(), mrpt2.parameters());
   expect_equal(mrpt, mrpt2);
+}
+
+// Test that copy assignment operator works for Mrpt object with autotuned index.
+TEST_F(MrptTest, AutotuningCopyAssignment) {
+  int trees_max = 8, depth_max = 6, depth_min = 4, k = 5;
+  double target_recall = 0.2;
+
+  Mrpt mrpt(X);
+  mrpt.grow_autotune(k, trees_max, depth_max, depth_min);
+
+  Mrpt mrpt2(X2);
+  mrpt2 = mrpt;
+
+  autotuningQueryEquals(mrpt, mrpt2, target_recall);
+  expect_equal(mrpt.parameters(), mrpt2.parameters());
+  expect_equal(mrpt, mrpt2);
+}
+
+// Test that copy assignment operator works for Mrpt object with index
+// autotuned to a preset recall level.
+TEST_F(MrptTest, AutotuningTargetRecallCopyAssignment) {
+  int trees_max = 8, depth_max = 6, depth_min = 4, k = 5;
+  double target_recall = 0.2;
+
+  Mrpt mrpt(X);
+  mrpt.grow_autotune(target_recall, k, trees_max, depth_max, depth_min);
+
+  Mrpt mrpt2(X2);
+  mrpt2 = mrpt;
+
+  expect_equal(mrpt, mrpt2);
+  expect_equal(mrpt.parameters(), mrpt2.parameters());
+  autotuningQueryEquals(mrpt, mrpt2);
 }
 
 
