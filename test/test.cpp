@@ -257,7 +257,7 @@ class MrptTest : public testing::Test {
 
     splitPointsEqual(mrpt, mrpt_reloaded);
     leavesEqual(mrpt, mrpt_reloaded);
-    normalQueryEquals(mrpt, mrpt_reloaded, 5, 1);
+    autotuningQueryEquals(mrpt, mrpt_reloaded, 0.4);
     expect_equal(mrpt.parameters(), mrpt_reloaded.parameters());
     testOptimalParameters(mrpt.optimal_parameters(), mrpt_reloaded.optimal_parameters());
   }
@@ -274,6 +274,7 @@ class MrptTest : public testing::Test {
     splitPointsEqual(mrpt, mrpt_reloaded);
     leavesEqual(mrpt, mrpt_reloaded);
     normalQueryEquals(mrpt, mrpt_reloaded, 5, 1);
+    autotuningQueryEquals(mrpt, mrpt_reloaded);
     expect_equal(mrpt.parameters(), mrpt_reloaded.parameters());
   }
 
