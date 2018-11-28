@@ -20,3 +20,8 @@ test/save
 test/mrpt_saved
 *.gcc*
 *.gch
+*.bvecs
+*.ivecs
+*.fvecs
+*.gz
+timing/sift
