@@ -62,3 +62,33 @@ if [ ! -f "$SIFT_DIR/data.bin" ]; then
     echo N_TEST="$TEST_N" >> "$SIFT_DIM_FILE"
     echo DIM="$SIFT_DIM" >> "$SIFT_DIM_FILE"
 fi
+
+GIST_N=1000000
+GIST_DIM=960
+GIST_DIR="$DATA_DIR/gist"
+
+
+if [ ! -f "$GIST_DIR/data.bin" ]; then
+    if [ ! -f  gist/gist_base.fvecs ]; then
+      mkdir -p data/gist
+      echo "Downloading GIST..."
+      wget "ftp://ftp.irisa.fr/local/texmex/corpus/gist.tar.gz" -O gist.tar.gz
+      echo "Extracting GIST..."
+      tar xzf gist.tar.gz
+    else
+      echo "GIST already downloaded, using cached version..."
+    echo "Converting GIST..."
+    python2 tools/binary_converter.py gist/gist_base.fvecs "$GIST_DIR/data.bin"
+    python2 tools/binary_converter.py --sample "$GIST_DIR/data.bin" "$GIST_DIR/train.bin" "$GIST_DIR/test.bin" $TEST_N 960
+    rm -r gist
+    if [ "$REMOVE_DOWNLOADED" = true ]; then
+        rm gist.tar.gz
+    fi
+
+    GIST_DIM_FILE="$GIST_DIR/dimensions.sh"
+    echo '#!/usr/bin/env bash' > "$GIST_DIM_FILE"
+    echo >> "$GIST_DIM_FILE"
+    echo N="$GIST_N" >> "$GIST_DIM_FILE"
+    echo N_TEST="$TEST_N" >> "$GIST_DIM_FILE"
+    echo DIM="$GIST_DIM" >> "$GIST_DIM_FILE"
+fi
