@@ -77,6 +77,7 @@ if [ ! -f "$GIST_DIR/data.bin" ]; then
       tar xzf gist.tar.gz
     else
       echo "GIST already downloaded, using cached version..."
+    fi
     echo "Converting GIST..."
     python2 tools/binary_converter.py gist/gist_base.fvecs "$GIST_DIR/data.bin"
     python2 tools/binary_converter.py --sample "$GIST_DIR/data.bin" "$GIST_DIR/train.bin" "$GIST_DIR/test.bin" $TEST_N 960
