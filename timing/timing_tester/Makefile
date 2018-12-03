@@ -1,4 +1,4 @@
-CXX=g++-8
+CXX=g++
 EIGEN_PATH=../../../mrpt/cpp/lib
 # MRPT_PATH=../../../mrpt-comparison/mrpt
 # MRPT_PATH=../../../mrpt/cpp

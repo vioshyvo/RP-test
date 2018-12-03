@@ -9,7 +9,7 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ville.o.hyvonen@helsinki.fi
 
-if[ $# -ne 1 ]; then
+if [ $# -ne 1 ]; then
   echo "Usage ./mnist-mrpt.sh <post-fix>"
   exit
 fi
