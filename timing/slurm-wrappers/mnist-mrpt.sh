@@ -16,5 +16,4 @@ fi
 module load GCCcore/7.3.0
 
 cd ..
-cd ann-benchmarks
 srun ./comparison.sh mnist "$1"
