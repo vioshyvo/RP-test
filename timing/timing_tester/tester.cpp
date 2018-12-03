@@ -68,7 +68,6 @@ int main(int argc, char **argv) {
     size_t n_points = n - n_test;
     bool verbose = false;
 
-
     /////////////////////////////////////////////////////////////////////////////////////////
     // test mrpt
     float *train, *test;
@@ -94,7 +93,16 @@ int main(int argc, char **argv) {
     const Map<const MatrixXf> test_queries(test, dim, n_test);
 
     if(!parallel) omp_set_num_threads(1);
-    std::cerr << "parallel: " << parallel << "\n\n\n";
+
+    std::cerr << std::endl;
+    std::cerr << "parallel: " << parallel << std::endl;
+    std::cerr << "trees_max: " << trees_max << std::endl;
+    std::cerr << "depth_min: " << depth_min << std::endl;
+    std::cerr << "depth_max: " << depth_max << std::endl;
+    std::cerr << "votes_max: " << votes_max << std::endl;
+    std::cerr << "density: " << density << std::endl;
+    std::cerr << std::endl;
+
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};
@@ -104,7 +112,8 @@ int main(int argc, char **argv) {
       int k = ks[j];
       double build_start = omp_get_wtime();
       Mrpt mrpt(M);
-      mrpt.grow(test_queries, k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+      mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+
       double build_end = omp_get_wtime();
 
       std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
