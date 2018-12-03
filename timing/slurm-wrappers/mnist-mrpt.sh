@@ -1,6 +1,7 @@
 #!/bin/bash
+#SBATCH --workdir=/wrk/hyvi/RP-test/timing
 #SBATCH --job-name=mnist-mrpt
-#SBATCH -o ../script-output/mnist-mrpt.txt
+#SBATCH -o script-output/mnist-mrpt.txt
 #SBATCH -c 1
 #SBATCH -p test
 #SBATCH -t 00:30:00
@@ -15,5 +16,4 @@ fi
 
 module load GCCcore/7.3.0
 
-cd ..
 srun ./comparison.sh mnist "$1"
