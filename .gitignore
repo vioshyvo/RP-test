@@ -25,3 +25,4 @@ test/mrpt_saved
 *.fvecs
 *.gz
 timing/sift
+timing/script-output
