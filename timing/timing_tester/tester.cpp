@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
       int k = ks[j];
       double build_start = omp_get_wtime();
       Mrpt mrpt(M);
-      mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+      mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt, 1000);
 
       double build_end = omp_get_wtime();
 

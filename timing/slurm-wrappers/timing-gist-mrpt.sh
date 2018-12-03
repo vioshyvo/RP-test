@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --workdir=/wrk/hyvi/RP-test/timing
-#SBATCH --job-name=timing-gist-mrpt
-#SBATCH -o script-output/timing-gist-mrpt.txt
+#SBATCH --job-name=timing-gist-mrpt-ann
+#SBATCH -o script-output/timing-gist-mrpt-ann.txt
 #SBATCH -c 1
-#SBATCH -t 10:00:00
-#SBATCH --mem=30G
+#SBATCH -t 20:00:00
+#SBATCH --mem=50G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ville.o.hyvonen@helsinki.fi
 
