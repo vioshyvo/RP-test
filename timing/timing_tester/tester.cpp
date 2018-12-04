@@ -97,13 +97,7 @@ int main(int argc, char **argv) {
 
     std::cerr << std::endl;
     std::cerr << "parallel: " << parallel << std::endl;
-    std::cerr << "trees_max: " << trees_max << std::endl;
-    std::cerr << "depth_min: " << depth_min << std::endl;
-    std::cerr << "depth_max: " << depth_max << std::endl;
-    std::cerr << "votes_max: " << votes_max << std::endl;
-    std::cerr << "density: " << density << std::endl;
-    std::cerr << std::endl;
-
+  
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};

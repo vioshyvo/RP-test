@@ -407,6 +407,13 @@ class Mrpt {
       grow(trees_max, depth_max, density, seed);
       double end = omp_get_wtime();
       std::cerr << "k: " << k << std::endl;
+      std::cerr << "trees_max: " << trees_max << std::endl;
+      std::cerr << "depth_min: " << depth_min << std::endl;
+      std::cerr << "depth_max: " << depth_max << std::endl;
+      std::cerr << "votes_max: " << votes_max << std::endl;
+      std::cerr << "density: " << density << std::endl;
+      std::cerr << std::endl;
+
       std::cerr << "tree growing: " << end - start << " ";
 
       start = omp_get_wtime();
