@@ -72,11 +72,10 @@ int main(int argc, char **argv) {
 
     float density = atof(argv[12]);
     bool parallel = atoi(argv[13]);
+    int n_auto = atoi(argv[14]);
 
     size_t n_points = n - n_test;
     bool verbose = false;
-
-    int n_auto = 1000;
 
     /////////////////////////////////////////////////////////////////////////////////////////
     // test mrpt
