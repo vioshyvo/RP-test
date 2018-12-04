@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --workdir=/wrk/hyvi/RP-test/timing
-#SBATCH --job-name=timing-mnist-mrpt-finaltest
-#SBATCH -o script-output/timing-mnist-mrpt-finaltest.txt
+#SBATCH --job-name=timing-mnist-mrpt-ft
+#SBATCH -o script-output/timing-mnist-mrpt-ft.txt
 #SBATCH -c 1
 #SBATCH -p test
 #SBATCH -t 00:10:00
