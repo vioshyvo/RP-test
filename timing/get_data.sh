@@ -70,7 +70,7 @@ GIST_DIR="$DATA_DIR/gist1000"
 
 if [ ! -f "$GIST_DIR/data.bin" ]; then
     if [ ! -f  gist/gist_base.fvecs ]; then
-      mkdir -p data/gist
+      mkdir -p gist
       echo "Downloading GIST..."
       wget "ftp://ftp.irisa.fr/local/texmex/corpus/gist.tar.gz" -O gist.tar.gz
       echo "Extracting GIST..."
@@ -81,8 +81,8 @@ if [ ! -f "$GIST_DIR/data.bin" ]; then
     echo "Converting GIST..."
     python2 tools/binary_converter.py gist/gist_base.fvecs "$GIST_DIR/data.bin"
     python2 tools/binary_converter.py --sample "$GIST_DIR/data.bin" "$GIST_DIR/train.bin" "$GIST_DIR/test.bin" $TEST_N 960
-    rm -r gist
     if [ "$REMOVE_DOWNLOADED" = true ]; then
+        rm -r gist
         rm gist.tar.gz
     fi
 

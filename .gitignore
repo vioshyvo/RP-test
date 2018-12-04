@@ -26,3 +26,4 @@ test/mrpt_saved
 *.gz
 timing/sift
 timing/script-output
+timing/gist
