@@ -106,6 +106,8 @@ int main(int argc, char **argv) {
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};
+    std::vector<double> target_recalls {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.825, 0.85, 0.875, 0.9, 0.91, 0.92,
+                                        0.93, 0.94, 0.95, 0.96, 0.96, 0.97, 0.98, 0.98, 0.99, 0.995};
     double build_time;
 
     for (int j = 0; j < ks.size(); ++j) {
@@ -116,9 +118,9 @@ int main(int argc, char **argv) {
 
       double build_end = omp_get_wtime();
 
-      std::vector<Mrpt_Parameters> pars = mrpt.optimal_parameters();
-      for(const auto &par : pars) {
-        Mrpt mrpt_new = mrpt.subset(par.estimated_recall);
+      for(const auto &tr : target_recalls) {
+        Mrpt mrpt_new = mrpt.subset(tr);
+        Mrpt_Parameters par(mrpt_new.parameters());
 
         if(mrpt_new.empty()) {
           continue;
@@ -160,7 +162,7 @@ int main(int argc, char **argv) {
         else
           std::cout << k << " " << par.n_trees << " " << par.depth << " " << density << " " << par.votes << " ";
 
-        results(k, times, idx, ("results/mnist/truth_" + std::to_string(k)).c_str(), verbose);
+        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
         std::cout << build_end - build_start <<  " ";
         std::cout << par.estimated_recall << " ";
         std::cout << par.estimated_qtime * n_test << " ";
