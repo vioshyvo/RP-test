@@ -1,5 +1,5 @@
 read_times <- function(filename) {
-  dir <- "~/git/rp_test/timing/results/times_mnist/"
+  dir <- "~/git/rp_test/timing/results/"
   res <- read.table(paste0(dir, filename), sep = ' ', header = FALSE, 
                     strip.white = TRUE, col.names = c(
                       "k",

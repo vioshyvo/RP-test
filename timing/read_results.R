@@ -1,12 +1,12 @@
 source("~/git/rp_test/timing/tools/read_res.R")
 
-res <- read_times("mrpt_times_print3")
+res <- read_times(filename="times_mnist1000/mrpt_times_test20")
 t <- tail(res, 20)
 
 ###################################################
 # Plot query time (true & estimated) vs. recall 
 
-k <- 10
+k <- 100
 k100 <- res[res$k == k, ]
 # log scale
 plot(k100$recall, log10(k100$query.time), type = 'l', col = 'red', lwd = 2, 
@@ -16,7 +16,7 @@ legend('topleft', bty = 'n', legend = c('true', 'estimated'), col = c('red', 'bl
 
 
 # normal scale
-plot(k100$recall, k100$est..query.time, type = 'l', col = 'blue', ylim = c(0, 0.15), lwd = 2,
+plot(k100$recall, k100$est..query.time, type = 'l', col = 'blue', ylim = c(0, 1.50), lwd = 2,
      xlab = 'recall', ylab = 'query time (s. / 100 queries)', main = paste('k =', k))
 lines(k100$recall, k100$query.time, type = 'l', col = 'red', lwd = 2)
 legend('topleft', bty = 'n', legend = c('true', 'estimated'), col = c('red', 'blue'), lwd = 2)
@@ -37,7 +37,7 @@ lines(grid, beta[1] + beta[2] * grid, lwd = 2, col = 'blue')
 
 plot(res$est..proj..time, res$projection.time, pch = 20, col = 'blue', cex = .6,
      xlab = 'Estimated projection time', ylab = 'True projection time', main = 'Projection time')
-grid <- seq(0,1,by=.01)
+grid <- seq(0,10,by=.01)
 lines(grid, grid, type = 'l', lty = 2, lwd = 2, col = 'red')
 
 ###################################################
