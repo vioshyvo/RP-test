@@ -16,4 +16,4 @@ fi
 
 module load GCCcore/7.3.0
 
-srun ./timing_comparison.sh mnist "$1"
+srun ./timing_comparison.sh mnist1000 "$1"

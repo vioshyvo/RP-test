@@ -15,4 +15,4 @@ fi
 
 module load GCCcore/7.3.0
 
-srun ./timing_comparison.sh gist "$1"
+srun ./timing_comparison.sh gist1000 "$1"
