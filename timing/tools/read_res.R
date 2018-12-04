@@ -1,6 +1,6 @@
 read_times <- function(filename) {
   dir <- "~/git/rp_test/timing/results/times_mnist/"
-  res <- read_table(paste0(dir, filename), sep = ' ', header = FALSE, 
+  res <- read.table(paste0(dir, filename), sep = ' ', header = FALSE, 
                     strip.white = TRUE, col.names = c(
                       "k",
                       "n_trees",
@@ -30,7 +30,7 @@ read_times <- function(filename) {
 
 read_exact <- function(filename) {
   dir <- "~/git/rp_test/timing/results/times_mnist/"
-  res <- read_table(paste0(dir, filename), sep = ' ', header = FALSE, 
+  res <- read.table(paste0(dir, filename), sep = ' ', header = FALSE, 
                     strip.white = TRUE, col.names = c("k", "n_elected", "exact_time"))
   res
 }
