@@ -209,13 +209,38 @@ class MrptTest : public testing::Test {
     int trees_max = std::sqrt(n);
     int depth_max = std::log2(n) - 4;
     float density = 1.0 / std::sqrt(d);
+    int depth_min = std::log2(n) - 11;
 
     Mrpt mrpt(M);
     mrpt.grow(test_queries, k);
 
     EXPECT_EQ(mrpt.n_trees, trees_max);
     EXPECT_EQ(mrpt.depth, depth_max);
+    EXPECT_EQ(mrpt.depth_min, std::max(depth_min, 5));
     EXPECT_FLOAT_EQ(mrpt.density, density);
+
+    std::mt19937 mt(seed_data);
+    std::normal_distribution<double> dist(5.0,2.0);
+
+    int nn = 10000, dd = 10;
+
+    MatrixXf XX(dd,nn);
+    for(int i = 0; i < dd; ++i)
+      for(int j = 0; j < nn; ++j)
+        XX(i,j) = dist(mt);
+
+    trees_max = std::sqrt(nn);
+    depth_max = std::log2(nn) - 4;
+    density = 1.0 / std::sqrt(dd);
+    depth_min = std::log2(nn) - 11;
+
+    Mrpt mrpt2(XX);
+    mrpt2.grow_autotune(k);
+
+    EXPECT_EQ(mrpt2.n_trees, trees_max);
+    EXPECT_EQ(mrpt2.depth, depth_max);
+    EXPECT_EQ(mrpt2.depth_min, std::max(depth_min, 5));
+    EXPECT_FLOAT_EQ(mrpt2.density, density);
   }
 
   void expect_equal(const Mrpt_Parameters &par, const Mrpt_Parameters &par2) {
@@ -1304,6 +1329,18 @@ TEST_F(MrptTest, AutotuningDimThrows) {
   Map<const MatrixXf> test_queries3(q.data(), d, 1);
   EXPECT_NO_THROW(mrpt.grow(test_queries3, k));
   EXPECT_FALSE(mrpt.empty());
+}
+
+TEST_F(MrptTest, SampleSizeThrows) {
+  int k = 5;
+  MatrixXf XS = MatrixXf::Random(d, 100);
+  Mrpt mrpt(XS);
+  EXPECT_THROW(mrpt.grow_autotune(k), std::out_of_range);
+
+  MatrixXf S = MatrixXf::Random(d, 101);
+  Mrpt mrpt2(S);
+  EXPECT_NO_THROW(mrpt2.grow_autotune(k));
+  EXPECT_FALSE(mrpt2.empty());
 }
 
 // Test that the autotuning function throws an out-of-range exception if
