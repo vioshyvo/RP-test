@@ -10,8 +10,8 @@ plt.rcParams['xtick.labelsize'] = 18
 plt.rcParams['ytick.labelsize'] = 18
 
 
-def pareto_frontier(Xs, Ys, trees, depth, vote_threshold, index_time = 0, maxX=True, maxY=True):
-    myList = sorted([[Xs[i], Ys[i], index_time[i], trees[i], depth[i], vote_threshold[i]] for i in range(len(Xs))], reverse=maxX)
+def pareto_frontier(Xs, Ys, trees, depth, vote_threshold, est_recall, est_qtime, index_time = 0, maxX=True, maxY=True):
+    myList = sorted([[Xs[i], Ys[i], index_time[i], trees[i], depth[i], vote_threshold[i], est_recall[i], est_qtime[i]] for i in range(len(Xs))], reverse=maxX)
     p_front = [myList[0]]
     for pair in myList[1:]:
         if maxY:
@@ -20,7 +20,7 @@ def pareto_frontier(Xs, Ys, trees, depth, vote_threshold, index_time = 0, maxX=T
         else:
             if pair[1] <= p_front[-1][1]:
                 p_front.append(pair)
-    p_frontX, p_frontY, p_front_index, p_trees, p_depth, p_votes = [], [], [], [], [], []
+    p_frontX, p_frontY, p_front_index, p_trees, p_depth, p_votes, p_est_recall, p_est_qtime = [], [], [], [], [], [], [], []
     edX = -1
     for pair in reversed(p_front):
         if pair[0] < 0.1 or pair[0] - edX <= 0.001:
@@ -32,7 +32,9 @@ def pareto_frontier(Xs, Ys, trees, depth, vote_threshold, index_time = 0, maxX=T
         p_trees.append(pair[3])
         p_depth.append(pair[4])
         p_votes.append(pair[5])
-    return p_frontX, p_frontY, p_front_index, p_trees, p_depth, p_votes
+        p_est_recall.append(pair[6])
+        p_est_qtime.append(pair[7])
+    return p_frontX, p_frontY, p_front_index, p_trees, p_depth, p_votes, p_est_recall, p_est_qtime
 
 
 def main(k, files):
@@ -67,28 +69,32 @@ def main(k, files):
         trees = [x[1] for x in lines if x[0] == k]
         depth = [x[2] for x in lines if x[0] == k]
         vote_threshold = [x[4] for x in lines if x[0] == k]
+        est_recalls = [x[10] for x in lines if x[0] == k]
+        est_qtimes = [x[11] for x in lines if x[0] == k]
 
         # A.append((resfile.split('.')[0], acc, tym))
-        A.append((lines[0][3], acc, tym, lines[0][2], index_time, trees, depth, vote_threshold))
+        A.append((lines[0][3], acc, tym, lines[0][2], index_time, trees, depth, vote_threshold, est_recalls, est_qtimes))
 
     colors = cm.rainbow(np.linspace(0, 1, len(A)))
     minY, maxY = float('inf'), -float('inf')
     for a, c, m in zip(A, colors, ['>', 'v', 'd', '^', 'o', 'p', 'h', '<']):
-        par = pareto_frontier(a[1], a[2], a[5], a[6], a[7], a[4], True, False)
+        par = pareto_frontier(a[1], a[2], a[5], a[6], a[7], a[4], a[8], a[9], True, False)
         recalls = par[0]
         query_times = par[1]
         index_times = par[2]
         trees = par[3]
         depth = par[4]
         vote_threshold = par[5]
+        est_recalls = par[6]
+        est_qtimes = par[7]
         times = index_times if build_times else query_times
         l, = ax.plot(recalls, times, linestyle='solid', marker=m, label=a[0], c=c, markersize=7)
         if q: LSD.append(l)
         maxY = max(maxY, max(times))
-        accuracy_time_list = zip(query_times, recalls, trees, depth, vote_threshold, index_times)
-        minY = min(minY, min(x for x, y, z, v, w, u in accuracy_time_list if y >= 0.5))
+        accuracy_time_list = zip(query_times, recalls, trees, depth, vote_threshold, index_times, est_recalls, est_qtimes)
+        minY = min(minY, min(x for x, y, z, v, w, u, a, b in accuracy_time_list if y >= 0.5))
         for pair in accuracy_time_list:
-            print("rec=%.3f, time=%.4f, trees=%d, depth=%d, v=%d" % (pair[1], pair[0], pair[2], pair[3], pair[4]))
+            print("rec=%.3f, est=%.3f, time=%.4f, est=%.4f, trees=%d, depth=%d, v=%d" % (pair[1], pair[7], pair[0], pair[5], pair[2], pair[3], pair[4]))
         print("\n")
     ax.semilogy()
     ax.set_ylabel('time (s)', fontsize=20)

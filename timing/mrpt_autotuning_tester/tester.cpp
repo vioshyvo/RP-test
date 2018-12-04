@@ -76,6 +76,8 @@ int main(int argc, char **argv) {
     size_t n_points = n - n_test;
     bool verbose = false;
 
+    int n_auto = 1000;
+
     /////////////////////////////////////////////////////////////////////////////////////////
     // test mrpt
     float *train, *test;
@@ -113,7 +115,8 @@ int main(int argc, char **argv) {
 
       double build_start = omp_get_wtime();
       Mrpt mrpt(M);
-      mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt);
+      mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt, n_auto);
+
       double build_end = omp_get_wtime();
 
       std::vector<double> target_recalls {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.825, 0.85, 0.875, 0.9, 0.91, 0.92,
@@ -151,10 +154,12 @@ int main(int argc, char **argv) {
           std::cout << k << " " << par.n_trees << " " << par.depth << " " << density << " " << par.votes << " ";
 
         results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
-        std::cout << build_end - build_start << std::endl;
-        // std::cout << build_end - build_start << " ";
+        std::cout << build_end - build_start << " ";
+        std::cout << par.estimated_recall << " ";
+        std::cout << n_test * par.estimated_qtime  <<  " ";
         // std::cout << mean(cs_sizes) << " ";
         // std::cout << less_than(cs_sizes, k) << std::endl;
+        std::cout << std::endl;
       }
     }
 
