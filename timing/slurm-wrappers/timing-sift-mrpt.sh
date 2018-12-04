@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --workdir=/wrk/hyvi/RP-test/timing
-#SBATCH --job-name=timing-sift-mrpt-default
-#SBATCH -o script-output/timing-sift-mrpt-default.txt
+#SBATCH --job-name=timing-sift-mrpt-finaltest
+#SBATCH -o script-output/timing-sift-mrpt-finaltest.txt
 #SBATCH -c 1
 #SBATCH -t 20:00:00
 #SBATCH --mem=50G
