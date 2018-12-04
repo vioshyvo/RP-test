@@ -69,8 +69,8 @@ GIST_DIR="$DATA_DIR/gist1000"
 
 
 if [ ! -f "$GIST_DIR/data.bin" ]; then
+    mkdir -p "$GIST_DIR"
     if [ ! -f  gist/gist_base.fvecs ]; then
-      mkdir -p "$GIST_DIR"
       echo "Downloading GIST..."
       wget "ftp://ftp.irisa.fr/local/texmex/corpus/gist.tar.gz" -O gist.tar.gz
       echo "Extracting GIST..."
