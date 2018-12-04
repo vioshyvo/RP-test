@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --workdir=/wrk/hyvi/RP-test/timing
-#SBATCH --job-name=timing-gist-mrpt-full
-#SBATCH -o script-output/timing-gist-mrpt-full.txt
+#SBATCH --job-name=timing-gist-mrpt-default
+#SBATCH -o script-output/timing-gist-mrpt-default.txt
 #SBATCH -c 1
 #SBATCH -t 20:00:00
 #SBATCH --mem=50G
