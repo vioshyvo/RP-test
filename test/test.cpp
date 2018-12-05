@@ -222,7 +222,7 @@ class MrptTest : public testing::Test {
     std::mt19937 mt(seed_data);
     std::normal_distribution<double> dist(5.0,2.0);
 
-    int nn = 10000, dd = 10;
+    int nn = 1000, dd = 10;
 
     MatrixXf XX(dd,nn);
     for(int i = 0; i < dd; ++i)
@@ -241,6 +241,39 @@ class MrptTest : public testing::Test {
     EXPECT_EQ(mrpt2.depth, depth_max);
     EXPECT_EQ(mrpt2.depth_min, std::max(depth_min, 5));
     EXPECT_FLOAT_EQ(mrpt2.density, density);
+  }
+
+  void expect_equal(const Mrpt &mrpt, int trees_max, int depth_max, int depth_min,
+                    int votes_max, float density) {
+    EXPECT_EQ(mrpt.n_trees, trees_max);
+    EXPECT_EQ(mrpt.depth, depth_max);
+    EXPECT_EQ(mrpt.depth_min, depth_min);
+    EXPECT_EQ(mrpt.votes_max, votes_max);
+    EXPECT_FLOAT_EQ(mrpt.density, density);
+  }
+
+  int defaultTreesMax(const Mrpt &mrpt) {
+    return std::sqrt(mrpt.n_samples);
+  }
+
+  int defaultDepthMax(const Mrpt &mrpt) {
+    return std::max(static_cast<int>(std::log2(mrpt.n_samples)) - 4, mrpt.depth_min);
+  }
+
+  int defaultDepthMin(const Mrpt &mrpt) {
+    return std::max(static_cast<int>(std::log2(mrpt.n_samples)) - 11, 5);
+  }
+
+  int defaultVotesMax(const Mrpt &mrpt) {
+    return std::max(mrpt.n_trees / 10, std::min(mrpt.n_trees, 10));
+  }
+
+  float defaultDensity(const Mrpt &mrpt) {
+    return 1.0 / std::sqrt(mrpt.dim);
+  }
+
+  int defaultSeed(const Mrpt &mrpt) {
+    return 0;
   }
 
   void expect_equal(const Mrpt_Parameters &par, const Mrpt_Parameters &par2) {
@@ -1000,6 +1033,111 @@ TEST_F(MrptTest, DefaultArguments) {
   defaultArgumentTester(5);
   defaultArgumentTester(20);
 }
+
+// Test that the other default arguments are set correctly when trees_max is
+// set explicitly
+TEST_F(MrptTest, DefaultTreesMax) {
+  int k = 5, trees_max = 9;
+  Mrpt mrpt(X2);
+  mrpt.grow(Q, k, trees_max);
+  expect_equal(mrpt, trees_max, defaultDepthMax(mrpt), defaultDepthMin(mrpt),
+               defaultVotesMax(mrpt), defaultDensity(mrpt));
+
+  Mrpt mrpt2(X2);
+  mrpt2.grow_autotune(k, trees_max);
+  expect_equal(mrpt2, trees_max, defaultDepthMax(mrpt2), defaultDepthMin(mrpt2),
+               defaultVotesMax(mrpt2), defaultDensity(mrpt2));
+}
+
+// Test that the other default arguments are set correctly when depth_max is
+// set explicitly
+TEST_F(MrptTest, DefaultDepthMax) {
+  int k = 5, depth_max = 7;
+  Mrpt mrpt(X2);
+  mrpt.grow(Q, k, -1, depth_max);
+  expect_equal(mrpt, defaultTreesMax(mrpt), depth_max, defaultDepthMin(mrpt),
+               defaultVotesMax(mrpt), defaultDensity(mrpt));
+
+  Mrpt mrpt2(X2);
+  mrpt2.grow_autotune(k, -1, depth_max);
+  expect_equal(mrpt2, defaultTreesMax(mrpt2), depth_max, defaultDepthMin(mrpt2),
+               defaultVotesMax(mrpt2), defaultDensity(mrpt2));
+}
+
+// Test that the other default arguments are set correctly when depth_min is
+// set explicitly
+TEST_F(MrptTest, DefaultDepthMin) {
+  int k = 5, depth_min = 2;
+  Mrpt mrpt(X2);
+  mrpt.grow(Q, k, -1, -1, depth_min);
+  expect_equal(mrpt, defaultTreesMax(mrpt), defaultDepthMax(mrpt), depth_min,
+               defaultVotesMax(mrpt), defaultDensity(mrpt));
+
+  Mrpt mrpt2(X2);
+  mrpt2.grow_autotune(k, -1, -1, depth_min);
+  expect_equal(mrpt2, defaultTreesMax(mrpt2), defaultDepthMax(mrpt2), depth_min,
+               defaultVotesMax(mrpt2), defaultDensity(mrpt2));
+}
+
+// Test that the other default arguments are set correctly when votes_max is
+// set explicitly
+TEST_F(MrptTest, DefaultVotesMax) {
+  int k = 5, votes_max = 2;
+  Mrpt mrpt(X2);
+  mrpt.grow(Q, k, -1, -1, -1, votes_max);
+  expect_equal(mrpt, defaultTreesMax(mrpt), defaultDepthMax(mrpt),
+               defaultDepthMin(mrpt), votes_max, defaultDensity(mrpt));
+
+  Mrpt mrpt2(X2);
+  mrpt2.grow_autotune(k, -1, -1, -1, votes_max);
+  expect_equal(mrpt2, defaultTreesMax(mrpt2), defaultDepthMax(mrpt2),
+               defaultDepthMin(mrpt2), votes_max, defaultDensity(mrpt2));
+}
+
+// Test that the other default arguments are set correctly when density is
+// set explicitly
+TEST_F(MrptTest, DefaultDensity) {
+  int k = 5;
+  float density = 0.5;
+  Mrpt mrpt(X2);
+  mrpt.grow(Q, k, -1, -1, -1, -1, density);
+  expect_equal(mrpt, defaultTreesMax(mrpt), defaultDepthMax(mrpt),
+               defaultDepthMin(mrpt), defaultVotesMax(mrpt), density);
+
+  Mrpt mrpt2(X2);
+  mrpt2.grow_autotune(k, -1, -1, -1, -1, density);
+  expect_equal(mrpt2, defaultTreesMax(mrpt2), defaultDepthMax(mrpt2),
+               defaultDepthMin(mrpt2), defaultVotesMax(mrpt2), density);
+}
+
+// Test that the other default arguments are set correctly when seed is
+// set explicitly
+TEST_F(MrptTest, DefaultSeed) {
+  int k = 5, seed = 54345;
+  Mrpt mrpt(X2);
+  mrpt.grow(Q, k, -1, -1, -1, -1, -1.0, seed);
+  expect_equal(mrpt, defaultTreesMax(mrpt), defaultDepthMax(mrpt),
+               defaultDepthMin(mrpt), defaultVotesMax(mrpt),
+               defaultDensity(mrpt));
+
+   Mrpt mrpt2(X2);
+   mrpt2.grow_autotune(k, -1, -1, -1, -1, -1.0, seed);
+   expect_equal(mrpt2, defaultTreesMax(mrpt2), defaultDepthMax(mrpt2),
+                defaultDepthMin(mrpt2), defaultVotesMax(mrpt2),
+                defaultDensity(mrpt2));
+}
+
+// Test that the other default arguments are set correctly when n_test is
+// set explicitly
+TEST_F(MrptTest, DefaultNTest) {
+  int k = 5, n_test = 50;
+  Mrpt mrpt(X2);
+  mrpt.grow_autotune(k, -1, -1, -1, -1, -1.0, 0, n_test);
+  expect_equal(mrpt, defaultTreesMax(mrpt), defaultDepthMax(mrpt),
+               defaultDepthMin(mrpt), defaultVotesMax(mrpt),
+               defaultDensity(mrpt));
+}
+
 
 // Test that doing queries into an empty index returns correctly and sets
 // output buffers to -1
