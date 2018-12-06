@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
 
     std::cerr << std::endl;
     std::cerr << "parallel: " << parallel << std::endl;
-  
+
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};
@@ -134,7 +134,9 @@ int main(int argc, char **argv) {
           const Map<const VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
-          mrpt_new.query(q, &result[0], projection_time, voting_time, exact_time, &distances[0], &n_elected);
+          Eigen::VectorXi votes = Eigen::VectorXi::Zero(n_points);
+          mrpt_new.query(q, &result[0], projection_time, voting_time, exact_time,
+                         votes, &distances[0], &n_elected);
           double end = omp_get_wtime();
 
           times.push_back(end - start);

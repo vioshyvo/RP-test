@@ -691,7 +691,8 @@ class Mrpt {
     */
     void query(const float *data, int k, int vote_threshold, int *out,
                double &projection_time, double &voting_time, double &exact_time,
-               float *out_distances = nullptr, int *out_n_elected = nullptr) const {
+               Eigen::VectorXi &votes, float *out_distances = nullptr,
+               int *out_n_elected = nullptr) const {
 
         if (k <= 0 || k > n_samples) {
           throw std::out_of_range("k must belong to the set {1, ..., n}.");
@@ -742,7 +743,6 @@ class Mrpt {
 
         int n_elected = 0, max_leaf_size = n_samples / (1 << depth) + 1;
         Eigen::VectorXi elected(n_trees * max_leaf_size);
-        Eigen::VectorXi votes = Eigen::VectorXi::Zero(n_samples);
 
         // count votes
         for (int n_tree = 0; n_tree < n_trees; ++n_tree) {
@@ -780,9 +780,10 @@ class Mrpt {
     */
     void query(const Eigen::Ref<const Eigen::VectorXf> &q, int k, int vote_threshold, int *out,
                double &projection_time, double &voting_time, double &exact_time,
-               float *out_distances = nullptr, int *out_n_elected = nullptr) const {
-      query(q.data(), k, vote_threshold, out, projection_time, voting_time, exact_time,
-            out_distances, out_n_elected);
+               Eigen::VectorXi &votes, float *out_distances = nullptr,
+               int *out_n_elected = nullptr) const {
+      query(q.data(), k, vote_threshold, out, projection_time, voting_time,
+            exact_time, votes, out_distances, out_n_elected);
     }
 
     /**@}*/
@@ -808,8 +809,8 @@ class Mrpt {
     * @param out_n_elected optional output parameter (size = 1) for the candidate set size
     */
     void query(const float *q, int *out, double &projection_time, double &voting_time,
-       double &exact_time, float *out_distances = nullptr,
-               int *out_n_elected = nullptr) const {
+               double &exact_time, Eigen::VectorXi &votes,
+               float *out_distances = nullptr, int *out_n_elected = nullptr) const {
       if (index_type == normal) {
         throw std::logic_error("The index is not autotuned: k and vote threshold has to be specified.");
       }
@@ -818,7 +819,8 @@ class Mrpt {
         throw std::logic_error("The target recall level has to be set before making queries.");
       }
 
-      query(q, k, votes, out, projection_time, voting_time, exact_time, out_distances, out_n_elected);
+      query(q, par.k, par.votes, out, projection_time, voting_time, exact_time, votes,
+            out_distances, out_n_elected);
     }
 
     /**
@@ -831,8 +833,10 @@ class Mrpt {
     */
     void query(const Eigen::Ref<const Eigen::VectorXf> &q, int *out,
                double &projection_time, double &voting_time, double &exact_time,
-               float *out_distances = nullptr, int *out_n_elected = nullptr) const {
-      query(q.data(), out, projection_time, voting_time, exact_time, out_distances, out_n_elected);
+               Eigen::VectorXi &votes, float *out_distances = nullptr,
+               int *out_n_elected = nullptr) const {
+      query(q.data(), out, projection_time, voting_time, exact_time, votes,
+            out_distances, out_n_elected);
     }
 
     /**@}*/
