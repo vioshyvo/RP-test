@@ -39,9 +39,29 @@ public:
   static  double get_exact_time(const Mrpt &mrpt, int n_trees, int depth, int v) {
     return mrpt.get_exact_time(n_trees, depth, v);
   }
-
-
 };
+
+std::vector<std::vector<int>> read_results(std::string truth, int k) {
+  std::ifstream fs(truth);
+  if (!fs) {
+     std::cerr << "File " << truth << " could not be opened for reading!" << std::endl;
+     exit(1);
+  }
+
+  double time;
+  std::vector<std::vector<int>> correct;
+  while(fs >> time) {
+      std::vector<int> res;
+      for (int i = 0; i < k; ++i) {
+          int r;
+          fs >> r;
+          res.push_back(r);
+      }
+      correct.push_back(res);
+  }
+  return correct;
+}
+
 
 int main(int argc, char **argv) {
     size_t n = atoi(argv[1]);
@@ -106,6 +126,22 @@ int main(int argc, char **argv) {
 
     double build_time;
 
+    int big_k = *ks.rbegin();
+    std::string votes_file(result_path + "votes_" + std::to_string(big_k));
+    std::string top_votes_file(result_path + "top_votes_" + std::to_string(big_k));
+    std::ofstream ofvotes(votes_file), oftop(top_votes_file);
+    if (!ofvotes) {
+       std::cerr << "File " << votes_file << " could not be opened for reading!" << std::endl;
+       exit(1);
+    }
+    if (!oftop) {
+       std::cerr << "File " << top_votes_file << " could not be opened for reading!" << std::endl;
+       exit(1);
+    }
+
+    std::string result_file(result_path + "truth_" + std::to_string(big_k));
+    std::vector<std::vector<int>> correct = read_results(result_file, big_k);
+
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];
       double build_start = omp_get_wtime();
@@ -126,6 +162,11 @@ int main(int argc, char **argv) {
         std::vector<std::set<int>> idx;
         int elected = 0;
 
+        if(k == big_k) {
+          oftop << par.k << " " << par.n_trees << " " << par.depth << " " << par.votes << std::endl;
+          ofvotes << par.k << " " << par.n_trees << " " << par.depth << " " << par.votes << std::endl;
+        }
+
         for (int i = 0; i < n_test; ++i) {
           double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
           std::vector<int> result(k);
@@ -145,6 +186,18 @@ int main(int argc, char **argv) {
           voting_times.push_back(voting_time);
           exact_times.push_back(exact_time);
           elected += n_elected;
+
+          if(k == big_k) {
+            const std::vector<int> &exact = correct[i];
+            for(const auto &e : exact)
+              ofvotes << votes[e] << " ";
+            ofvotes << std::endl;
+
+            std::partial_sort(votes.data(), votes.data() + k, votes.data() + n_points, std::greater<int>());
+            for(int l = 0; l < k; ++l)
+              oftop << votes(l) << " ";
+            oftop << std::endl;
+          }
         }
 
         double median_projection_time = median(projection_times);
