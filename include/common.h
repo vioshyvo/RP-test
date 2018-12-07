@@ -42,6 +42,28 @@ double median(std::vector<double> x) {
   return (smaller + x[n/2]) / 2.0;
 }
 
+std::vector<std::vector<int>> read_results(std::string truth, int k) {
+  std::ifstream fs(truth);
+  if (!fs) {
+     std::cerr << "File " << truth << " could not be opened for reading!" << std::endl;
+     exit(1);
+  }
+
+  double time;
+  std::vector<std::vector<int>> correct;
+  while(fs >> time) {
+      std::vector<int> res;
+      for (int i = 0; i < k; ++i) {
+          int r;
+          fs >> r;
+          res.push_back(r);
+      }
+      correct.push_back(res);
+  }
+  return correct;
+}
+
+
 
 using namespace std;
 

@@ -41,27 +41,6 @@ public:
   }
 };
 
-std::vector<std::vector<int>> read_results(std::string truth, int k) {
-  std::ifstream fs(truth);
-  if (!fs) {
-     std::cerr << "File " << truth << " could not be opened for reading!" << std::endl;
-     exit(1);
-  }
-
-  double time;
-  std::vector<std::vector<int>> correct;
-  while(fs >> time) {
-      std::vector<int> res;
-      for (int i = 0; i < k; ++i) {
-          int r;
-          fs >> r;
-          res.push_back(r);
-      }
-      correct.push_back(res);
-  }
-  return correct;
-}
-
 
 int main(int argc, char **argv) {
     size_t n = atoi(argv[1]);
@@ -191,12 +170,12 @@ int main(int argc, char **argv) {
             const std::vector<int> &exact = correct[i];
             for(const auto &e : exact)
               ofvotes << votes[e] << " ";
-            ofvotes << std::endl;
+            ofvotes << n_elected << std::endl;
 
             std::partial_sort(votes.data(), votes.data() + k, votes.data() + n_points, std::greater<int>());
             for(int l = 0; l < k; ++l)
               oftop << votes(l) << " ";
-            oftop << std::endl;
+            oftop << n_elected << std::endl;
           }
         }
 
