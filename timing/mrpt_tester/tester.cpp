@@ -74,13 +74,10 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-
-    const Map<const MatrixXf> *M = new Map<const MatrixXf>(train, dim, n_points);
-
     if(!parallel) omp_set_num_threads(1);
 
     double build_start = omp_get_wtime();
-    Mrpt index_dense(M);
+    Mrpt index_dense(train, dim, n_points);
     index_dense.grow(n_trees, depth, sparsity);
     double build_time = omp_get_wtime() - build_start;
     std::vector<int> ks{1, 10, 100};
@@ -96,8 +93,10 @@ int main(int argc, char **argv) {
 
         for (int i = 0; i < ntest; ++i) {
           std::vector<int> result(k);
+          const Map<const VectorXf> q(&test[i * dim], dim);
+
           double start = omp_get_wtime();
-          index_dense.query(Map<VectorXf>(&test[i * dim], dim), k, votes, &result[0]);
+          index_dense.query(q, k, votes, &result[0]);
 
           double end = omp_get_wtime();
           times.push_back(end - start);
