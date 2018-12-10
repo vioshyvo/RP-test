@@ -84,7 +84,8 @@ int main(int argc, char **argv) {
     // std::vector<double> target_recalls {0.5, 0.6, 0.7, 0.8, 0.85, 0.9,
     //                                     0.925, 0.95, 0.97, 0.98, 0.99, 0.995};
     std::vector<int> cs_sizes {20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200,
-                               250, 300, 350, 400, 500};
+                               250, 300, 350, 400, 500, 600, 750, 1000, 1250, 1500, 1750, 2000,
+                               3000, 4000, 5000, 7500, 10000};
     std::vector<double> times, projection_times, voting_times, exact_times, sorting_times;
 
     for (int j = 0; j < ks.size(); ++j) {
