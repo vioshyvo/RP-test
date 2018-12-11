@@ -81,7 +81,8 @@ int main(int argc, char **argv) {
     double build_time = omp_get_wtime() - build_start;
     std::vector<int> ks{1, 10, 100};
 
-    std::vector<double> times, projection_times, voting_times, exact_times, sorting_times;
+    std::vector<double> times, projection_times, voting_times, exact_times,
+                        sorting_times, choosing_times;
 
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];
@@ -90,7 +91,8 @@ int main(int argc, char **argv) {
         int max_leaf_size = n_points / (1 << depth) + 1;
         if (cs_size > n_points || cs_size > n_trees * max_leaf_size) continue;
 
-        double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0, sorting_time = 0.0;
+        double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0,
+               sorting_time = 0.0, choosing_time = 0.0;
 
         std::vector<double> times;
         std::vector<std::set<int>> idx;
@@ -101,7 +103,8 @@ int main(int argc, char **argv) {
 
           double start = omp_get_wtime();
           index_dense.query_size2(q, k, cs_size, &result[0],
-                                 projection_time, voting_time, exact_time, sorting_time);
+                                  projection_time, voting_time, exact_time,
+                                  sorting_time, choosing_time);
           double end = omp_get_wtime();
 
           times.push_back(end - start);
@@ -110,6 +113,7 @@ int main(int argc, char **argv) {
           voting_times.push_back(voting_time);
           exact_times.push_back(exact_time);
           sorting_times.push_back(sorting_time);
+          choosing_times.push_back(choosing_time);
         }
 
         if(verbose)
@@ -123,6 +127,7 @@ int main(int argc, char **argv) {
         std::cout << median(exact_times) << " ";
         std::cout << build_time << " ";
         std::cout << median(sorting_times) << " ";
+        std::cout << median(choosing_times) << " ";
         std::cout << std::endl;
       }
     }
