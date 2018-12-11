@@ -100,11 +100,11 @@ int main(int argc, char **argv) {
           const Map<const VectorXf> q(&test[i * dim], dim);
 
           double start = omp_get_wtime();
-          index_dense.query_size(q, k, cs_size, &result[0],
+          index_dense.query_size2(q, k, cs_size, &result[0],
                                  projection_time, voting_time, exact_time, sorting_time);
           double end = omp_get_wtime();
 
-          times.push_back(end - start - sorting_time);
+          times.push_back(end - start);
           idx.push_back(std::set<int>(result.begin(), result.begin() + k));
           projection_times.push_back(projection_time);
           voting_times.push_back(voting_time);
