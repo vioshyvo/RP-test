@@ -46,8 +46,9 @@ int main(int argc, char **argv) {
 
     float sparsity = atof(argv[10]);
     bool parallel = atoi(argv[11]);
+    std::string results_file(argv[12]);
 
-    int last_arg = 11;
+    int last_arg = 12;
     size_t n_points = n - ntest;
     bool verbose = false;
 
@@ -71,6 +72,12 @@ int main(int argc, char **argv) {
     if(!train) {
         std::cerr << "in mrpt_comparison: training data " << infile_path + "train.bin" << " could not be read\n";
         return -1;
+    }
+
+    std::ofstream outf(results_file, std::ios::app);
+    if(!outf) {
+      std::cerr << results_file << " could not be opened for writing." << std::endl;
+      return -1;
     }
 
     if(!parallel) omp_set_num_threads(1);
@@ -117,18 +124,18 @@ int main(int argc, char **argv) {
         }
 
         if(verbose)
-            std::cout << "k: " << k << ", # of trees: " << n_trees << ", depth: " << depth << ", sparsity: " << sparsity << ", votes: " << 0 << "\n";
+            outf << "k: " << k << ", # of trees: " << n_trees << ", depth: " << depth << ", sparsity: " << sparsity << ", votes: " << 0 << "\n";
         else
-            std::cout << k << " " << n_trees << " " << depth << " " << sparsity << " " << cs_size << " ";
+            outf << k << " " << n_trees << " " << depth << " " << sparsity << " " << cs_size << " ";
 
-        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
-        std::cout << median(projection_times) << " ";
-        std::cout << median(voting_times) << " ";
-        std::cout << median(exact_times) << " ";
-        std::cout << build_time << " ";
-        std::cout << median(sorting_times) << " ";
-        std::cout << median(choosing_times) << " ";
-        std::cout << std::endl;
+        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose, outf);
+        outf << median(projection_times) << " ";
+        outf << median(voting_times) << " ";
+        outf << median(exact_times) << " ";
+        outf << build_time << " ";
+        outf << median(sorting_times) << " ";
+        outf << median(choosing_times) << " ";
+        outf << std::endl;
       }
     }
 
