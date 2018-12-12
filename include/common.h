@@ -197,3 +197,31 @@ void results(int k, const vector<double> &times, const vector<set<int>> &idx,
       }
 
 }
+
+std::vector<int> read_parameters(const std::string &par_name, std::ifstream &inf) {
+  std::string istr;
+  std::vector<int> vs;
+
+  while(inf) {
+    getline(inf, istr);
+    auto pos = istr.find("=");
+    if(pos == std::string::npos) {
+      continue;
+    }
+    std::string first(istr.substr(0, pos));
+    if(first != par_name) {
+      continue;
+    }
+    std::string second(istr.substr(pos, istr.size()));
+    second.erase(std::remove(second.begin(), second.end(), '='), second.end());
+    second.erase(std::remove(second.begin(), second.end(), '\"'), second.end());
+
+    std::istringstream iss(second);
+    int i = 0;
+    while(iss >> i) {
+      vs.push_back(i);
+    }
+    break;
+  }
+  return vs;
+}
