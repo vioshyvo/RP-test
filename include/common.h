@@ -136,7 +136,7 @@ float *read_mmap(const char *file, size_t n, size_t dim) {
 
 
 void results(int k, const vector<double> &times, const vector<set<int>> &idx,
-   const char *truth, bool verbose) {
+   const char *truth, bool verbose, std::ostream &outf = std::cout) {
     double time;
     vector<set<int>> correct;
 
@@ -183,14 +183,14 @@ void results(int k, const vector<double> &times, const vector<set<int>> &idx,
         var_query_time += (times[i] - mean_query_time) * (times[i] - mean_query_time);
     var_query_time /= (n_test - 1);
 
-    cout << setprecision(5);
+    outf << setprecision(5);
     if(verbose){
-      cout << "recall: " << mean_accuracy
+      outf << "recall: " << mean_accuracy
            << ", std. of recall:  " << std::sqrt(variance)
            << ", total query time: " << total_time
            << ", std. of query time: " << std::sqrt(var_query_time) << " ";
       } else {
-      cout << mean_accuracy << " "
+      outf << mean_accuracy << " "
            << std::sqrt(variance) << " "
            << total_time << " "
            << std::sqrt(var_query_time) << " ";
