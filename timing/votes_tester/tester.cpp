@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
     bool verbose = false;
     std::string results_file2(results_file + "_size");
     std::string results_file3(results_file + "_size2");
+    std::string results_file4(results_file + "_size3");
 
 
     /////////////////////////////////////////////////////////////////////////////////////////
@@ -95,6 +96,12 @@ int main(int argc, char **argv) {
       return -1;
     }
 
+    std::ofstream outf4(results_file4, std::ios::app);
+    if(!outf) {
+      std::cerr << results_file4 << " could not be opened for writing." << std::endl;
+      return -1;
+    }
+
     std::ifstream inf(parameters_filename);
 
     if(!inf) {
@@ -120,7 +127,7 @@ int main(int argc, char **argv) {
         if(v > n_trees) {
           continue;
         }
-        
+
         std::vector<double> times, projection_times, voting_times, exact_times,
                             cs_sizes;
         std::vector<std::set<int>> idx;
@@ -170,9 +177,12 @@ int main(int argc, char **argv) {
         std::vector<double> times3, projection_times3, voting_times3, exact_times3,
                             sorting_times3, choosing_times3;
 
-        std::vector<double> cs_sizes2, cs_sizes3;
+        std::vector<double> times4, projection_times4, voting_times4, exact_times4,
+                            sorting_times4, choosing_times4;
 
-        std::vector<std::set<int>> idx2, idx3;
+        std::vector<double> cs_sizes2, cs_sizes3, cs_sizes4;
+
+        std::vector<std::set<int>> idx2, idx3, idx4;
 
         for (int i = 0; i < ntest; ++i) {
           double projection_time2 = 0.0, voting_time2 = 0.0, exact_time2 = 0.0,
@@ -181,9 +191,12 @@ int main(int argc, char **argv) {
           double projection_time3 = 0.0, voting_time3 = 0.0, exact_time3 = 0.0,
                  sorting_time3 = 0.0, choosing_time3 = 0.0;
 
-          int n_elected2 = 0, n_elected3 = 0;
+          double projection_time4 = 0.0, voting_time4 = 0.0, exact_time4 = 0.0,
+                 sorting_time4 = 0.0, choosing_time4 = 0.0;
 
-          std::vector<int> result2(k, -1), result3(k, -1);
+          int n_elected2 = 0, n_elected3 = 0, n_elected4 = 0;
+
+          std::vector<int> result2(k, -1), result3(k, -1), result4(k, -1);
           std::vector<float> distances(k, -1.0);
           const Map<const VectorXf> q2(&test[i * dim], dim);
 
@@ -216,13 +229,31 @@ int main(int argc, char **argv) {
           cs_sizes3.push_back(n_elected3);
           sorting_times3.push_back(sorting_time3);
           choosing_times3.push_back(choosing_time3);
+
+          start = omp_get_wtime();
+          index_dense.query_size3(q2, k, cs_size, &result4[0],
+                                  projection_time4, voting_time4, exact_time4,
+                                  sorting_time4, choosing_time4,
+                                  &distances[0], &n_elected4);
+          end = omp_get_wtime();
+
+          times4.push_back(end - start);
+          idx4.push_back(std::set<int>(result4.begin(), result4.begin() + k));
+          projection_times4.push_back(projection_time4);
+          voting_times4.push_back(voting_time4);
+          exact_times4.push_back(exact_time4);
+          cs_sizes4.push_back(n_elected4);
+          sorting_times4.push_back(sorting_time4);
+          choosing_times4.push_back(choosing_time4);
         }
 
         outf2 << k << " " << n_trees << " " << depth << " " << sparsity << " " << cs_size << " ";
         outf3 << k << " " << n_trees << " " << depth << " " << sparsity << " " << cs_size << " ";
+        outf4 << k << " " << n_trees << " " << depth << " " << sparsity << " " << cs_size << " ";
 
         results(k, times2, idx2, (result_path + "truth_" + std::to_string(k)).c_str(), verbose, outf2);
         results(k, times3, idx3, (result_path + "truth_" + std::to_string(k)).c_str(), verbose, outf3);
+        results(k, times4, idx4, (result_path + "truth_" + std::to_string(k)).c_str(), verbose, outf4);
 
         outf2 << median(projection_times2) << " ";
         outf2 << median(voting_times2) << " ";
@@ -240,6 +271,15 @@ int main(int argc, char **argv) {
         outf3 << median(sorting_times3) << " ";
         outf3 << median(choosing_times3) << " ";
         outf3 << std::endl;
+
+        outf4 << median(projection_times4) << " ";
+        outf4 << median(voting_times4) << " ";
+        outf4 << median(exact_times4) << " ";
+        outf4 << build_time << " ";
+        outf4 << median(cs_sizes4) << " ";
+        outf4 << median(sorting_times4) << " ";
+        outf4 << median(choosing_times4) << " ";
+        outf4 << std::endl;
       }
     }
 
