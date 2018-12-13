@@ -125,5 +125,38 @@ if [ ! -f "$STL_DIR/data.bin" ]; then
     echo N="$STL_N" >> "$STL_DIM_FILE"
     echo N_TEST="$TEST_N" >> "$STL_DIM_FILE"
     echo DIM="$STL_DIM" >> "$STL_DIM_FILE"
+fi
 
+
+TREVI_N=101120
+TREVI_DIM=4096
+TREVI_DIR="$DATA_DIR/trevi"
+
+if [ ! -f "$TREVI_DIR/data.bin" ]; then
+    mkdir -p "$TREVI_DIR"
+    if [ ! -f trevi.zip ]; then
+      echo "Downloading Trevi..."
+      wget "http://phototour.cs.washington.edu/patches/trevi.zip" -O trevi.zip
+    else
+      echo "Trevi already downloaded, using cached version..."
+    fi
+
+    echo "Extracting Trevi..."
+    mkdir patches
+    unzip -q trevi.zip -d patches
+
+    echo "Converting Trevi..."
+    python2 tools/binary_converter.py patches/ "$TREVI_DIR/data.bin"
+    python2 tools/binary_converter.py --sample "$TREVI_DIR/data.bin" "$TREVI_DIR/train.bin" "$TREVI_DIR/test.bin" "$TEST_N" "$TREVI_DIM"
+    rm -r patches
+    if [ "$REMOVE_DOWNLOADED" = true ]; then
+        rm trevi.zip
+    fi
+
+    TREVI_DIM_FILE="$TREVI_DIR/dimensions.sh"
+    echo '#!/usr/bin/env bash' > "$TREVI_DIM_FILE"
+    echo >> "$TREVI_DIM_FILE"
+    echo N="$TREVI_N" >> "$TREVI_DIM_FILE"
+    echo N_TEST="$TEST_N" >> "$TREVI_DIM_FILE"
+    echo DIM="$TREVI_DIM" >> "$TREVI_DIM_FILE"
 fi
