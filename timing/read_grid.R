@@ -16,4 +16,12 @@ r3 <- pareto_frontier(res3[res3$k == k, ])
 r4 <- pareto_frontier(res4[res4$k == k, ])
 rlist = list(mrpt = r1, mrpt_size = r2, mrpt_size2 = r3, mrpt_size3 = r4)
 
-plot_times(rlist, 'query_time', 'mnist, k = 100')
+plot_times(rlist, 'query_time', paste0('mnist, k = ', k))
+plot_components(r1, main = paste0('mnist, k = ', k))
+plot_components(r2, c('projection_time', 'voting_time', 'exact_time', 'sorting_time'),
+                main = paste0('mnist, k = ', k))
+plot_components(r3, c('projection_time', 'voting_time', 'exact_time', 'sorting_time',
+                      'choosing_time'), main = paste0('mnist, k = ', k))
+plot_components(r4, c('projection_time', 'voting_time', 'exact_time', 'sorting_time',
+                      'choosing_time'), main = paste0('mnist, k = ', k))
+
