@@ -80,7 +80,7 @@ if [ ! -f "$GIST_DIR/data.bin" ]; then
     fi
     echo "Converting GIST..."
     python2 tools/binary_converter.py gist/gist_base.fvecs "$GIST_DIR/data.bin"
-    python2 tools/binary_converter.py --sample "$GIST_DIR/data.bin" "$GIST_DIR/train.bin" "$GIST_DIR/test.bin" $TEST_N 960
+    python2 tools/binary_converter.py --sample "$GIST_DIR/data.bin" "$GIST_DIR/train.bin" "$GIST_DIR/test.bin" $TEST_N "$GIST_DIM"
     if [ "$REMOVE_DOWNLOADED" = true ]; then
         rm -r gist
         rm gist.tar.gz
@@ -92,4 +92,38 @@ if [ ! -f "$GIST_DIR/data.bin" ]; then
     echo N="$GIST_N" >> "$GIST_DIM_FILE"
     echo N_TEST="$TEST_N" >> "$GIST_DIM_FILE"
     echo DIM="$GIST_DIM" >> "$GIST_DIM_FILE"
+fi
+
+STL_N=100000
+STL_DIM=9216
+STL_DIR="$DATA_DIR/stl10"
+
+
+if [ ! -f "$STL_DIR/data.bin" ]; then
+    mkdir -p "$STL_DIR"
+    if [ ! -f stl10_binary.tar.gz ]; then
+      echo "Downloading STL-10..."
+      wget "http://cs.stanford.edu/~acoates/stl10/stl10_binary.tar.gz" -O stl10_binary.tar.gz
+    else
+      echo "STL-10 already downloaded, using cached version..."
+    fi
+
+    echo "Extracting STL-10..."
+    tar xzf stl10_binary.tar.gz
+
+    echo "Converting STL-10..."
+    python2 tools/binary_converter.py stl10_binary/unlabeled_X.bin "$STL_DIR/data.bin"
+    python2 tools/binary_converter.py --sample "$STL_DIR/data.bin" "$STL_DIR/train.bin" "$STL_DIR/test.bin" "$TEST_N" "$STL_DIM"
+    rm -r stl10_binary
+    if [ "$REMOVE_DOWNLOADED" = true ]; then
+      rm stl10_binary.tar.gz
+    fi
+
+    STL_DIM_FILE="$STL_DIR/dimensions.sh"
+    echo '#!/usr/bin/env bash' > "$STL_DIM_FILE"
+    echo >> "$STL_DIM_FILE"
+    echo N="$STL_N" >> "$STL_DIM_FILE"
+    echo N_TEST="$TEST_N" >> "$STL_DIM_FILE"
+    echo DIM="$STL_DIM" >> "$STL_DIM_FILE"
+
 fi
