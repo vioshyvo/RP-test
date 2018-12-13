@@ -54,3 +54,36 @@ fit_theil_sen <- function(x, y) {
   
   c(beta0, beta1)
 }
+
+
+read_normal_times <- function(filename) {
+  dir <- "~/git/rp_test/timing/results"
+  res <- read.table(file.path(dir, filename), sep = ' ', header = FALSE, 
+                    strip.white = TRUE, col.names = c(
+                      "k",
+                      "n_trees",
+                      "depth",
+                      "sparsity",
+                      "votes",
+                      "recall",
+                      "sd_recall",
+                      "query_time",
+                      "sd_query_time",
+                      "projection_time",
+                      "voting_time",
+                      "exact_time",
+                      "build_time",
+                      "n_elected",
+                      "na"
+                    ))
+  
+  res[, ncol(res)] <- NULL
+  res
+} 
+
+read_exact <- function(filename) {
+  dir <- "~/git/rp_test/timing/results/times_mnist/"
+  res <- read.table(paste0(dir, filename), sep = ' ', header = FALSE, 
+                    strip.white = TRUE, col.names = c("k", "n_elected", "exact_time"))
+  res
+}
