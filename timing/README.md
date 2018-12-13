@@ -3,9 +3,10 @@
 Comparison of query and index building time between the new and the old
 version of mrpt.
 
-Start by downloading the mnist data set:
+Start by downloading the data sets:
 ```
-./get_mnist.sh
+source ../../py27/bin/activate
+./get_data.sh
 ```
 
 Edit the directory containing the header file `Mrpt.h` you want to test to the `mrpt_tester/Makefile`, for example:
