@@ -9,6 +9,11 @@ res2 <- read_normal_times2(filename=file.path(dir, 'mrpt_total2_size'))
 res3 <- read_normal_times3(filename=file.path(dir, 'mrpt_total2_size2'))
 res4 <- read_normal_times3(filename=file.path(dir, 'mrpt_total2_size3'))
 
+rr1 <- res1[res1$k == k, ]
+rr2 <- res1[res2$k == k, ]
+rr3 <- res1[res3$k == k, ]
+rr4 <- res1[res4$k == k, ]
+
 k <- 100
 r1 <- pareto_frontier(res1[res1$k == k, ])
 r2 <- pareto_frontier(res2[res2$k == k, ])

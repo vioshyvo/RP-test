@@ -34,3 +34,5 @@ plot_components <- function(df, colnames = c('projection_time',
   legend('topleft', legend = colnames, col = (1:n) + 1, lwd = 2, bty = 'n')
 }
 
+table(res1$depth)
+table(res1$k)
