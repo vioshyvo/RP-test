@@ -81,6 +81,67 @@ read_normal_times <- function(filename) {
   res
 } 
 
+read_normal_times2 <- function(filename) {
+  dir <- "~/git/rp_test/timing/results"
+  res <- read.table(file.path(dir, filename), sep = ' ', header = FALSE, 
+                    strip.white = TRUE, col.names = c(
+                      "k",
+                      "n_trees",
+                      "depth",
+                      "sparsity",
+                      "votes",
+                      "recall",
+                      "sd_recall",
+                      "query_time",
+                      "sd_query_time",
+                      "projection_time",
+                      "voting_time",
+                      "exact_time",
+                      "build_time",
+                      "n_elected",
+                      "sorting_time",
+                      "na"
+                    ))
+  
+  res[, ncol(res)] <- NULL
+  res
+} 
+
+read_normal_times3 <- function(filename) {
+  dir <- "~/git/rp_test/timing/results"
+  res <- read.table(file.path(dir, filename), sep = ' ', header = FALSE, 
+                    strip.white = TRUE, col.names = c(
+                      "k",
+                      "n_trees",
+                      "depth",
+                      "sparsity",
+                      "votes",
+                      "recall",
+                      "sd_recall",
+                      "query_time",
+                      "sd_query_time",
+                      "projection_time",
+                      "voting_time",
+                      "exact_time",
+                      "build_time",
+                      "n_elected",
+                      "sorting_time",
+                      "choosing_time",
+                      "na"
+                    ))
+  
+  res[, ncol(res)] <- NULL
+  res
+} 
+
+pareto_frontier <- function(df) {
+  p <- rPref::low(query_time) * rPref::high(recall)
+  res <- rPref::psel(df, p)
+  res[order(res$recall), ]
+}
+
+
+
 read_exact <- function(filename) {
   dir <- "~/git/rp_test/timing/results/times_mnist/"
   res <- read.table(paste0(dir, filename), sep = ' ', header = FALSE, 
