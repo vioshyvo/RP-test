@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
           sorting_times2.push_back(sorting_time2);
 
           start = omp_get_wtime();
-          index_dense.query_size2(q2, k, cs_size, &result3[0],
+          index_dense.query_size3(q2, k, cs_size, &result3[0],
                                   projection_time3, voting_time3, exact_time3,
                                   sorting_time3, choosing_time3,
                                   &distances[0], &n_elected3);
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
           choosing_times3.push_back(choosing_time3);
 
           start = omp_get_wtime();
-          index_dense.query_size3(q2, k, cs_size, &result4[0],
+          index_dense.query_size2(q2, k, cs_size, &result4[0],
                                   projection_time4, voting_time4, exact_time4,
                                   sorting_time4, choosing_time4,
                                   &distances[0], &n_elected4);
