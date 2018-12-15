@@ -3,7 +3,7 @@
 #SBATCH --job-name=votes-stl10-mrpt-full
 #SBATCH -o script-output/votes-stl10-mrpt-full.txt
 #SBATCH -c 1
-#SBATCH -t 02-00:00:00
+#SBATCH -t 04-00:00:00
 #SBATCH --mem=30G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ville.o.hyvonen@helsinki.fi
