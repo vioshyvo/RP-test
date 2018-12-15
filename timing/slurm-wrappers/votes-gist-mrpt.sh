@@ -3,8 +3,8 @@
 #SBATCH --job-name=votes-gist-mrpt-full
 #SBATCH -o script-output/votes-gist-mrpt-full.txt
 #SBATCH -c 1
-#SBATCH -t 2-00:00:00
-#SBATCH --mem=30G
+#SBATCH -t 4-00:00:00
+#SBATCH --mem=50G
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ville.o.hyvonen@helsinki.fi
 
