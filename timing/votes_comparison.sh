@@ -38,7 +38,7 @@ if [ $PARALLEL -eq 1 ]; then
   RESULT_FILE="${RESULT_FILE}_parallel"
 fi
 
-pushd votes_tester
+pushd votes_tester2
   make
 popd
 
