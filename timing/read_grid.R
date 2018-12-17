@@ -10,10 +10,11 @@ res3 <- read_normal_times3(filename=file.path(dir, 'mrpt_total4_size2'))
 res4 <- read_normal_times3(filename=file.path(dir, 'mrpt_total4_size3'))
 
 k <- 100
-rr1 <- res1[res1$k == k, ]
-rr2 <- res1[res2$k == k, ]
-rr3 <- res1[res3$k == k, ]
-rr4 <- res1[res4$k == k, ]
+n_trees <- 1000
+rr1 <- res1[res1$k == k & res1$n_trees == n_trees, ]
+rr2 <- res2[res2$k == k & res2$n_trees == n_trees, ]
+rr3 <- res3[res3$k == k & res3$n_trees == n_trees, ]
+rr4 <- res4[res4$k == k & res4$n_trees == n_trees, ]
 
 r1 <- pareto_frontier(res1[res1$k == k, ])
 r2 <- pareto_frontier(res2[res2$k == k, ])
