@@ -45,6 +45,6 @@ popd
 echo -n > "$RESULT_FILE"
 for n_trees in $MRPT_VOTING_N_TREES; do
     for depth in $MRPT_DEPTH; do
-        votes_tester/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL" "$RESULT_FILE" "$PARAMETER_FILE" $MRPT_CS_SIZES
+        votes_tester2/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP "results/$DATASET_NAME" "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL" "$RESULT_FILE" "$PARAMETER_FILE" $MRPT_CS_SIZES
     done
 done
