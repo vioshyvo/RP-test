@@ -108,6 +108,8 @@ int main(int argc, char **argv) {
     int big_k = *ks.rbegin();
     std::string votes_file(result_path + "votes_" + std::to_string(big_k));
     std::string top_votes_file(result_path + "top_votes_" + std::to_string(big_k));
+    // std::string cs_sizes_file(result_path + "cs_sizes_" + std::to_string(big_k));
+    // std::string vote_thresholds_file(result_path + "votes_thresholds_" + std::to_string(big_k));
     std::ofstream ofvotes(votes_file), oftop(top_votes_file);
     if (!ofvotes) {
        std::cerr << "File " << votes_file << " could not be opened for reading!" << std::endl;
