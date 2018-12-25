@@ -64,6 +64,8 @@ int main(int argc, char **argv) {
     float density = atof(argv[12]);
     bool parallel = atoi(argv[13]);
     int n_auto = atoi(argv[14]);
+    std::string results_file(argv[15]);
+
 
     size_t n_points = n - n_test;
     bool verbose = false;
@@ -89,6 +91,12 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    std::ofstream outf(results_file, std::ios::app);
+    if(!outf) {
+      std::cerr << results_file << " could not be opened for writing." << std::endl;
+      return -1;
+    }
+
     const Map<const MatrixXf> M(train, dim, n_points);
     const Map<const MatrixXf> test_queries(test, dim, n_test);
 
@@ -108,9 +116,10 @@ int main(int argc, char **argv) {
     int big_k = *ks.rbegin();
     std::string votes_file(result_path + "votes_" + std::to_string(big_k));
     std::string top_votes_file(result_path + "top_votes_" + std::to_string(big_k));
-    // std::string cs_sizes_file(result_path + "cs_sizes_" + std::to_string(big_k));
-    // std::string vote_thresholds_file(result_path + "votes_thresholds_" + std::to_string(big_k));
+    std::string cs_sizes_file(result_path + "cs_sizes_" + std::to_string(big_k));
+    std::string vote_thresholds_file(result_path + "vote_thresholds_" + std::to_string(big_k));
     std::ofstream ofvotes(votes_file), oftop(top_votes_file);
+    std::ofstream ofsizes(cs_sizes_file), ofthresholds(vote_thresholds_file);
     if (!ofvotes) {
        std::cerr << "File " << votes_file << " could not be opened for reading!" << std::endl;
        exit(1);
@@ -119,12 +128,19 @@ int main(int argc, char **argv) {
        std::cerr << "File " << top_votes_file << " could not be opened for reading!" << std::endl;
        exit(1);
     }
+    if(!ofsizes) {
+      std::cerr << "File " << cs_sizes_file << " could not be opened for reading!" << std::endl;
+      exit(1);
+    }
+    if(!ofthresholds) {
+      std::cerr << "File " << vote_thresholds_file << " could not be opened for reading!" << std::endl;
+      exit(1);
+    }
 
     std::string result_file(result_path + "truth_" + std::to_string(big_k));
     std::vector<std::vector<int>> correct = read_results(result_file, big_k);
 
-    for (int j = 0; j < ks.size(); ++j) {
-      int k = ks[j];
+    for (const auto &k : ks) {
       double build_start = omp_get_wtime();
       Mrpt mrpt(M);
       mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt, n_auto);
@@ -168,11 +184,29 @@ int main(int argc, char **argv) {
           exact_times.push_back(exact_time);
           elected += n_elected;
 
+          std::map<int,int,std::greater<int>> vote_counts;
+
           if(k == big_k) {
             const std::vector<int> &exact = correct[i];
             for(const auto &e : exact)
               ofvotes << votes[e] << " ";
             ofvotes << n_elected << std::endl;
+
+            for(int l = 0; l < votes.size(); ++l) {
+              int v = votes(l);
+              if(v)
+                if(std::find(exact.begin(), exact.end(), l) != exact.end())
+                  ++vote_counts[v];
+            }
+
+            auto vec_pair = map2vec(vote_counts);
+            for(const auto &v : vec_pair.first)
+              ofthresholds << v << " ";
+            ofthresholds << std::endl;
+
+            for(const auto &v : vec_pair.second)
+              ofsizes << v << " ";
+            ofsizes << std::endl;
 
             std::partial_sort(votes.data(), votes.data() + k, votes.data() + n_points, std::greater<int>());
             for(int l = 0; l < k; ++l)
@@ -189,25 +223,21 @@ int main(int argc, char **argv) {
         double est_exact_time = MrptTest::get_exact_time(mrpt, par.n_trees, par.depth, par.votes);
         double mean_n_elected = elected / static_cast<double>(n_test);
 
-        if(verbose)
-          std::cout << "k: " << k << ", # of trees: " << par.n_trees << ", depth: " << par.depth << ", density: " << density << ", votes: " << par.votes << "\n";
-        else
-          std::cout << k << " " << par.n_trees << " " << par.depth << " " << density << " " << par.votes << " ";
+        outf << k << " " << par.n_trees << " " << par.depth << " " << density << " " << par.votes << " ";
 
-        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose);
-        std::cout << build_end - build_start <<  " ";
-        std::cout << par.estimated_recall << " ";
-        std::cout << par.estimated_qtime * n_test << " ";
-        std::cout << est_projection_time * n_test << " ";
-        std::cout << est_voting_time * n_test << " ";
-        std::cout << est_exact_time * n_test << " ";
-        std::cout << (median_projection_time + median_voting_time + median_exact_time) * n_test << " ";
-        std::cout << median_projection_time * n_test << " ";
-        std::cout << median_voting_time * n_test << " ";
-        std::cout << median_exact_time * n_test << " ";
-        std::cout << mean_n_elected << " ";
-        std::cout << std::endl;
-
+        results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose, outf);
+        outf << build_end - build_start <<  " ";
+        outf << par.estimated_recall << " ";
+        outf << par.estimated_qtime * n_test << " ";
+        outf << est_projection_time * n_test << " ";
+        outf << est_voting_time * n_test << " ";
+        outf << est_exact_time * n_test << " ";
+        outf << (median_projection_time + median_voting_time + median_exact_time) * n_test << " ";
+        outf << median_projection_time * n_test << " ";
+        outf << median_voting_time * n_test << " ";
+        outf << median_exact_time * n_test << " ";
+        outf << mean_n_elected << " ";
+        outf << std::endl;
       }
 
     }

@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <cstdlib>
 #include <utility>
+#include <map>
+#include <functional>
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -224,4 +226,17 @@ std::vector<int> read_parameters(const std::string &par_name, std::ifstream &inf
     break;
   }
   return vs;
+}
+
+std::pair<std::vector<int>,std::vector<int>> map2vec(const std::map<int,int,std::greater<int>> &M) {
+  std::vector<int> v1, v2;
+  int acc = 0;
+  for(const auto &m : M) {
+    for(int i = acc; i < acc + m.second; ++i) {
+      v1.push_back(m.first);
+      v2.push_back(acc + m.second);
+    }
+    acc += m.second;
+  }
+  return std::make_pair(v1, v2);
 }
