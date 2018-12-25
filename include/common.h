@@ -232,11 +232,8 @@ std::pair<std::vector<int>,std::vector<int>> map2vec(const std::map<int,int,std:
   std::vector<int> v1, v2;
   int acc = 0;
   for(const auto &m : M) {
-    for(int i = acc; i < acc + m.second; ++i) {
-      v1.push_back(m.first);
-      v2.push_back(acc + m.second);
-    }
-    acc += m.second;
+    v1.push_back(m.first);
+    v2.push_back(acc += m.second);
   }
   return std::make_pair(v1, v2);
 }
