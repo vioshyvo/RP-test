@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     bool parallel = atoi(argv[13]);
     int n_auto = atoi(argv[14]);
     std::string results_file(argv[15]);
-
+    std::string results_file2(results_file + "_adaptive");
 
     size_t n_points = n - n_test;
     bool verbose = false;
@@ -97,6 +97,12 @@ int main(int argc, char **argv) {
       return -1;
     }
 
+    std::ofstream outf2(results_file2, std::ios::app);
+    if(!outf) {
+      std::cerr << results_file2 << " could not be opened for writing." << std::endl;
+      return -1;
+    }
+
     const Map<const MatrixXf> M(train, dim, n_points);
     const Map<const MatrixXf> test_queries(test, dim, n_test);
 
@@ -108,12 +114,20 @@ int main(int argc, char **argv) {
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};
-    std::vector<double> target_recalls {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9,
-                                        0.925, 0.95, 0.97, 0.98, 0.99, 0.995};
+    int big_k = *ks.rbegin();
+
+    std::vector<int> int_recalls {10, 20, 30, 40, 50, 60, 70, 80, 85, 87, 90, 92,
+                                  95, 96, 97, 98, 99, 100};
+    std::vector<double> target_recalls;
+
+    for(const auto &i : int_recalls)
+      target_recalls.push_back(i / static_cast<double>(big_k));
+
+    // std::vector<double> target_recalls {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9,
+    //                                     0.925, 0.95, 0.97, 0.98, 0.99, 0.995};
 
     double build_time;
 
-    int big_k = *ks.rbegin();
     std::string votes_file(result_path + "votes_" + std::to_string(big_k));
     std::string top_votes_file(result_path + "top_votes_" + std::to_string(big_k));
     std::string cs_sizes_file(result_path + "cs_sizes_" + std::to_string(big_k));
@@ -240,8 +254,68 @@ int main(int argc, char **argv) {
         outf << std::endl;
       }
 
-    }
+      if(k == big_k) {
+        for(const auto &itr : int_recalls) {
+          double tr = itr / static_cast<double>(big_k);
 
+          Mrpt mrpt_new = mrpt.subset(tr);
+          Mrpt_Parameters par(mrpt_new.parameters());
+
+          if(mrpt_new.empty()) {
+            continue;
+          }
+
+          std::vector<double> times, projection_times, voting_times, exact_times;
+          std::vector<std::set<int>> idx;
+          int elected = 0;
+
+          for(int i = 0; i < n_test; ++i) {
+            double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
+            std::vector<int> result(k);
+            std::vector<float> distances(k);
+            int n_elected = 0;
+            const Map<const VectorXf> q(&test[i * dim], dim);
+
+            double start = omp_get_wtime();
+            Eigen::VectorXi votes = Eigen::VectorXi::Zero(n_points);
+            mrpt_new.query(q, &result[0], projection_time, voting_time, exact_time,
+                           votes, &distances[0], &n_elected);
+            double end = omp_get_wtime();
+
+            times.push_back(end - start);
+            idx.push_back(std::set<int>(result.begin(), result.begin() + k));
+            projection_times.push_back(projection_time);
+            voting_times.push_back(voting_time);
+            exact_times.push_back(exact_time);
+            elected += n_elected;
+          }
+
+          double median_projection_time = median(projection_times);
+          double median_voting_time = median(voting_times);
+          double median_exact_time = median(exact_times);
+          double est_projection_time = MrptTest::get_projection_time(mrpt, par.n_trees, par.depth, par.votes);
+          double est_voting_time = MrptTest::get_voting_time(mrpt, par.n_trees, par.depth, par.votes);
+          double est_exact_time = MrptTest::get_exact_time(mrpt, par.n_trees, par.depth, par.votes);
+          double mean_n_elected = elected / static_cast<double>(n_test);
+
+          outf2 << k << " " << par.n_trees << " " << par.depth << " " << density << " " << par.votes << " ";
+
+          results(k, times, idx, (result_path + "truth_" + std::to_string(k)).c_str(), verbose, outf2);
+          outf2 << build_end - build_start <<  " ";
+          outf2 << par.estimated_recall << " ";
+          outf2 << par.estimated_qtime * n_test << " ";
+          outf2 << est_projection_time * n_test << " ";
+          outf2 << est_voting_time * n_test << " ";
+          outf2 << est_exact_time * n_test << " ";
+          outf2 << (median_projection_time + median_voting_time + median_exact_time) * n_test << " ";
+          outf2 << median_projection_time * n_test << " ";
+          outf2 << median_voting_time * n_test << " ";
+          outf2 << median_exact_time * n_test << " ";
+          outf2 << mean_n_elected << " ";
+          outf2 << std::endl;
+        }
+      }
+    }
 
 
     delete[] test;
