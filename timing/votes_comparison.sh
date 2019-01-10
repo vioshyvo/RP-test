@@ -14,6 +14,11 @@ fi
 DATASET_NAME="$1"
 PARAMETER_FILE="parameters/$DATASET_NAME.sh"
 
+if [ ! -f "data/$DATASET_NAME/dimensions.sh" ]; then
+  echo "Data set $DATASET_NAME not yet downloaded or converted to binary."
+  exit
+fi
+
 . "$PARAMETER_FILE"
 . "data/$DATASET_NAME/dimensions.sh"
 
