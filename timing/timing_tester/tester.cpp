@@ -58,11 +58,15 @@ int get_vote_threshold(int target_nn, const std::vector<int> &vote_thresholds,
   return v;
 }
 
-int get_vote_threshold_probability(int target_nn, const std::vector<int> &vote_thresholds,
-                       const std::vector<int> &nn_found) {
-  if(vote_thresholds.size() != nn_found.size()) {
+int get_vote_threshold_probability(double target_nn, int k, const std::vector<int> &vote_thresholds,
+                       const std::vector<int> &inn_found) {
+  if(vote_thresholds.size() != inn_found.size()) {
     throw std::logic_error("vote_thresholds.size and nn_found.size are different.");
   }
+
+  std::vector<double> nn_found;
+  for(int i = 0; i < vote_thresholds.size(); ++i)
+    nn_found.push_back(inn_found[i] / static_cast<double>(k));
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -85,6 +89,7 @@ int get_vote_threshold_probability(int target_nn, const std::vector<int> &vote_t
   }
   return v;
 }
+
 
 int main(int argc, char **argv) {
     size_t n = atoi(argv[1]);
@@ -336,7 +341,7 @@ int main(int argc, char **argv) {
 
             const std::vector<int> &vote_counts = all_vote_counts[i];
             const std::vector<int> &nn_found = all_nn_found[i];
-            int vote_threshold = get_vote_threshold_probability(itr, vote_counts, nn_found);
+            int vote_threshold = get_vote_threshold_probability(tr, k, vote_counts, nn_found);
 
             double start = omp_get_wtime();
             Eigen::VectorXi votes = Eigen::VectorXi::Zero(n_points);
