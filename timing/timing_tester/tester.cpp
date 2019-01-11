@@ -163,47 +163,39 @@ int main(int argc, char **argv) {
     int seed_mrpt = 12345;
 
     std::vector<int> ks{1, 10, 100};
-    int big_k = *ks.rbegin();
 
-    std::vector<int> int_recalls {10, 20, 30, 40, 50, 60, 70, 80, 85, 87, 90, 92,
-                                  95, 96, 97, 98, 99, 100};
-    std::vector<double> target_recalls;
-
-    for(const auto &i : int_recalls)
-      target_recalls.push_back(i / static_cast<double>(big_k));
-
-    // std::vector<double> target_recalls {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9,
-    //                                     0.925, 0.95, 0.97, 0.98, 0.99, 0.995};
+    std::vector<double> target_recalls {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.87,
+                                        0.90, 0.92, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0};
 
     double build_time;
 
-    std::string votes_file(result_path + "votes_" + std::to_string(big_k));
-    std::string top_votes_file(result_path + "top_votes_" + std::to_string(big_k));
-    std::string cs_sizes_file(result_path + "cs_sizes_" + std::to_string(big_k));
-    std::string vote_thresholds_file(result_path + "vote_thresholds_" + std::to_string(big_k));
-    std::ofstream ofvotes(votes_file), oftop(top_votes_file);
-    std::ofstream ofsizes(cs_sizes_file), ofthresholds(vote_thresholds_file);
-    if (!ofvotes) {
-       std::cerr << "File " << votes_file << " could not be opened for reading!" << std::endl;
-       exit(1);
-    }
-    if (!oftop) {
-       std::cerr << "File " << top_votes_file << " could not be opened for reading!" << std::endl;
-       exit(1);
-    }
-    if(!ofsizes) {
-      std::cerr << "File " << cs_sizes_file << " could not be opened for reading!" << std::endl;
-      exit(1);
-    }
-    if(!ofthresholds) {
-      std::cerr << "File " << vote_thresholds_file << " could not be opened for reading!" << std::endl;
-      exit(1);
-    }
-
-    std::string result_file(result_path + "truth_" + std::to_string(big_k));
-    std::vector<std::vector<int>> correct = read_results(result_file, big_k);
-
     for (const auto &k : ks) {
+      std::string votes_file(result_path + "votes_" + std::to_string(k));
+      std::string top_votes_file(result_path + "top_votes_" + std::to_string(k));
+      std::string cs_sizes_file(result_path + "cs_sizes_" + std::to_string(k));
+      std::string vote_thresholds_file(result_path + "vote_thresholds_" + std::to_string(k));
+      std::ofstream ofvotes(votes_file), oftop(top_votes_file);
+      std::ofstream ofsizes(cs_sizes_file), ofthresholds(vote_thresholds_file);
+      if (!ofvotes) {
+         std::cerr << "File " << votes_file << " could not be opened for reading!" << std::endl;
+         exit(1);
+      }
+      if (!oftop) {
+         std::cerr << "File " << top_votes_file << " could not be opened for reading!" << std::endl;
+         exit(1);
+      }
+      if(!ofsizes) {
+        std::cerr << "File " << cs_sizes_file << " could not be opened for reading!" << std::endl;
+        exit(1);
+      }
+      if(!ofthresholds) {
+        std::cerr << "File " << vote_thresholds_file << " could not be opened for reading!" << std::endl;
+        exit(1);
+      }
+
+      std::string result_file(result_path + "truth_" + std::to_string(k));
+      std::vector<std::vector<int>> correct = read_results(result_file, k);
+
       double build_start = omp_get_wtime();
       Mrpt mrpt(M);
       mrpt.grow_autotune(k, trees_max, depth_max, depth_min, votes_max, density, seed_mrpt, n_auto);
@@ -224,7 +216,7 @@ int main(int argc, char **argv) {
         std::vector<std::set<int>> idx;
         int elected = 0;
 
-        if(k == big_k) {
+        if(k == 10 || k == 100) {
           oftop << par.k << " " << par.n_trees << " " << par.depth << " " << par.votes << std::endl;
           ofvotes << par.k << " " << par.n_trees << " " << par.depth << " " << par.votes << std::endl;
         }
@@ -254,7 +246,7 @@ int main(int argc, char **argv) {
 
           std::map<int,int,std::greater<int>> vote_counts;
 
-          if(k == big_k) {
+          if(k == 10 || k == 100) {
             const std::vector<int> &exact = correct[i];
             for(const auto &e : exact)
               ofvotes << votes[e] << " ";
@@ -313,10 +305,9 @@ int main(int argc, char **argv) {
         outf << std::endl;
       }
 
-      if(k == big_k) {
-        for(int j = 0; j < int_recalls.size(); ++j) {
-          int itr = int_recalls[j];
-          double tr = itr / static_cast<double>(big_k);
+      if(k == 10 || k == 100) {
+        for(int j = 0; j < target_recalls.size(); ++j) {
+          double tr = target_recalls[j];
 
           Mrpt mrpt_new = mrpt.subset(tr);
           Mrpt_Parameters par(mrpt_new.parameters());
