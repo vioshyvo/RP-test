@@ -260,6 +260,7 @@ int main(int argc, char **argv) {
 
           Mrpt mrpt_new = mrpt.subset(tr);
           Mrpt_Parameters par(mrpt_new.parameters());
+          int vote_threshold = par.votes;
 
           if(mrpt_new.empty()) {
             continue;
@@ -278,7 +279,7 @@ int main(int argc, char **argv) {
 
             double start = omp_get_wtime();
             Eigen::VectorXi votes = Eigen::VectorXi::Zero(n_points);
-            mrpt_new.query(q, &result[0], projection_time, voting_time, exact_time,
+            mrpt_new.query(q, k, vote_threshold, &result[0], projection_time, voting_time, exact_time,
                            votes, &distances[0], &n_elected);
             double end = omp_get_wtime();
 
