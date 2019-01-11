@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdexcept>
 
 #include "Mrpt.h"
 #include "common.h"
@@ -40,6 +41,22 @@ public:
     return mrpt.get_exact_time(n_trees, depth, v);
   }
 };
+
+int get_vote_threshold(int target_nn, const std::vector<int> &vote_thresholds,
+                       const std::vector<int> &nn_found) {
+  if(vote_thresholds.size() != nn_found.size()) {
+    throw std::logic_error("vote_thresholds.size and nn_found.size are different.");
+  }
+
+  int v = 1;
+  for(int i = 0; i < nn_found.size(); ++i) {
+    if(nn_found[i] >= target_nn) {
+      v = vote_thresholds[i];
+      break;
+    }
+  }
+  return v;
+}
 
 
 int main(int argc, char **argv) {
@@ -161,6 +178,8 @@ int main(int argc, char **argv) {
 
       double build_end = omp_get_wtime();
 
+      std::vector<std::vector<std::vector<int>>> vec_vote_counts;
+      std::vector<std::vector<std::vector<int>>> vec_nn_found;
       for(const auto &tr : target_recalls) {
         Mrpt mrpt_new = mrpt.subset(tr);
         Mrpt_Parameters par(mrpt_new.parameters());
@@ -177,6 +196,9 @@ int main(int argc, char **argv) {
           oftop << par.k << " " << par.n_trees << " " << par.depth << " " << par.votes << std::endl;
           ofvotes << par.k << " " << par.n_trees << " " << par.depth << " " << par.votes << std::endl;
         }
+
+        std::vector<std::vector<int>> all_vote_counts;
+        std::vector<std::vector<int>> all_nn_found;
 
         for (int i = 0; i < n_test; ++i) {
           double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
@@ -214,6 +236,8 @@ int main(int argc, char **argv) {
             }
 
             auto vec_pair = map2vec(vote_counts);
+            all_vote_counts.push_back(vec_pair.first);
+            all_nn_found.push_back(vec_pair.second);
             for(const auto &v : vec_pair.first)
               ofthresholds << v << " ";
             ofthresholds << std::endl;
@@ -228,6 +252,9 @@ int main(int argc, char **argv) {
             oftop << n_elected << std::endl;
           }
         }
+
+        vec_vote_counts.push_back(all_vote_counts);
+        vec_nn_found.push_back(all_nn_found);
 
         double median_projection_time = median(projection_times);
         double median_voting_time = median(voting_times);
@@ -255,12 +282,12 @@ int main(int argc, char **argv) {
       }
 
       if(k == big_k) {
-        for(const auto &itr : int_recalls) {
+        for(int j = 0; j < int_recalls.size(); ++j) {
+          int itr = int_recalls[j];
           double tr = itr / static_cast<double>(big_k);
 
           Mrpt mrpt_new = mrpt.subset(tr);
           Mrpt_Parameters par(mrpt_new.parameters());
-          int vote_threshold = par.votes;
 
           if(mrpt_new.empty()) {
             continue;
@@ -270,12 +297,19 @@ int main(int argc, char **argv) {
           std::vector<std::set<int>> idx;
           int elected = 0;
 
+          const std::vector<std::vector<int>> &all_vote_counts = vec_vote_counts[j];
+          const std::vector<std::vector<int>> &all_nn_found = vec_nn_found[j];
+
           for(int i = 0; i < n_test; ++i) {
             double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
             std::vector<int> result(k);
             std::vector<float> distances(k);
             int n_elected = 0;
             const Map<const VectorXf> q(&test[i * dim], dim);
+
+            const std::vector<int> &vote_counts = all_vote_counts[i];
+            const std::vector<int> &nn_found = all_nn_found[i];
+            int vote_threshold = get_vote_threshold(itr, vote_counts, nn_found);
 
             double start = omp_get_wtime();
             Eigen::VectorXi votes = Eigen::VectorXi::Zero(n_points);
