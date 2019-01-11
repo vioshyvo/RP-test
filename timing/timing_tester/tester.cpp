@@ -59,7 +59,7 @@ int get_vote_threshold(int target_nn, const std::vector<int> &vote_thresholds,
 }
 
 int get_vote_threshold_probability(double target_nn, int k, const std::vector<int> &vote_thresholds,
-                       const std::vector<int> &inn_found) {
+                       const std::vector<int> &inn_found, const std::vector<int> &top_votes) {
   if(vote_thresholds.size() != inn_found.size()) {
     throw std::logic_error("vote_thresholds.size and nn_found.size are different.");
   }
@@ -72,6 +72,16 @@ int get_vote_threshold_probability(double target_nn, int k, const std::vector<in
   std::mt19937 gen(rd());
 
   int v = 1;
+
+  if(k == 1) {
+    v = top_votes[0];
+    std::bernoulli_distribution dist(target_nn);
+    if(!vote_thresholds.empty() && dist(gen)) {
+      v = vote_thresholds[0];
+    }
+    return v;
+  }
+
   for(int i = 0; i < nn_found.size(); ++i) {
     if(nn_found[i] >= target_nn) {
       v = vote_thresholds[i];
@@ -204,6 +214,8 @@ int main(int argc, char **argv) {
 
       std::vector<std::vector<std::vector<int>>> vec_vote_counts;
       std::vector<std::vector<std::vector<int>>> vec_nn_found;
+      std::vector<std::vector<std::vector<int>>> vec_top_votes;
+
       for(const auto &tr : target_recalls) {
         Mrpt mrpt_new = mrpt.subset(tr);
         Mrpt_Parameters par(mrpt_new.parameters());
@@ -216,13 +228,14 @@ int main(int argc, char **argv) {
         std::vector<std::set<int>> idx;
         int elected = 0;
 
-        if(k == 10 || k == 100) {
+        if(k == 1 || k == 10 || k == 100) {
           oftop << par.k << " " << par.n_trees << " " << par.depth << " " << par.votes << std::endl;
           ofvotes << par.k << " " << par.n_trees << " " << par.depth << " " << par.votes << std::endl;
         }
 
         std::vector<std::vector<int>> all_vote_counts;
         std::vector<std::vector<int>> all_nn_found;
+        std::vector<std::vector<int>> all_top_votes;
 
         for (int i = 0; i < n_test; ++i) {
           double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
@@ -246,7 +259,7 @@ int main(int argc, char **argv) {
 
           std::map<int,int,std::greater<int>> vote_counts;
 
-          if(k == 10 || k == 100) {
+          if(k == 1 || k == 10 || k == 100) {
             const std::vector<int> &exact = correct[i];
             for(const auto &e : exact)
               ofvotes << votes[e] << " ";
@@ -270,15 +283,20 @@ int main(int argc, char **argv) {
               ofsizes << v << " ";
             ofsizes << std::endl;
 
+            std::vector<int> tvotes;
             std::partial_sort(votes.data(), votes.data() + k, votes.data() + n_points, std::greater<int>());
-            for(int l = 0; l < k; ++l)
+            for(int l = 0; l < k; ++l) {
               oftop << votes(l) << " ";
+              tvotes.push_back(votes(l));
+            }
             oftop << n_elected << std::endl;
+            all_top_votes.push_back(tvotes);
           }
         }
 
         vec_vote_counts.push_back(all_vote_counts);
         vec_nn_found.push_back(all_nn_found);
+        vec_top_votes.push_back(all_top_votes);
 
         double median_projection_time = median(projection_times);
         double median_voting_time = median(voting_times);
@@ -305,7 +323,7 @@ int main(int argc, char **argv) {
         outf << std::endl;
       }
 
-      if(k == 10 || k == 100) {
+      if(k == 1 || k == 10 || k == 100) {
         for(int j = 0; j < target_recalls.size(); ++j) {
           double tr = target_recalls[j];
 
@@ -322,6 +340,7 @@ int main(int argc, char **argv) {
 
           const std::vector<std::vector<int>> &all_vote_counts = vec_vote_counts[j];
           const std::vector<std::vector<int>> &all_nn_found = vec_nn_found[j];
+          const std::vector<std::vector<int>> &all_top_votes = vec_top_votes[j];
 
           for(int i = 0; i < n_test; ++i) {
             double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
@@ -332,7 +351,8 @@ int main(int argc, char **argv) {
 
             const std::vector<int> &vote_counts = all_vote_counts[i];
             const std::vector<int> &nn_found = all_nn_found[i];
-            int vote_threshold = get_vote_threshold_probability(tr, k, vote_counts, nn_found);
+            const std::vector<int> &tvotes = all_top_votes[i];
+            int vote_threshold = get_vote_threshold_probability(tr, k, vote_counts, nn_found, tvotes);
 
             double start = omp_get_wtime();
             Eigen::VectorXi votes = Eigen::VectorXi::Zero(n_points);
