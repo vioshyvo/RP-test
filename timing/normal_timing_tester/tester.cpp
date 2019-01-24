@@ -82,14 +82,50 @@ int main(int argc, char **argv) {
     double build_time = omp_get_wtime() - build_start;
     std::vector<int> ks{1, 10, 100};
 
-    for (int j = 0; j < ks.size(); ++j) {
-      int k = ks[j];
+    for (const auto &k : ks) {
+      std::string votes_file(result_path + "votes_" + std::to_string(k));
+      std::string top_votes_file(result_path + "top_votes_" + std::to_string(k));
+      std::string cs_sizes_file(result_path + "cs_sizes_" + std::to_string(k));
+      std::string vote_thresholds_file(result_path + "vote_thresholds_" + std::to_string(k));
+      std::ofstream ofvotes(votes_file), oftop(top_votes_file);
+      std::ofstream ofsizes(cs_sizes_file), ofthresholds(vote_thresholds_file);
+      if (!ofvotes) {
+         std::cerr << "File " << votes_file << " could not be opened for reading!" << std::endl;
+         exit(1);
+      }
+      if (!oftop) {
+         std::cerr << "File " << top_votes_file << " could not be opened for reading!" << std::endl;
+         exit(1);
+      }
+      if(!ofsizes) {
+        std::cerr << "File " << cs_sizes_file << " could not be opened for reading!" << std::endl;
+        exit(1);
+      }
+      if(!ofthresholds) {
+        std::cerr << "File " << vote_thresholds_file << " could not be opened for reading!" << std::endl;
+        exit(1);
+      }
+
+      std::string result_file(result_path + "truth_" + std::to_string(k));
+      std::vector<std::vector<int>> correct = read_results(result_file, k);
+
+      std::vector<std::vector<std::vector<int>>> vec_vote_counts;
+      std::vector<std::vector<std::vector<int>>> vec_nn_found;
+      std::vector<std::vector<std::vector<int>>> vec_top_votes;
+
       for (int arg = last_arg + 1; arg < argc; ++arg) {
         int vote_threshold = atoi(argv[arg]);
         if (vote_threshold > n_trees) continue;
 
+        oftop << k << " " << n_trees << " " << depth << " " << vote_threshold << std::endl;
+        ofvotes << k << " " << n_trees << " " << depth << " " << vote_threshold << std::endl;
+
         std::vector<double> times;
         std::vector<std::set<int>> idx;
+
+        std::vector<std::vector<int>> all_vote_counts;
+        std::vector<std::vector<int>> all_nn_found;
+        std::vector<std::vector<int>> all_top_votes;
 
         for (int i = 0; i < ntest; ++i) {
           double projection_time = 0.0, voting_time = 0.0, exact_time = 0.0;
@@ -105,8 +141,46 @@ int main(int argc, char **argv) {
 
           double end = omp_get_wtime();
           times.push_back(end - start);
-          idx.push_back(std::set<int>(result.begin(), result.begin() + k)); // k_found (<= k) is the number of k-nn canditates returned
+          idx.push_back(std::set<int>(result.begin(), result.begin() + k));
+
+          std::map<int,int,std::greater<int>> vote_counts;
+
+          const std::vector<int> &exact = correct[i];
+          for(const auto &e : exact)
+            ofvotes << votes[e] << " ";
+          ofvotes << n_elected << std::endl;
+
+          for(int l = 0; l < votes.size(); ++l) {
+            int v = votes(l);
+            if(v)
+              if(std::find(exact.begin(), exact.end(), l) != exact.end())
+                ++vote_counts[v];
+          }
+
+          auto vec_pair = map2vec(vote_counts);
+          all_vote_counts.push_back(vec_pair.first);
+          all_nn_found.push_back(vec_pair.second);
+          for(const auto &v : vec_pair.first)
+            ofthresholds << v << " ";
+          ofthresholds << std::endl;
+
+          for(const auto &v : vec_pair.second)
+            ofsizes << v << " ";
+          ofsizes << std::endl;
+
+          std::vector<int> tvotes;
+          std::partial_sort(votes.data(), votes.data() + k, votes.data() + n_points, std::greater<int>());
+          for(int l = 0; l < k; ++l) {
+            oftop << votes(l) << " ";
+            tvotes.push_back(votes(l));
+          }
+          oftop << n_elected << std::endl;
+          all_top_votes.push_back(tvotes);
         }
+
+        vec_vote_counts.push_back(all_vote_counts);
+        vec_nn_found.push_back(all_nn_found);
+        vec_top_votes.push_back(all_top_votes);
 
         if(verbose)
             std::cout << "k: " << k << ", # of trees: " << n_trees << ", depth: " << depth << ", sparsity: " << sparsity << ", vote_threshold: " << vote_threshold << "\n";
