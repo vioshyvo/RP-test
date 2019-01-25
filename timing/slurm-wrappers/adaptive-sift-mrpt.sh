@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH --workdir=/wrk/hyvi/RP-test/timing
+#SBATCH --job-name=adaptive-sift-mrpt-full
+#SBATCH -o script-output/adaptive-sift-mrpt-full.txt
+#SBATCH -c 1
+#SBATCH -t 4-00:00:00
+#SBATCH --mem=30G
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=ville.o.hyvonen@helsinki.fi
+
+if [ $# -ne 1 ]; then
+  echo "Usage ./adaptive-sift-mrpt.sh <post-fix>"
+  exit
+fi
+
+module load GCCcore/7.3.0
+
+srun ./grid_comparison.sh sift "$1"
