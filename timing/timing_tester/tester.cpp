@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     }
 
     std::ofstream outf2(results_file2, std::ios::app);
-    if(!outf) {
+    if(!outf2) {
       std::cerr << results_file2 << " could not be opened for writing." << std::endl;
       return -1;
     }

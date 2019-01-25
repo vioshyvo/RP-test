@@ -52,6 +52,6 @@ popd
 echo -n > "$RESULT_FILE"
 for n_trees in $MRPT_VOTING_N_TREES; do
     for depth in $MRPT_DEPTH; do
-        normal_timing_tester/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP $RESULT_DIR "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL" $MRPT_VOTES >> "$RESULT_FILE"
+        normal_timing_tester/tester $N $N_TEST $K $n_trees $depth $DIM $MMAP $RESULT_DIR "data/$DATASET_NAME" "$MRPT_SPARSITY" "$PARALLEL" "$RESULT_FILE" $MRPT_VOTES
     done
 done
