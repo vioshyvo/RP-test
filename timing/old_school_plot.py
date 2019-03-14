@@ -47,8 +47,9 @@ def main(k, files):
 
     # ylim = (0,100 / n_test)
     ylim = (0,.01) # mnist data
-    file_name = 'images/depth.png'
-    title = 'MRPT, old vs. new, k = ' + str(k)
+    dataset = 'stl10'
+    file_name = 'fig/cheat/' + dataset + str(k) + '.png'
+    title = dataset + ', k = ' + str(k)
     exact_time = -1 # 50 test set points x approximately 22 seconds
 
     fig = plt.figure()
