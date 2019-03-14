@@ -45,7 +45,7 @@ def main(k, files):
     colors = cm.rainbow(np.linspace(0, 1, len(A)))
     minY, maxY = float('inf'), -float('inf')
     for a, c, m in zip(A, colors, ['>', 'v', 'd', '^', 'o', 'p', 'h', '<']):
-        print a, c, m
+        print(a, c, m)
         l, = ax.plot(a[0], a[1], linestyle='solid', marker=m, label=a[0], c=c, markersize=7)
 
     ax.legend(LSD, labels=files, loc="upper left", title = 'file name')

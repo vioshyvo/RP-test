@@ -47,7 +47,7 @@ def main(k, files):
 
     # ylim = (0,100 / n_test)
     ylim = (0,.01) # mnist data
-    dataset = 'stl10'
+    dataset = 'mnist'
     file_name = 'fig/cheat/' + dataset + str(k) + '.png'
     title = dataset + ', k = ' + str(k)
     exact_time = -1 # 50 test set points x approximately 22 seconds
@@ -86,8 +86,8 @@ def main(k, files):
         maxY = max(maxY, max(times))
         accuracy_time_list = zip(query_times, recalls, trees, depth, vote_threshold, index_times)
         minY = min(minY, min(x for x, y, z, v, w, u in accuracy_time_list if y >= 0.5))
-        for pair in accuracy_time_list:
-            print("rec=%.3f, time=%.4f, trees=%d, depth=%d, v=%d" % (pair[1], pair[0], pair[2], pair[3], pair[4]))
+        for i in range(len(query_times)):
+            print("rec=%.3f, time=%.4f, trees=%d, depth=%d, v=%d" % (recalls[i], query_times[i], trees[i], depth[i], vote_threshold[i]))
         print("\n")
     ax.semilogy()
     ax.set_ylabel('time (s)', fontsize=20)
