@@ -114,6 +114,46 @@ float *read_memory(const char *file, size_t n, size_t dim) {
     return data;
 }
 
+int *read_memory_int(const char *file, size_t n, size_t dim) {
+    int *data = new int[n * dim];
+
+    struct stat sb;
+    stat(file, &sb);
+
+    if(sb.st_size != n * dim * sizeof(int)) {
+        std::cerr << "Size of the file is " << sb.st_size << ", while the expected size is: " << n * dim * sizeof(int) << "\n";
+        return NULL;
+    }
+
+    FILE *fd;
+    if ((fd = fopen(file, "rb")) == NULL) {
+        std::cerr << "Could not open file " << file << " for reading.\n";
+        return NULL;
+    }
+
+    size_t read = fread(data, sizeof(int), n * dim, fd);
+    if (read != n * dim) {
+        std::cerr << "Expected size of the read was " << n * dim << ", but " << read << " was read.\n";
+        return NULL;
+    }
+
+    fclose(fd);
+    return data;
+}
+
+template <typename T>
+void write_memory(const T *mem, std::string spath, int nrow, int ncol) {
+  const char *path = spath.c_str();
+  FILE *fd;
+  if ((fd = fopen(path, "wb")) == NULL) {
+    std::cerr << "common.h: " << "file " << path
+              << " could not be opened for writing" << std::endl;
+    return;
+  }
+  fwrite(mem, sizeof(T), nrow * ncol, fd);
+  fclose(fd);
+}
+
 float *read_mmap(const char *file, size_t n, size_t dim) {
     FILE *fd;
     if ((fd = fopen(file, "rb")) == NULL)
