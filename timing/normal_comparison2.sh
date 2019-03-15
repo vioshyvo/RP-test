@@ -32,6 +32,15 @@ for K in 1 10 100; do
   fi
 done
 
+pushd exact_all_pairs
+  make
+popd
+
+KMAX=100
+if [ ! -f "data/$DATASET_NAME/exact_all_pairs_$KMAX.bin" ]; then
+  ./exact_all_pairs/tester $N $N_TEST $KMAX $DIM $MMAP "data/$DATASET_NAME"
+fi
+
 if [ "$#" -eq 2 ]; then
   RESULT_FILE="results/$DATASET_NAME/mrpt_$2"
 else

@@ -29,3 +29,4 @@ timing/script-output
 timing/gist
 **/.Rhistory
 *.zip
+.json
