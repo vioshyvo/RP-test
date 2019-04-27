@@ -1,5 +1,5 @@
 CXX=g++-8
-EIGEN_PATH=../../../mrpt/cpp/lib
+EIGEN_PATH=../../../mrpt_dev/cpp/lib
 MRPT_PATH=../../../mrpt_dev/cpp
 INCLUDE_PATH=../../include
 

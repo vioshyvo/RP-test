@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
     test = read_memory((infile_path + "test.bin").c_str(), ntest, dim);
     if(!test) {
-        std::cerr << "in mrpt_comparison: test data " << infile_path + "test.bin" << " could not be read\n";
+        std::cerr << "In file " << __FILE__ << ", line " << __LINE__ << ": test data " << infile_path + "test.bin" << " could not be read\n";
         return -1;
     }
 
@@ -70,17 +70,30 @@ int main(int argc, char **argv) {
     }
 
     if(!train) {
-        std::cerr << "in mrpt_comparison: training data " << infile_path + "train.bin" << " could not be read\n";
+        std::cerr << "In file " << __FILE__ << ", line " << __LINE__ << ": training data " << infile_path + "train.bin" << " could not be read\n";
         return -1;
     }
 
+    std::string spath(infile_path + "exact_all_pairs_100.bin");
+    int *knn = read_memory_int(spath.c_str(), n_points, k);
+    if(!knn) {
+        std::cerr << "In file " << __FILE__ << ", line " << __LINE__ << ": all pairs matrix " << spath << " could not be read\n";
+        return -1;
+    }
+
+    const Eigen::Map<const Eigen::MatrixXi> tknn(knn, 100, n_points);
+
     if(!parallel) omp_set_num_threads(1);
+
+    int k_crnt = 10;
+    const Eigen::MatrixXi knn_crnt = tknn.topRows(k_crnt);
 
     double build_start = omp_get_wtime();
     Mrpt index_dense(train, dim, n_points);
-    index_dense.grow(n_trees, depth, sparsity);
+    index_dense.grow(n_trees, depth, knn_crnt);
     double build_time = omp_get_wtime() - build_start;
-    std::vector<int> ks{1, 10, 100};
+    // std::vector<int> ks{1, 10, 100};
+    std::vector<int> ks{k_crnt};
 
     for (int j = 0; j < ks.size(); ++j) {
       int k = ks[j];

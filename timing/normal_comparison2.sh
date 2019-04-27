@@ -42,9 +42,9 @@ if [ ! -f "data/$DATASET_NAME/exact_all_pairs_$KMAX.bin" ]; then
 fi
 
 if [ "$#" -eq 2 ]; then
-  RESULT_FILE="results/$DATASET_NAME/mrpt_$2"
+  RESULT_FILE="results/$DATASET_NAME/mrpt2_$2"
 else
-  RESULT_FILE="results/$DATASET_NAME/mrpt"
+  RESULT_FILE="results/$DATASET_NAME/mrpt2"
 fi
 
 if [ $PARALLEL -eq 1 ]; then
