@@ -133,12 +133,12 @@ def random_to_binary(N, out):
             _write_floats((x / np.linalg.norm(x)).astype(np.float32), outfile)
 
 
-def sample_test_set(fname, out1, out2, n, dim):
+def sample_test_set(fname, out1, out2, n_test, dim, n_train = -1):
     import random
 
     sz = os.path.getsize(fname)
-    N = sz / (4 * dim)
-    pos = set(random.sample(range(N), n))
+    N = int(n_train + n_test) if n_train > 0 else sz / (4 * dim)
+    pos = set(random.sample(range(N), n_test))
     with open(fname, 'rb') as f:
         with open(out1, 'wb') as outfile1:
             with open(out2, 'wb') as outfile2:
@@ -161,7 +161,9 @@ if __name__ == '__main__':
     import sys
 
     if sys.argv[1] == '--sample':
-        sample_test_set(sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]), int(sys.argv[6]))
+        print("Sampling...")
+        n_train = int(sys.argv[7]) if len(sys.argv) == 8 else -1
+        sample_test_set(sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]), int(sys.argv[6]), n_train)
         sys.exit(0)
 
     inf, outf = sys.argv[1], sys.argv[2]
